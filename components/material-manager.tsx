@@ -52,7 +52,7 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
         } else {
           toast.error(res.error || "Có lỗi xảy ra");
         }
-      } catch (err) {
+      } catch {
         toast.error("Không thể kết nối máy chủ");
       }
     });
@@ -73,7 +73,7 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
         } else {
           toast.error(res.error || "Có lỗi xảy ra");
         }
-      } catch (err) {
+      } catch {
         toast.error("Không thể kết nối máy chủ");
       }
     });

@@ -1,10 +1,9 @@
-import * as React from "react";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth-helpers";
 import { getStocktake } from "@/lib/queries/stocktake";
 import { StocktakeDetail } from "@/components/stocktake-detail";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 

@@ -42,7 +42,7 @@ export function ImportForm({ materials }: { materials: Material[] }) {
         } else {
           toast.error(res.error || "Có lỗi xảy ra");
         }
-      } catch (err) {
+      } catch {
         toast.error("Có lỗi kết nối xảy ra");
       }
     });

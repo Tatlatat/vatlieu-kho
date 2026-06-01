@@ -9,6 +9,7 @@ import {
   getPaginationRowModel,
   flexRender,
   ColumnDef,
+  SortingState,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -37,7 +38,7 @@ interface HistoryRow {
 }
 
 export function HistoryTable({ rows }: { rows: HistoryRow[] }) {
-  const [sorting, setSorting] = React.useState<any[]>([
+  const [sorting, setSorting] = React.useState<SortingState>([
     { id: "createdAt", desc: true },
   ]);
   const [globalFilter, setGlobalFilter] = React.useState("");
@@ -101,6 +102,7 @@ export function HistoryTable({ rows }: { rows: HistoryRow[] }) {
     []
   );
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table không tương thích memoize của React Compiler; an toàn ở đây.
   const table = useReactTable({
     data: rows,
     columns,

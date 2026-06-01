@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Material, MovementType, MovementReason } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -14,7 +14,7 @@ async function main() {
   // 2. Create 2 users
   const passwordHash = await bcrypt.hash("123456", 10);
 
-  const owner = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: "owner@vatlieu.vn",
       name: "Anh Chu",
@@ -44,7 +44,7 @@ async function main() {
     { name: "Son nuoc", code: "SON-NUOC", unit: "thung", minStock: 10 },
   ];
 
-  const materials: { [code: string]: any } = {};
+  const materials: { [code: string]: Material } = {};
   for (const item of materialData) {
     const created = await prisma.material.create({
       data: item,
@@ -111,9 +111,9 @@ async function main() {
     await prisma.stockMovement.create({
       data: {
         materialId: material.id,
-        type: m.type as "IN" | "OUT",
+        type: m.type as MovementType,
         quantity: m.quantity,
-        reason: m.reason as any,
+        reason: m.reason as MovementReason,
         note: m.note,
         createdById: staff.id,
         createdAt: getPastDate(m.daysAgo),
@@ -127,7 +127,7 @@ async function main() {
   // - TH-D16: IN(200+100) - OUT(80+5) = 300 - 85 = 215
   // - TH-D18: IN(150+50) - OUT(90) = 200 - 90 = 110
 
-  const stocktake = await prisma.stocktake.create({
+  await prisma.stocktake.create({
     data: {
       code: "KK-2026-01",
       status: "DRAFT",

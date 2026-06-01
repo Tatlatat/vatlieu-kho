@@ -20,7 +20,7 @@ export function NewStocktakeButton() {
         } else {
           toast.error(res.error || "Không thể tạo phiếu kiểm kê");
         }
-      } catch (err) {
+      } catch {
         toast.error("Có lỗi xảy ra khi tạo phiếu kiểm kê");
       }
     });

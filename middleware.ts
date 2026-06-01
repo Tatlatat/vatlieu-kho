@@ -6,7 +6,7 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
-  const role = (req.auth?.user as any)?.role;
+  const role = req.auth?.user?.role;
   const isLogin = nextUrl.pathname.startsWith("/login");
 
   if (isLogin) {

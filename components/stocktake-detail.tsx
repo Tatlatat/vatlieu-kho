@@ -60,7 +60,7 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
         } else {
           toast.error(res.error || "Không thể cập nhật số lượng");
         }
-      } catch (err) {
+      } catch {
         toast.error("Lỗi kết nối mạng");
       }
     });
@@ -76,7 +76,7 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
         } else {
           toast.error(res.error || "Không thể duyệt phiếu");
         }
-      } catch (err) {
+      } catch {
         toast.error("Lỗi kết nối mạng");
       }
     });

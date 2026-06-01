@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   ResponsiveContainer,
@@ -41,21 +40,6 @@ const COLORS = [
 ];
 
 export function LossCharts({ monthData, reasonData }: LossChartsProps) {
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="h-[380px] animate-pulse bg-muted/40" />
-        <Card className="h-[380px] animate-pulse bg-muted/40" />
-      </div>
-    );
-  }
-
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* Hao hut theo thang */}
