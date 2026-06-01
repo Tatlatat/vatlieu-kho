@@ -1,0 +1,190 @@
+import * as React from "react";
+import { requireRole } from "@/lib/auth-helpers";
+import {
+  getDashboardSummary,
+  getLossByMonth,
+  getLossByReason,
+  getTopLossMaterials,
+  getAlerts,
+} from "@/lib/queries/reports";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import { StockStatusBadge } from "@/components/stock-status-badge";
+import { LossCharts } from "@/components/loss-charts";
+
+export default async function BaoCaoPage() {
+  await requireRole("OWNER");
+
+  const [summary, monthData, reasonData, topLoss, alerts] = await Promise.all([
+    getDashboardSummary(),
+    getLossByMonth(),
+    getLossByReason(),
+    getTopLossMaterials(5),
+    getAlerts(),
+  ]);
+
+  return (
+    <div className="container mx-auto py-8 px-4 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Báo Cáo Thống Kê & Phân Tích
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Thống kê hao hụt vật liệu, trạng thái kho dành cho Ban Quản Lý (Owner)
+        </p>
+      </div>
+
+      {/* Overview Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="shadow-xs border border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">
+              Tổng số vật tư
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summary.totalMaterials}</div>
+            <p className="text-xs text-muted-foreground">đang được quản lý</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-xs border border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">
+              Sắp hết hàng
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-500">
+              {summary.lowCount}
+            </div>
+            <p className="text-xs text-muted-foreground">chạm mức tối thiểu</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-xs border border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">
+              Đã hết hàng
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              {summary.outCount}
+            </div>
+            <p className="text-xs text-muted-foreground">cần nhập kho khẩn cấp</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-xs border border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">
+              Hao hụt tháng này
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              {summary.lossThisMonth > 0 ? `-${summary.lossThisMonth}` : "0"}
+            </div>
+            <p className="text-xs text-muted-foreground">từ đầu tháng đến nay</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Loss Charts component */}
+      <LossCharts monthData={monthData} reasonData={reasonData} />
+
+      {/* Bottom tables */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Top Loss Materials */}
+        <Card className="shadow-sm border border-border">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">
+              Top 5 vật liệu hao hụt nhiều nhất
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {topLoss.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                Chưa ghi nhận hao hụt cho vật tư nào.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tên vật liệu</TableHead>
+                    <TableHead className="text-right">Tổng hao hụt</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topLoss.map((item, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="text-right text-destructive font-semibold">
+                        -{item.total} <span className="text-xs text-muted-foreground font-normal">{item.unit}</span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Alerts / Attention */}
+        <Card className="shadow-sm border border-border">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">
+              Cảnh báo vật tư cần chú ý
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {alerts.length === 0 ? (
+              <div className="text-center py-8 text-sm text-emerald-600 dark:text-emerald-500 font-medium">
+                Tất cả vật tư đều có đủ tồn kho ổn định.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Vật tư</TableHead>
+                    <TableHead>Tồn kho</TableHead>
+                    <TableHead className="text-right">Trạng thái</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {alerts.map((item) => (
+                    <TableRow key={item.material_id}>
+                      <TableCell>
+                        <div className="font-semibold">{item.name}</div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {item.code}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-semibold">{item.on_hand}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {" "}/{item.min_stock} {item.unit}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <StockStatusBadge status={item.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
