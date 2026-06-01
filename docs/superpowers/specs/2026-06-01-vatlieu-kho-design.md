@@ -3,6 +3,8 @@
 **Ngày:** 2026-06-01
 **Trạng thái:** Đã duyệt qua brainstorming
 
+> **Ghi chú phiên bản:** `create-next-app` cài Next.js 16.2.6 + React 19 + Tailwind v4 (mới nhất, tốt cho portfolio). Tailwind v4 dùng `@import "tailwindcss"` trong `globals.css` thay cho `tailwind.config.ts`. App Router + Server Actions giữ nguyên như thiết kế.
+
 ## 1. Mục tiêu
 
 Web app giúp **một doanh nghiệp vật liệu xây dựng** quản lý tồn kho và **phát hiện hao hụt** vật liệu. Người dùng là người không chuyên → UI/UX phải cực đơn giản, tiếng Việt. Đồng thời là dự án portfolio GitHub → code sạch, kiến trúc ấn tượng (Postgres-centric + Docker).
