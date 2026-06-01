@@ -2,6 +2,14 @@
 
 Ghi nhận các lỗi phát sinh trong quá trình xây dựng, đặc biệt lỗi đến từ harness/môi trường (HS) theo yêu cầu của chủ dự án.
 
+**Tổng kết:** 6 lỗi gặp phải, tất cả đã xử lý. Phần lớn do các package quá mới (Next 16 / Prisma 7 / shadcn v4 / Recharts 3) chưa khớp pattern phổ biến. Không có lỗi logic nghiệp vụ.
+
+**Kết quả kiểm thử (3 vòng):**
+- Vòng 1 — tĩnh: `typecheck` ✅, `lint` ✅ (0 lỗi, 0 cảnh báo), `build` ✅
+- Vòng 2 — E2E (production build): 14/14 PASS (login 2 vai trò, 7 route owner, phân quyền staff, sai mật khẩu, redirect chưa-login)
+- Vòng 3 — clean-clone: `git clone` mới → `npm install` → `db:setup` → `build` → `npm start` → login → dashboard render chart, tất cả ✅
+- DB Postgres-centric verify riêng: view tự tính tồn đúng, trigger sinh hao hụt khi duyệt, idempotent, CHECK chặn số âm.
+
 | # | Ngày | Nguồn | Mô tả lỗi | Cách xử lý | Trạng thái |
 |---|------|-------|-----------|------------|-----------|
 | 1 | 2026-06-01 | HS (môi trường) | Port host 5432 đã bị chiếm bởi Postgres khác trên máy (`eems-postgres` + postgres native PID 1103) → `docker compose up db` lỗi "Bind for 0.0.0.0:5432 failed: port is already allocated". | Đổi port map host sang **5433** trong `docker-compose.yml` (container vẫn 5432), cập nhật `DATABASE_URL` dùng `localhost:5433`. Người clone về máy sạch vẫn dùng 5433 — không xung đột. | ✅ Đã xử lý |
