@@ -1,13 +1,95 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  STAFF
+}
+
+enum MovementType {
+  IN
+  OUT
+}
+
+enum MovementReason {
+  PURCHASE
+  PROJECT
+  DAMAGED
+  EXPIRED
+  NATURAL_LOSS
+  STOCKTAKE_ADJUST
+}
+
+enum StocktakeStatus {
+  DRAFT
+  APPROVED
+}
+
+model User {
+  id                 String          @id @default(cuid())
+  email              String          @unique
+  passwordHash       String
+  name               String
+  role               Role            @default(STAFF)
+  createdAt          DateTime        @default(now())
+  movements          StockMovement[]
+  stocktakesCreated  Stocktake[]     @relation("created")
+  stocktakesApproved Stocktake[]     @relation("approved")
+}
+
+model Material {
+  id             String          @id @default(cuid())
+  name           String
+  code           String          @unique
+  unit           String
+  minStock       Float           @default(0)
+  createdAt      DateTime        @default(now())
+  movements      StockMovement[]
+  stocktakeItems StocktakeItem[]
+}
+
+model StockMovement {
+  id          String         @id @default(cuid())
+  materialId  String
+  material    Material       @relation(fields: [materialId], references: [id])
+  type        MovementType
+  quantity    Float
+  reason      MovementReason
+  note        String?
+  createdById String
+  createdBy   User           @relation(fields: [createdById], references: [id])
+  createdAt   DateTime       @default(now())
+
+  @@index([materialId])
+  @@index([createdAt])
+}
+
+model Stocktake {
+  id           String          @id @default(cuid())
+  code         String          @unique
+  status       StocktakeStatus @default(DRAFT)
+  createdById  String
+  createdBy    User            @relation("created", fields: [createdById], references: [id])
+  approvedById String?
+  approvedBy   User?           @relation("approved", fields: [approvedById], references: [id])
+  createdAt    DateTime        @default(now())
+  approvedAt   DateTime?
+  items        StocktakeItem[]
+}
+
+model StocktakeItem {
+  id          String    @id @default(cuid())
+  stocktakeId String
+  stocktake   Stocktake @relation(fields: [stocktakeId], references: [id], onDelete: Cascade)
+  materialId  String
+  material    Material  @relation(fields: [materialId], references: [id])
+  countedQty  Float
+  systemQty   Float
+  diff        Float
 }
