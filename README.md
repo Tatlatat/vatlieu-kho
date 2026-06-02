@@ -1,5 +1,8 @@
 # Kho Vật Liệu — Quản lý & Phát hiện Hao hụt Vật liệu Xây dựng
 
+> 🌐 **Demo trực tuyến:** https://vatlieu-kho.vercel.app
+> Đăng nhập thử — Chủ: `owner@vatlieu.vn` / `123456` · Thủ kho: `staff@vatlieu.vn` / `123456`
+
 Phần mềm web giúp **một doanh nghiệp vật liệu xây dựng** quản lý tồn kho và **phát hiện hao hụt** vật liệu. Giao diện tiếng Việt, đơn giản cho người không chuyên.
 
 Điểm nhấn kỹ thuật: **logic lõi đặt ở PostgreSQL** (Postgres-centric) — view tự tính tồn kho, trigger tự ghi nhận hao hụt khi duyệt kiểm kê, ràng buộc dữ liệu ngay tại database.
