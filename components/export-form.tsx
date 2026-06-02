@@ -86,7 +86,9 @@ export function ExportForm({ materials }: { materials: Material[] }) {
               <Label htmlFor="reason" className="text-sm font-medium">Lý do xuất</Label>
               <Select value={reason} onValueChange={(v) => setReason(v ?? "")}>
                 <SelectTrigger className="w-full h-10">
-                  <SelectValue placeholder="Chọn lý do..." />
+                  <SelectValue placeholder="Chọn lý do...">
+                    {OUT_REASONS.find((r) => r.value === reason)?.label ?? null}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {OUT_REASONS.map((r) => (

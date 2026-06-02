@@ -29,11 +29,15 @@ export function MaterialSelect({
   value,
   onChange,
 }: MaterialSelectProps) {
+  const selected = materials.find((m) => m.id === value);
+
   return (
     <div className="relative w-full">
       <Select value={value} onValueChange={(v) => onChange(v ?? "")}>
         <SelectTrigger className="w-full h-10">
-          <SelectValue placeholder="Chọn vật tư..." />
+          <SelectValue placeholder="Chọn vật tư...">
+            {selected ? `${selected.name} (${selected.code})` : null}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {materials.map((m) => (
