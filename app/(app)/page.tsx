@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-helpers";
 import { getCurrentStock } from "@/lib/queries/stock";
+import { getDashboardSummary } from "@/lib/queries/reports";
 import { StockStatusBadge } from "@/components/stock-status-badge";
 import {
   Table,
@@ -10,7 +11,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowDownToLine, ArrowUpFromLine, ClipboardCheck, Search } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  ClipboardCheck,
+  Search,
+  TrendingDown,
+  ChevronRight,
+} from "lucide-react";
 
 const actions = [
   { href: "/nhap", label: "Nhập hàng", icon: ArrowDownToLine, color: "bg-blue-600" },
@@ -21,7 +29,11 @@ const actions = [
 
 export default async function HomePage() {
   const user = await requireUser();
-  const stock = await getCurrentStock();
+  const isOwner = user.role === "OWNER";
+  const [stock, summary] = await Promise.all([
+    getCurrentStock(),
+    isOwner ? getDashboardSummary() : Promise.resolve(null),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -29,6 +41,31 @@ export default async function HomePage() {
         <h1 className="text-xl font-bold">Xin chào, {user.name}</h1>
         <p className="text-sm text-slate-500">Chọn thao tác hoặc xem tồn kho bên dưới.</p>
       </div>
+
+      {isOwner && summary && (
+        <Link
+          href="/bao-cao"
+          className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4 transition hover:bg-red-100 dark:border-red-900 dark:bg-red-950/30"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-red-600 text-white">
+              <TrendingDown className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="text-sm text-red-700 dark:text-red-300">
+                Hao hụt tháng này
+              </div>
+              <div className="text-2xl font-bold text-red-700 dark:text-red-300">
+                {summary.lossThisMonth.toLocaleString("vi-VN")}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-sm font-medium text-red-700 dark:text-red-300">
+            Xem báo cáo chi tiết
+            <ChevronRight className="h-4 w-4" />
+          </div>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {actions.map((a) => {

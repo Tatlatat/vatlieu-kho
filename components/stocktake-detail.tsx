@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
+import { BarChart3 } from "lucide-react";
 import { updateStocktakeItem, approveStocktake } from "@/lib/actions/stocktake";
 import { toast } from "sonner";
 
@@ -71,7 +73,14 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
       try {
         const res = await approveStocktake(stocktake.id);
         if (res.ok) {
-          toast.success("Đã duyệt, hao hụt đã được ghi nhận");
+          toast.success("Đã duyệt — hao hụt đã được ghi nhận", {
+            description: "Xem thống kê hao hụt trong trang Báo cáo.",
+            action: {
+              label: "Xem Báo cáo",
+              onClick: () => router.push("/bao-cao"),
+            },
+            duration: 8000,
+          });
           router.refresh();
         } else {
           toast.error(res.error || "Không thể duyệt phiếu");
@@ -158,13 +167,20 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t pt-6 gap-4">
         <div>
           {!isDraft ? (
-            <div className="space-y-1">
+            <div className="space-y-2">
               <p className="text-sm font-semibold text-destructive">
                 Tổng hao hụt: -{totalLoss}
               </p>
               <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 Phiếu đã duyệt, đã ghi nhận vào kho.
               </p>
+              <Link
+                href="/bao-cao"
+                className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                Xem hao hụt trong Báo cáo
+              </Link>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">

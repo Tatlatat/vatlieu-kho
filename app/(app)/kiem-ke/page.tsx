@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { HuongDanKiemKe } from "@/components/huong-dan-kiem-ke";
 
 export default async function KiemKePage() {
   await requireUser();
@@ -31,6 +32,8 @@ export default async function KiemKePage() {
         </div>
         <NewStocktakeButton />
       </div>
+
+      <HuongDanKiemKe />
 
       <Card className="shadow-md border border-border">
         <CardHeader>
