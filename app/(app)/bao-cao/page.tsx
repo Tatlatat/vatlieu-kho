@@ -17,7 +17,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { StockStatusBadge } from "@/components/stock-status-badge";
-import { LossCharts } from "@/components/loss-charts";
+import { LossCharts } from "@/components/loss-charts-client";
 
 export default async function BaoCaoPage() {
   await requireRole("OWNER");

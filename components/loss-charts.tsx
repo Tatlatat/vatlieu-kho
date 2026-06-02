@@ -54,7 +54,7 @@ export function LossCharts({ monthData, reasonData }: LossChartsProps) {
             </div>
           ) : (
             <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300}>
                 <BarChart data={monthData}>
                   <XAxis
                     dataKey="month"
@@ -105,7 +105,7 @@ export function LossCharts({ monthData, reasonData }: LossChartsProps) {
             </div>
           ) : (
             <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300}>
                 <PieChart>
                   <Pie
                     data={reasonData}
