@@ -49,6 +49,8 @@ export function Nav({ role, name }: { role: Role; name: string }) {
                 <Link
                   key={l.href}
                   href={l.href}
+                  title={l.label}
+                  aria-label={l.label}
                   className={cn(
                     "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                     active
@@ -65,10 +67,10 @@ export function Nav({ role, name }: { role: Role; name: string }) {
 
         <div className="flex items-center gap-2">
           <span className="hidden text-sm text-slate-500 sm:inline">
-            {name} ({role === "OWNER" ? "Chủ" : "Thủ kho"})
+            {name} ({role === "OWNER" ? "Quản lý" : "Thủ kho"})
           </span>
           <form action={logoutAction}>
-            <Button variant="ghost" size="sm" type="submit" title="Đăng xuất">
+            <Button variant="ghost" size="sm" type="submit" title="Đăng xuất" aria-label="Đăng xuất">
               <LogOut className="h-4 w-4" />
             </Button>
           </form>

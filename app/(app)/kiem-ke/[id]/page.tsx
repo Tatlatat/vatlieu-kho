@@ -58,7 +58,7 @@ export default async function KiemKeDetailPage({ params }: PageProps) {
             <p>
               Ngày lập:{" "}
               <span className="font-medium text-foreground">
-                {new Date(stocktake.createdAt).toLocaleDateString("vi-VN", {
+                {new Date(stocktake.createdAt).toLocaleString("vi-VN", {
                   year: "numeric",
                   month: "2-digit",
                   day: "2-digit",
@@ -75,7 +75,7 @@ export default async function KiemKeDetailPage({ params }: PageProps) {
                 </span>{" "}
                 vào{" "}
                 <span className="font-medium text-foreground">
-                  {new Date(stocktake.approvedAt).toLocaleDateString("vi-VN", {
+                  {new Date(stocktake.approvedAt).toLocaleString("vi-VN", {
                     year: "numeric",
                     month: "2-digit",
                     day: "2-digit",

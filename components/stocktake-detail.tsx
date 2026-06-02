@@ -126,7 +126,7 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {item.systemQty} <span className="text-xs text-muted-foreground">{item.material.unit}</span>
+                    {item.systemQty.toLocaleString("vi-VN")} <span className="text-xs text-muted-foreground">{item.material.unit}</span>
                   </TableCell>
                   <TableCell>
                     {isDraft ? (
@@ -135,6 +135,7 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
                         step="any"
                         defaultValue={item.countedQty}
                         disabled={isPending}
+                        aria-label={`Số lượng thực đếm của ${item.material.name}`}
                         onBlur={(e) =>
                           handleBlur(item.id, item.countedQty, e.target.value)
                         }
@@ -142,19 +143,19 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
                       />
                     ) : (
                       <span className="font-semibold">
-                        {item.countedQty} <span className="text-xs text-muted-foreground font-normal">{item.material.unit}</span>
+                        {item.countedQty.toLocaleString("vi-VN")} <span className="text-xs text-muted-foreground font-normal">{item.material.unit}</span>
                       </span>
                     )}
                   </TableCell>
                   <TableCell className="text-right font-medium">
                     {isNegative && (
                       <span className="text-destructive font-semibold">
-                        {item.diff} (Hao hụt {Math.abs(item.diff)})
+                        {item.diff.toLocaleString("vi-VN")} (Hao hụt {Math.abs(item.diff).toLocaleString("vi-VN")})
                       </span>
                     )}
                     {isPositive && (
                       <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                        +{item.diff}
+                        +{item.diff.toLocaleString("vi-VN")}
                       </span>
                     )}
                     {item.diff === 0 && <span className="text-muted-foreground">0</span>}
@@ -171,7 +172,7 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
           {!isDraft ? (
             <div className="space-y-2">
               <p className="text-sm font-semibold text-destructive">
-                Tổng hao hụt: -{totalLoss}
+                Tổng hao hụt: -{totalLoss.toLocaleString("vi-VN")}
               </p>
               <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 Phiếu đã duyệt, đã ghi nhận vào kho.

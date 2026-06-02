@@ -62,7 +62,7 @@ export default function LoginPage() {
           </form>
           <div className="mt-4 rounded-md bg-slate-100 p-3 text-xs text-slate-600">
             <p className="font-medium">Tài khoản dùng thử:</p>
-            <p>Chủ: owner@vatlieu.vn — mật khẩu 123456</p>
+            <p>Quản lý: owner@vatlieu.vn — mật khẩu 123456</p>
             <p>Thủ kho: staff@vatlieu.vn — mật khẩu 123456</p>
           </div>
         </CardContent>

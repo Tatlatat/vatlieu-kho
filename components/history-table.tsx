@@ -50,7 +50,7 @@ export function HistoryTable({ rows }: { rows: HistoryRow[] }) {
         header: "Ngày",
         cell: ({ row }) => {
           const date = new Date(row.original.createdAt);
-          return date.toLocaleDateString("vi-VN", {
+          return date.toLocaleString("vi-VN", {
             year: "numeric",
             month: "2-digit",
             day: "2-digit",
@@ -135,6 +135,7 @@ export function HistoryTable({ rows }: { rows: HistoryRow[] }) {
         <div className="flex w-full sm:w-auto items-center gap-3">
           <Input
             placeholder="Tìm theo tên vật liệu..."
+            aria-label="Tìm kiếm giao dịch theo tên vật liệu"
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
             className="w-full sm:w-64 h-9"

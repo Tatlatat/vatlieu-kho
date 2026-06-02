@@ -62,7 +62,7 @@ export default async function KiemKePage() {
                     <TableRow key={t.id}>
                       <TableCell className="font-mono font-medium">{t.code}</TableCell>
                       <TableCell>
-                        {new Date(t.createdAt).toLocaleDateString("vi-VN", {
+                        {new Date(t.createdAt).toLocaleString("vi-VN", {
                           year: "numeric",
                           month: "2-digit",
                           day: "2-digit",
@@ -83,7 +83,7 @@ export default async function KiemKePage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right font-semibold text-destructive">
-                        {t.totalLoss > 0 ? `-${t.totalLoss}` : "0"}
+                        {t.totalLoss > 0 ? `-${t.totalLoss.toLocaleString("vi-VN")}` : "0"}
                       </TableCell>
                       <TableCell>
                         <Link

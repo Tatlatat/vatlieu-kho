@@ -91,7 +91,7 @@ export default async function BaoCaoPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-              {summary.lossThisMonth > 0 ? `-${summary.lossThisMonth}` : "0"}
+              {summary.lossThisMonth > 0 ? `-${summary.lossThisMonth.toLocaleString("vi-VN")}` : "0"}
             </div>
             <p className="text-xs text-muted-foreground">từ đầu tháng đến nay</p>
           </CardContent>
@@ -125,11 +125,11 @@ export default async function BaoCaoPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {topLoss.map((item, idx) => (
-                      <TableRow key={idx}>
+                    {topLoss.map((item) => (
+                      <TableRow key={item.name}>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell className="text-right text-destructive font-semibold">
-                          -{item.total} <span className="text-xs text-muted-foreground font-normal">{item.unit}</span>
+                          -{item.total.toLocaleString("vi-VN")} <span className="text-xs text-muted-foreground font-normal">{item.unit}</span>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -172,9 +172,9 @@ export default async function BaoCaoPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="font-semibold">{item.on_hand}</span>
+                          <span className="font-semibold">{item.on_hand.toLocaleString("vi-VN")}</span>
                           <span className="text-xs text-muted-foreground">
-                            {" "}/{item.min_stock} {item.unit}
+                            {" "}/{item.min_stock.toLocaleString("vi-VN")} {item.unit}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
