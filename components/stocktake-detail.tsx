@@ -100,69 +100,71 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
 
   return (
     <div className="space-y-6">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Vật liệu</TableHead>
-            <TableHead>Tồn sổ</TableHead>
-            <TableHead className="w-[180px]">Số đếm thực tế</TableHead>
-            <TableHead className="text-right">Chênh lệch</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {stocktake.items.map((item) => {
-            const isNegative = item.diff < 0;
-            const isPositive = item.diff > 0;
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Vật liệu</TableHead>
+              <TableHead>Tồn sổ</TableHead>
+              <TableHead className="w-[180px]">Số đếm thực tế</TableHead>
+              <TableHead className="text-right">Chênh lệch</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {stocktake.items.map((item) => {
+              const isNegative = item.diff < 0;
+              const isPositive = item.diff > 0;
 
-            return (
-              <TableRow key={item.id}>
-                <TableCell>
-                  <div className="font-semibold text-foreground">
-                    {item.material.name}
-                  </div>
-                  <div className="text-xs text-muted-foreground font-mono">
-                    {item.material.code}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {item.systemQty} <span className="text-xs text-muted-foreground">{item.material.unit}</span>
-                </TableCell>
-                <TableCell>
-                  {isDraft ? (
-                    <Input
-                      type="number"
-                      step="any"
-                      defaultValue={item.countedQty}
-                      disabled={isPending}
-                      onBlur={(e) =>
-                        handleBlur(item.id, item.countedQty, e.target.value)
-                      }
-                      className="h-9 w-32 font-medium"
-                    />
-                  ) : (
-                    <span className="font-semibold">
-                      {item.countedQty} <span className="text-xs text-muted-foreground font-normal">{item.material.unit}</span>
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {isNegative && (
-                    <span className="text-destructive font-semibold">
-                      {item.diff} (Hao hụt {Math.abs(item.diff)})
-                    </span>
-                  )}
-                  {isPositive && (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                      +{item.diff}
-                    </span>
-                  )}
-                  {item.diff === 0 && <span className="text-muted-foreground">0</span>}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+              return (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <div className="font-semibold text-foreground">
+                      {item.material.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {item.material.code}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {item.systemQty} <span className="text-xs text-muted-foreground">{item.material.unit}</span>
+                  </TableCell>
+                  <TableCell>
+                    {isDraft ? (
+                      <Input
+                        type="number"
+                        step="any"
+                        defaultValue={item.countedQty}
+                        disabled={isPending}
+                        onBlur={(e) =>
+                          handleBlur(item.id, item.countedQty, e.target.value)
+                        }
+                        className="h-9 w-32 font-medium"
+                      />
+                    ) : (
+                      <span className="font-semibold">
+                        {item.countedQty} <span className="text-xs text-muted-foreground font-normal">{item.material.unit}</span>
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {isNegative && (
+                      <span className="text-destructive font-semibold">
+                        {item.diff} (Hao hụt {Math.abs(item.diff)})
+                      </span>
+                    )}
+                    {isPositive && (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                        +{item.diff}
+                      </span>
+                    )}
+                    {item.diff === 0 && <span className="text-muted-foreground">0</span>}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t pt-6 gap-4">
         <div>

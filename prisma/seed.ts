@@ -34,14 +34,14 @@ async function main() {
 
   // 3. Create 8 materials
   const materialData = [
-    { name: "Xi mang PCB40", code: "XM-PCB40", unit: "bao", minStock: 20 },
-    { name: "Thep phi 16", code: "TH-D16", unit: "cay", minStock: 50 },
-    { name: "Thep phi 18", code: "TH-D18", unit: "cay", minStock: 50 },
-    { name: "Cat vang", code: "CAT-VANG", unit: "m3", minStock: 5 },
-    { name: "Da 1x2", code: "DA-1X2", unit: "m3", minStock: 5 },
-    { name: "Gach ong", code: "GACH-ONG", unit: "vien", minStock: 500 },
-    { name: "Gach the", code: "GACH-THE", unit: "vien", minStock: 500 },
-    { name: "Son nuoc", code: "SON-NUOC", unit: "thung", minStock: 10 },
+    { name: "Xi măng PCB40", code: "XM-PCB40", unit: "bao", minStock: 20 },
+    { name: "Thép phi 16", code: "TH-D16", unit: "cây", minStock: 50 },
+    { name: "Thép phi 18", code: "TH-D18", unit: "cây", minStock: 50 },
+    { name: "Cát vàng", code: "CAT-VANG", unit: "m³", minStock: 5 },
+    { name: "Đá 1x2", code: "DA-1X2", unit: "m³", minStock: 5 },
+    { name: "Gạch ống", code: "GACH-ONG", unit: "viên", minStock: 500 },
+    { name: "Gạch thẻ", code: "GACH-THE", unit: "viên", minStock: 500 },
+    { name: "Sơn nước", code: "SON-NUOC", unit: "thùng", minStock: 10 },
   ];
 
   const materials: { [code: string]: Material } = {};
@@ -59,51 +59,51 @@ async function main() {
 
   // 4. Create ~30 StockMovements spread across last 3 months
   const movementDefinitions = [
-    // XM-PCB40 (Xi mang PCB40) - 5 movements
-    { code: "XM-PCB40", type: "IN", quantity: 100, reason: "PURCHASE", daysAgo: 85, note: "Nhap hang dot 1" },
-    { code: "XM-PCB40", type: "IN", quantity: 50, reason: "PURCHASE", daysAgo: 45, note: "Nhap hang dot 2" },
-    { code: "XM-PCB40", type: "OUT", quantity: 60, reason: "PROJECT", daysAgo: 25, note: "Xuat cho cong trinh A" },
-    { code: "XM-PCB40", type: "OUT", quantity: 5, reason: "PROJECT", daysAgo: 12, note: "Xuat cho cong trinh B" },
-    { code: "XM-PCB40", type: "OUT", quantity: 10, reason: "NATURAL_LOSS", daysAgo: 5, note: "Hao hut do am uot" },
+    // XM-PCB40 (Xi măng PCB40) - 5 movements
+    { code: "XM-PCB40", type: "IN", quantity: 100, reason: "PURCHASE", daysAgo: 85, note: "Nhập hàng đợt 1" },
+    { code: "XM-PCB40", type: "IN", quantity: 50, reason: "PURCHASE", daysAgo: 45, note: "Nhập hàng đợt 2" },
+    { code: "XM-PCB40", type: "OUT", quantity: 60, reason: "PROJECT", daysAgo: 25, note: "Xuất cho công trình A" },
+    { code: "XM-PCB40", type: "OUT", quantity: 5, reason: "PROJECT", daysAgo: 12, note: "Xuất cho công trình B" },
+    { code: "XM-PCB40", type: "OUT", quantity: 10, reason: "NATURAL_LOSS", daysAgo: 5, note: "Hao hụt do ẩm ướt" },
 
-    // TH-D16 (Thep phi 16) - 4 movements
-    { code: "TH-D16", type: "IN", quantity: 200, reason: "PURCHASE", daysAgo: 80, note: "Nhap kho thep d16" },
-    { code: "TH-D16", type: "IN", quantity: 100, reason: "PURCHASE", daysAgo: 60, note: "Nhap bo sung" },
-    { code: "TH-D16", type: "OUT", quantity: 80, reason: "PROJECT", daysAgo: 40, note: "Xuat lam mong" },
-    { code: "TH-D16", type: "OUT", quantity: 5, reason: "DAMAGED", daysAgo: 15, note: "Cong venh khong dung duoc" },
+    // TH-D16 (Thép phi 16) - 4 movements
+    { code: "TH-D16", type: "IN", quantity: 200, reason: "PURCHASE", daysAgo: 80, note: "Nhập kho thép phi 16" },
+    { code: "TH-D16", type: "IN", quantity: 100, reason: "PURCHASE", daysAgo: 60, note: "Nhập bổ sung" },
+    { code: "TH-D16", type: "OUT", quantity: 80, reason: "PROJECT", daysAgo: 40, note: "Xuất làm móng" },
+    { code: "TH-D16", type: "OUT", quantity: 5, reason: "DAMAGED", daysAgo: 15, note: "Cong vênh không dùng được" },
 
-    // TH-D18 (Thep phi 18) - 3 movements
-    { code: "TH-D18", type: "IN", quantity: 150, reason: "PURCHASE", daysAgo: 75, note: "Nhap kho thep d18" },
-    { code: "TH-D18", type: "IN", quantity: 50, reason: "PURCHASE", daysAgo: 35, note: "Nhap bo sung" },
-    { code: "TH-D18", type: "OUT", quantity: 90, reason: "PROJECT", daysAgo: 12, note: "Xuat lam cot" },
+    // TH-D18 (Thép phi 18) - 3 movements
+    { code: "TH-D18", type: "IN", quantity: 150, reason: "PURCHASE", daysAgo: 75, note: "Nhập kho thép phi 18" },
+    { code: "TH-D18", type: "IN", quantity: 50, reason: "PURCHASE", daysAgo: 35, note: "Nhập bổ sung" },
+    { code: "TH-D18", type: "OUT", quantity: 90, reason: "PROJECT", daysAgo: 12, note: "Xuất làm cột" },
 
-    // CAT-VANG (Cat vang) - 3 movements
-    { code: "CAT-VANG", type: "IN", quantity: 30, reason: "PURCHASE", daysAgo: 80, note: "Nhap cat vang san" },
-    { code: "CAT-VANG", type: "OUT", quantity: 10, reason: "PROJECT", daysAgo: 50, note: "Xoay tron be tong" },
-    { code: "CAT-VANG", type: "OUT", quantity: 2, reason: "NATURAL_LOSS", daysAgo: 20, note: "Bay mai do gio thoi" },
+    // CAT-VANG (Cát vàng) - 3 movements
+    { code: "CAT-VANG", type: "IN", quantity: 30, reason: "PURCHASE", daysAgo: 80, note: "Nhập cát vàng sạn" },
+    { code: "CAT-VANG", type: "OUT", quantity: 10, reason: "PROJECT", daysAgo: 50, note: "Xoay trộn bê tông" },
+    { code: "CAT-VANG", type: "OUT", quantity: 2, reason: "NATURAL_LOSS", daysAgo: 20, note: "Bay mất do gió thổi" },
 
-    // DA-1X2 (Da 1x2) - 4 movements
-    { code: "DA-1X2", type: "IN", quantity: 40, reason: "PURCHASE", daysAgo: 70, note: "Nhap da" },
-    { code: "DA-1X2", type: "OUT", quantity: 15, reason: "PROJECT", daysAgo: 40, note: "Do be tong san" },
-    { code: "DA-1X2", type: "OUT", quantity: 1, reason: "DAMAGED", daysAgo: 10, note: "Da lan lon tap chat" },
-    { code: "DA-1X2", type: "OUT", quantity: 5, reason: "PROJECT", daysAgo: 5, note: "Do san phu" },
+    // DA-1X2 (Đá 1x2) - 4 movements
+    { code: "DA-1X2", type: "IN", quantity: 40, reason: "PURCHASE", daysAgo: 70, note: "Nhập đá" },
+    { code: "DA-1X2", type: "OUT", quantity: 15, reason: "PROJECT", daysAgo: 40, note: "Đổ bê tông sàn" },
+    { code: "DA-1X2", type: "OUT", quantity: 1, reason: "DAMAGED", daysAgo: 10, note: "Đá lẫn lộn tạp chất" },
+    { code: "DA-1X2", type: "OUT", quantity: 5, reason: "PROJECT", daysAgo: 5, note: "Đổ sàn phụ" },
 
-    // GACH-ONG (Gach ong) - 4 movements
-    { code: "GACH-ONG", type: "IN", quantity: 5000, reason: "PURCHASE", daysAgo: 85, note: "Nhap gach dot 1" },
-    { code: "GACH-ONG", type: "IN", quantity: 2000, reason: "PURCHASE", daysAgo: 45, note: "Nhap gach dot 2" },
-    { code: "GACH-ONG", type: "OUT", quantity: 3000, reason: "PROJECT", daysAgo: 30, note: "Xay tuong bao" },
-    { code: "GACH-ONG", type: "OUT", quantity: 200, reason: "EXPIRED", daysAgo: 15, note: "Vo nat do van chuyen" },
+    // GACH-ONG (Gạch ống) - 4 movements
+    { code: "GACH-ONG", type: "IN", quantity: 5000, reason: "PURCHASE", daysAgo: 85, note: "Nhập gạch đợt 1" },
+    { code: "GACH-ONG", type: "IN", quantity: 2000, reason: "PURCHASE", daysAgo: 45, note: "Nhập gạch đợt 2" },
+    { code: "GACH-ONG", type: "OUT", quantity: 3000, reason: "PROJECT", daysAgo: 30, note: "Xây tường bao" },
+    { code: "GACH-ONG", type: "OUT", quantity: 200, reason: "EXPIRED", daysAgo: 15, note: "Vỡ nát do vận chuyển" },
 
-    // GACH-THE (Gach the) - 3 movements
-    { code: "GACH-THE", type: "IN", quantity: 4000, reason: "PURCHASE", daysAgo: 60, note: "Nhap gach the" },
-    { code: "GACH-THE", type: "OUT", quantity: 1500, reason: "PROJECT", daysAgo: 25, note: "Xay trang tri" },
-    { code: "GACH-THE", type: "OUT", quantity: 100, reason: "NATURAL_LOSS", daysAgo: 8, note: "Vo hao hut thi cong" },
+    // GACH-THE (Gạch thẻ) - 3 movements
+    { code: "GACH-THE", type: "IN", quantity: 4000, reason: "PURCHASE", daysAgo: 60, note: "Nhập gạch thẻ" },
+    { code: "GACH-THE", type: "OUT", quantity: 1500, reason: "PROJECT", daysAgo: 25, note: "Xây trang trí" },
+    { code: "GACH-THE", type: "OUT", quantity: 100, reason: "NATURAL_LOSS", daysAgo: 8, note: "Vỡ hao hụt thi công" },
 
-    // SON-NUOC (Son nuoc) - 4 movements
-    { code: "SON-NUOC", type: "IN", quantity: 50, reason: "PURCHASE", daysAgo: 55, note: "Nhap son" },
-    { code: "SON-NUOC", type: "IN", quantity: 20, reason: "PURCHASE", daysAgo: 30, note: "Nhap bo sung son ngoai that" },
-    { code: "SON-NUOC", type: "OUT", quantity: 20, reason: "PROJECT", daysAgo: 15, note: "Son phu tang 1" },
-    { code: "SON-NUOC", type: "OUT", quantity: 2, reason: "EXPIRED", daysAgo: 5, note: "Hong thung son do nap khong ky" },
+    // SON-NUOC (Sơn nước) - 4 movements
+    { code: "SON-NUOC", type: "IN", quantity: 50, reason: "PURCHASE", daysAgo: 55, note: "Nhập sơn" },
+    { code: "SON-NUOC", type: "IN", quantity: 20, reason: "PURCHASE", daysAgo: 30, note: "Nhập bổ sung sơn ngoại thất" },
+    { code: "SON-NUOC", type: "OUT", quantity: 20, reason: "PROJECT", daysAgo: 15, note: "Sơn phủ tầng 1" },
+    { code: "SON-NUOC", type: "OUT", quantity: 2, reason: "EXPIRED", daysAgo: 5, note: "Hỏng thùng sơn do nắp không kỹ" },
   ];
 
   for (const m of movementDefinitions) {

@@ -116,24 +116,26 @@ export default async function BaoCaoPage() {
                 Chưa ghi nhận hao hụt cho vật tư nào.
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tên vật liệu</TableHead>
-                    <TableHead className="text-right">Tổng hao hụt</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topLoss.map((item, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell className="text-right text-destructive font-semibold">
-                        -{item.total} <span className="text-xs text-muted-foreground font-normal">{item.unit}</span>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tên vật liệu</TableHead>
+                      <TableHead className="text-right">Tổng hao hụt</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {topLoss.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell className="text-right text-destructive font-semibold">
+                          -{item.total} <span className="text-xs text-muted-foreground font-normal">{item.unit}</span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -151,36 +153,38 @@ export default async function BaoCaoPage() {
                 Tất cả vật tư đều có đủ tồn kho ổn định.
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Vật tư</TableHead>
-                    <TableHead>Tồn kho</TableHead>
-                    <TableHead className="text-right">Trạng thái</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {alerts.map((item) => (
-                    <TableRow key={item.material_id}>
-                      <TableCell>
-                        <div className="font-semibold">{item.name}</div>
-                        <div className="text-xs text-muted-foreground font-mono">
-                          {item.code}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-semibold">{item.on_hand}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {" "}/{item.min_stock} {item.unit}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <StockStatusBadge status={item.status} />
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vật tư</TableHead>
+                      <TableHead>Tồn kho</TableHead>
+                      <TableHead className="text-right">Trạng thái</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {alerts.map((item) => (
+                      <TableRow key={item.material_id}>
+                        <TableCell>
+                          <div className="font-semibold">{item.name}</div>
+                          <div className="text-xs text-muted-foreground font-mono">
+                            {item.code}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-semibold">{item.on_hand}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {" "}/{item.min_stock} {item.unit}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <StockStatusBadge status={item.status} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

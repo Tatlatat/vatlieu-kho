@@ -97,39 +97,41 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
               Chưa có vật liệu nào được thêm vào hệ thống.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tên vật liệu</TableHead>
-                  <TableHead>Mã</TableHead>
-                  <TableHead>Đơn vị</TableHead>
-                  <TableHead className="text-right">Mức tối thiểu</TableHead>
-                  <TableHead className="w-[100px] text-right">Hành động</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {materials.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-semibold text-foreground">
-                      {m.name}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{m.code}</TableCell>
-                    <TableCell>{m.unit}</TableCell>
-                    <TableCell className="text-right font-medium">{m.minStock}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingMaterial(m)}
-                        className="cursor-pointer"
-                      >
-                        Sửa
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tên vật liệu</TableHead>
+                    <TableHead>Mã</TableHead>
+                    <TableHead>Đơn vị</TableHead>
+                    <TableHead className="text-right">Mức tối thiểu</TableHead>
+                    <TableHead className="w-[100px] text-right">Hành động</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {materials.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell className="font-semibold text-foreground">
+                        {m.name}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{m.code}</TableCell>
+                      <TableCell>{m.unit}</TableCell>
+                      <TableCell className="text-right font-medium">{m.minStock}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingMaterial(m)}
+                          className="cursor-pointer"
+                        >
+                          Sửa
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
