@@ -169,7 +169,7 @@ export function HistoryTable({ rows, isOwner }: { rows: HistoryRow[]; isOwner: b
         },
       },
     ],
-    [isOwner, handleVoid]
+    [isOwner]
   );
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table không tương thích memoize của React Compiler; an toàn ở đây.

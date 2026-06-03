@@ -26,7 +26,7 @@ function buildQuery(from: string, to: string, whFilter: Prisma.Sql) {
     )
     SELECT material_id, name, code, unit,
       COALESCE(SUM(CASE WHEN "createdAt" < ${from}::timestamp THEN signed ELSE 0 END),0) AS opening,
-      COALESCE(SUM(CASE WHEN in_period AND type='IN' AND reason='PURCHASE' THEN quantity ELSE 0 END),0) AS in_qty,
+      COALESCE(SUM(CASE WHEN in_period AND type='IN' AND reason <> 'TRANSFER_IN' THEN quantity ELSE 0 END),0) AS in_qty,
       COALESCE(SUM(CASE WHEN in_period AND type='OUT' AND reason <> 'TRANSFER_OUT' THEN quantity ELSE 0 END),0) AS out_qty,
       COALESCE(SUM(CASE WHEN in_period AND reason='TRANSFER_IN' THEN quantity ELSE 0 END),0) AS transfer_in,
       COALESCE(SUM(CASE WHEN in_period AND reason='TRANSFER_OUT' THEN quantity ELSE 0 END),0) AS transfer_out,

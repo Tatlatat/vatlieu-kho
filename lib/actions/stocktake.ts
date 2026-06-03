@@ -74,8 +74,8 @@ export async function approveStocktake(stocktakeId: string): Promise<ActionResul
 
   const st = await prisma.stocktake.findUnique({ where: { id: stocktakeId } });
   if (!st) return { ok: false, error: "Không tìm thấy phiếu." };
-  if (st.status === "APPROVED") {
-    return { ok: false, error: "Phiếu đã được duyệt trước đó." };
+  if (st.status !== "DRAFT") {
+    return { ok: false, error: st.status === "VOIDED" ? "Phiếu đã bị hủy, không thể duyệt." : "Phiếu đã được duyệt trước đó." };
   }
 
   // Chỉ cập nhật status/approver — trigger Postgres lo phần ghi nhận hao hụt.

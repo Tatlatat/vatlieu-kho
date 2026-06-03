@@ -157,7 +157,7 @@ export function BalanceReport({ rows, warehouses, from, to, warehouseId }: Props
                   <TableHead className="font-semibold">Mã</TableHead>
                   <TableHead className="font-semibold">Tên vật liệu</TableHead>
                   <TableHead className="text-right font-semibold">Đầu kỳ</TableHead>
-                  <TableHead className="text-right font-semibold">Nhập</TableHead>
+                  <TableHead className="text-right font-semibold" title="Nhập mua + điều chỉnh thừa khi kiểm kê">Nhập</TableHead>
                   <TableHead className="text-right font-semibold">Xuất</TableHead>
                   {showTransfer && (
                     <>
