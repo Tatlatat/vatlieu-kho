@@ -8,32 +8,37 @@ export interface CurrentStockRow {
   code: string;
   unit: string;
   min_stock: number;
+  warehouse_id: string;
+  warehouse_name: string;
   on_hand: number;
   status: StockStatus;
 }
 
-/** Đọc tồn kho hiện tại từ view Postgres `current_stock`. */
-export async function getCurrentStock(): Promise<CurrentStockRow[]> {
-  const rows = await prisma.$queryRaw<CurrentStockRow[]>`
-    SELECT material_id, name, code, unit, min_stock, on_hand, status
-    FROM current_stock
-    ORDER BY
-      CASE status WHEN 'OUT' THEN 0 WHEN 'LOW' THEN 1 ELSE 2 END,
-      name
-  `;
-  // $queryRaw trả numeric dạng số; ép kiểu để chắc chắn là number.
+/** Tồn hiện tại. Nếu truyền warehouseId thì lọc theo kho; không thì gộp mọi kho theo mã. */
+export async function getCurrentStock(warehouseId?: string): Promise<CurrentStockRow[]> {
+  if (warehouseId) {
+    const rows = await prisma.$queryRaw<CurrentStockRow[]>`
+      SELECT material_id, name, code, unit, min_stock, warehouse_id, warehouse_name, on_hand, status
+      FROM current_stock
+      WHERE warehouse_id = ${warehouseId} AND on_hand <> 0
+      ORDER BY CASE status WHEN 'OUT' THEN 0 WHEN 'LOW' THEN 1 ELSE 2 END, name`;
+    return rows.map((r) => ({ ...r, min_stock: Number(r.min_stock), on_hand: Number(r.on_hand) }));
+  }
+  const rows = await prisma.$queryRaw<Array<{ material_id: string; name: string; code: string; unit: string; min_stock: number; total_on_hand: number }>>`
+    SELECT material_id, name, code, unit, min_stock, total_on_hand FROM stock_by_material
+    WHERE total_on_hand <> 0 ORDER BY name`;
   return rows.map((r) => ({
-    ...r,
-    min_stock: Number(r.min_stock),
-    on_hand: Number(r.on_hand),
+    material_id: r.material_id, name: r.name, code: r.code, unit: r.unit,
+    min_stock: Number(r.min_stock), warehouse_id: "", warehouse_name: "Tất cả kho",
+    on_hand: Number(r.total_on_hand),
+    status: (Number(r.total_on_hand) <= 0 ? "OUT" : Number(r.total_on_hand) <= Number(r.min_stock) ? "LOW" : "OK") as StockStatus,
   }));
 }
 
-/** Tồn kho hiện tại của 1 vật liệu (để kiểm tra trước khi xuất). */
-export async function getOnHand(materialId: string): Promise<number> {
+/** Tồn của 1 vật liệu tại 1 kho cụ thể (kiểm tra trước khi xuất/chuyển). */
+export async function getOnHand(materialId: string, warehouseId: string): Promise<number> {
   const rows = await prisma.$queryRaw<{ on_hand: number }[]>`
-    SELECT on_hand FROM current_stock WHERE material_id = ${materialId}
-  `;
+    SELECT on_hand FROM current_stock WHERE material_id = ${materialId} AND warehouse_id = ${warehouseId}`;
   return rows.length ? Number(rows[0].on_hand) : 0;
 }
 
