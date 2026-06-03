@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-helpers";
 import { voidSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/actions/movements";
+import { getOnHand } from "@/lib/queries/stock";
 
 /** Hủy 1 chứng từ (hoặc cả cặp chuyển kho) bằng bút toán đảo. */
 export async function voidMovement(formData: FormData): Promise<ActionResult> {
@@ -23,6 +24,19 @@ export async function voidMovement(formData: FormData): Promise<ActionResult> {
   const targets = mv.transferId
     ? await prisma.stockMovement.findMany({ where: { transferId: mv.transferId, voidedAt: null } })
     : [mv];
+
+  // Bug C guard: Trước khi đảo, kiểm tra kho nguồn đủ tồn cho mỗi leg IN bị đảo thành OUT.
+  for (const t of targets) {
+    if (t.type === "IN") {
+      const onHand = await getOnHand(t.materialId, t.warehouseId);
+      if (onHand < t.quantity) {
+        return {
+          ok: false,
+          error: `Không thể hủy: kho không đủ tồn để đảo (cần ${t.quantity}, còn ${onHand}). Có thể hàng đã được xuất/chuyển đi.`,
+        };
+      }
+    }
+  }
 
   await prisma.$transaction([
     prisma.stockMovement.updateMany({
