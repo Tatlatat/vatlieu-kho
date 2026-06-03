@@ -17,23 +17,24 @@ export interface BalanceRow {
 function buildQuery(from: string, to: string, whFilter: Prisma.Sql) {
   return Prisma.sql`
     WITH base AS (
-      SELECT sm."materialId" AS material_id, m.name, m.code, m.unit, sm.reason, sm.type, sm.quantity, sm."createdAt",
+      SELECT sm."materialId" AS material_id, m.name, m.code, m.unit, sm.reason, sm.type, sm.quantity,
+        (sm."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh') AS created_local,
         (CASE sm.type WHEN 'IN' THEN sm.quantity ELSE -sm.quantity END) AS signed,
-        (sm."createdAt" >= ${from}::timestamp AND sm."createdAt" < ${to}::timestamp + INTERVAL '1 day') AS in_period
+        ((sm."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh') >= ${from}::timestamp AND (sm."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh') < ${to}::timestamp + INTERVAL '1 day') AS in_period
       FROM "StockMovement" sm
       JOIN "Material" m ON m.id = sm."materialId"
       WHERE sm."voidedAt" IS NULL AND sm.reason <> 'VOID' ${whFilter}
     )
     SELECT material_id, name, code, unit,
-      COALESCE(SUM(CASE WHEN "createdAt" < ${from}::timestamp THEN signed ELSE 0 END),0) AS opening,
+      COALESCE(SUM(CASE WHEN created_local < ${from}::timestamp THEN signed ELSE 0 END),0) AS opening,
       COALESCE(SUM(CASE WHEN in_period AND type='IN' AND reason <> 'TRANSFER_IN' THEN quantity ELSE 0 END),0) AS in_qty,
       COALESCE(SUM(CASE WHEN in_period AND type='OUT' AND reason <> 'TRANSFER_OUT' THEN quantity ELSE 0 END),0) AS out_qty,
       COALESCE(SUM(CASE WHEN in_period AND reason='TRANSFER_IN' THEN quantity ELSE 0 END),0) AS transfer_in,
       COALESCE(SUM(CASE WHEN in_period AND reason='TRANSFER_OUT' THEN quantity ELSE 0 END),0) AS transfer_out,
-      COALESCE(SUM(CASE WHEN "createdAt" < ${to}::timestamp + INTERVAL '1 day' THEN signed ELSE 0 END),0) AS closing
+      COALESCE(SUM(CASE WHEN created_local < ${to}::timestamp + INTERVAL '1 day' THEN signed ELSE 0 END),0) AS closing
     FROM base
     GROUP BY material_id, name, code, unit
-    HAVING COALESCE(SUM(CASE WHEN "createdAt" < ${to}::timestamp + INTERVAL '1 day' THEN signed ELSE 0 END),0) <> 0
+    HAVING COALESCE(SUM(CASE WHEN created_local < ${to}::timestamp + INTERVAL '1 day' THEN signed ELSE 0 END),0) <> 0
         OR COALESCE(SUM(CASE WHEN in_period THEN 1 ELSE 0 END),0) > 0
     ORDER BY name`;
 }
@@ -82,7 +83,7 @@ export async function getMaterialLedger(
            w.name AS warehouse_name, sm.note, (sm."voidedAt" IS NOT NULL) AS voided
     FROM "StockMovement" sm JOIN "Warehouse" w ON w.id = sm."warehouseId"
     WHERE sm."materialId" = ${materialId}
-      AND sm."createdAt" >= ${from}::timestamp AND sm."createdAt" < ${to}::timestamp + INTERVAL '1 day'
+      AND (sm."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh') >= ${from}::timestamp AND (sm."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh') < ${to}::timestamp + INTERVAL '1 day'
       ${whFilter}
     ORDER BY sm."createdAt"`);
   return rows.map((r) => ({ ...r, quantity: Number(r.quantity) }));
