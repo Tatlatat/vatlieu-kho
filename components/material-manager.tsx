@@ -89,7 +89,7 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
 
       <Card className="shadow-md border border-border">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Danh sách vật tư</CardTitle>
+          <CardTitle className="text-lg font-semibold">Danh sách vật tư <span className="text-sm font-normal text-muted-foreground">({materials.length} mã)</span></CardTitle>
         </CardHeader>
         <CardContent>
           {materials.length === 0 ? (
