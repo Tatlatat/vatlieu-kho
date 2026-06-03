@@ -16,6 +16,7 @@ export async function createImport(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const parsed = importSchema.safeParse({
     materialId: formData.get("materialId"),
+    warehouseId: formData.get("warehouseId"),
     quantity: formData.get("quantity"),
     note: formData.get("note") || undefined,
   });
@@ -26,6 +27,7 @@ export async function createImport(formData: FormData): Promise<ActionResult> {
   await prisma.stockMovement.create({
     data: {
       materialId: parsed.data.materialId,
+      warehouseId: parsed.data.warehouseId,
       type: "IN",
       reason: "PURCHASE",
       quantity: parsed.data.quantity,
@@ -44,6 +46,7 @@ export async function createExport(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const parsed = exportSchema.safeParse({
     materialId: formData.get("materialId"),
+    warehouseId: formData.get("warehouseId"),
     quantity: formData.get("quantity"),
     reason: formData.get("reason"),
     note: formData.get("note") || undefined,
@@ -53,17 +56,18 @@ export async function createExport(formData: FormData): Promise<ActionResult> {
   }
 
   // Kiểm tra tồn kho — lớp bảo vệ thân thiện trước khi chạm DB constraint.
-  const onHand = await getOnHand(parsed.data.materialId);
+  const onHand = await getOnHand(parsed.data.materialId, parsed.data.warehouseId);
   if (parsed.data.quantity > onHand) {
     return {
       ok: false,
-      error: `Không đủ tồn kho. Hiện chỉ còn ${onHand}, không thể xuất ${parsed.data.quantity}.`,
+      error: `Không đủ tồn tại kho này. Hiện còn ${onHand}.`,
     };
   }
 
   await prisma.stockMovement.create({
     data: {
       materialId: parsed.data.materialId,
+      warehouseId: parsed.data.warehouseId,
       type: "OUT",
       reason: parsed.data.reason,
       quantity: parsed.data.quantity,
