@@ -1,20 +1,9 @@
--- ============================================================================
--- Postgres-centric logic: views, triggers, constraints
--- Áp dụng SAU khi `prisma migrate` đã tạo bảng.
--- Chạy idempotent (CREATE OR REPLACE / DROP IF EXISTS) — chạy lại nhiều lần OK.
--- ============================================================================
+-- ---------------------------------------------------------------------------
+-- warehouse_logic: view tồn/loss theo kho + stock_by_material + trigger kiểm kê gắn kho
+-- Idempotent: DROP VIEW IF EXISTS / CREATE OR REPLACE / DROP TRIGGER IF EXISTS
+-- ---------------------------------------------------------------------------
 
--- ---------------------------------------------------------------------------
--- 1) CHECK constraint: số lượng giao dịch luôn > 0
--- ---------------------------------------------------------------------------
-ALTER TABLE "StockMovement" DROP CONSTRAINT IF EXISTS chk_quantity_positive;
-ALTER TABLE "StockMovement" ADD CONSTRAINT chk_quantity_positive CHECK ("quantity" > 0);
-
--- ---------------------------------------------------------------------------
--- 2) VIEW current_stock: tự tính tồn kho hiện tại = Σ(IN) − Σ(OUT)
---    theo từng kho (warehouse-aware), loại trừ movement bị void
---    kèm trạng thái OK / LOW / OUT dựa trên minStock
--- ---------------------------------------------------------------------------
+-- VIEW current_stock: warehouse-aware, excludes voided movements
 DROP VIEW IF EXISTS stock_by_material;
 DROP VIEW IF EXISTS current_stock;
 CREATE OR REPLACE VIEW current_stock AS
@@ -43,22 +32,14 @@ LEFT JOIN "StockMovement" sm
   AND sm.reason <> 'VOID'
 GROUP BY m.id, m.name, m.code, m.unit, m."minStock", w.id, w.name;
 
--- ---------------------------------------------------------------------------
--- 2b) VIEW stock_by_material: tổng tồn kho toàn bộ kho theo từng vật liệu
--- ---------------------------------------------------------------------------
+-- VIEW stock_by_material: total stock per material across all warehouses
 CREATE OR REPLACE VIEW stock_by_material AS
 SELECT material_id, name, code, unit, min_stock,
        SUM(on_hand) AS total_on_hand
 FROM current_stock
 GROUP BY material_id, name, code, unit, min_stock;
 
--- ---------------------------------------------------------------------------
--- 3) TRIGGER: khi Stocktake chuyển DRAFT -> APPROVED, tự sinh StockMovement
---    điều chỉnh cho mỗi item có diff != 0 (idempotent qua reason STOCKTAKE_ADJUST)
---    diff < 0  => hao hụt  => OUT
---    diff > 0  => thừa     => IN
---    Movement gắn warehouseId của phiếu kiểm kê
--- ---------------------------------------------------------------------------
+-- FUNCTION + TRIGGER: stocktake approval generates movements with warehouseId
 CREATE OR REPLACE FUNCTION fn_apply_stocktake_adjustments()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -88,10 +69,7 @@ CREATE TRIGGER trg_stocktake_approve
   FOR EACH ROW
   EXECUTE FUNCTION fn_apply_stocktake_adjustments();
 
--- ---------------------------------------------------------------------------
--- 4) VIEW loss_by_month: hao hụt theo tháng × kho × nguyên nhân
---    loại trừ movement bị void; TRANSFER_* không phải hao hụt nên không lọc
--- ---------------------------------------------------------------------------
+-- VIEW loss_by_month: losses by month × warehouse × reason, excludes voided
 DROP VIEW IF EXISTS loss_by_month;
 CREATE OR REPLACE VIEW loss_by_month AS
 SELECT
