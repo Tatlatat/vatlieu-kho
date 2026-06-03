@@ -12,6 +12,7 @@ import {
   Boxes,
   ClipboardCheck,
   LogOut,
+  ArrowLeftRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ type Role = "OWNER" | "STAFF";
 const links: { href: string; label: string; icon: typeof Home; roles: Role[] }[] = [
   { href: "/", label: "Trang chính", icon: Home, roles: ["OWNER", "STAFF"] },
   { href: "/kiem-ke", label: "Kiểm kê", icon: ClipboardCheck, roles: ["OWNER", "STAFF"] },
+  { href: "/chuyen-kho", label: "Chuyển kho", icon: ArrowLeftRight, roles: ["OWNER", "STAFF"] },
   { href: "/lich-su", label: "Lịch sử", icon: History, roles: ["OWNER", "STAFF"] },
   { href: "/bao-cao", label: "Báo cáo", icon: BarChart3, roles: ["OWNER"] },
   { href: "/vat-lieu", label: "Vật liệu", icon: Boxes, roles: ["OWNER"] },
