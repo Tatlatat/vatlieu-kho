@@ -10,7 +10,7 @@ import type { ActionResult } from "@/lib/actions/movements";
 export async function createStocktake(warehouseId: string): Promise<ActionResult & { id?: string }> {
   if (!warehouseId) return { ok: false, error: "Vui lòng chọn kho để kiểm kê." };
   const user = await requireUser();
-  const stock = await getCurrentStock(warehouseId);
+  const stock = await getCurrentStock(warehouseId, { includeZero: true });
   if (stock.length === 0) {
     return { ok: false, error: "Kho này chưa có vật tư nào để kiểm kê." };
   }

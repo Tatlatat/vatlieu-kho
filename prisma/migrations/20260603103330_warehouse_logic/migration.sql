@@ -44,7 +44,7 @@ CREATE OR REPLACE FUNCTION fn_apply_stocktake_adjustments()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.status = 'APPROVED' AND OLD.status <> 'APPROVED' THEN
-    INSERT INTO "StockMovement" (id, "materialId", "warehouseId", type, quantity, reason, note, "createdById", "createdAt")
+    INSERT INTO "StockMovement" (id, "materialId", "warehouseId", type, quantity, reason, note, "stocktakeId", "createdById", "createdAt")
     SELECT
       gen_random_uuid()::text,
       si."materialId",
@@ -53,6 +53,7 @@ BEGIN
       ABS(si.diff),
       'STOCKTAKE_ADJUST'::"MovementReason",
       'Điều chỉnh theo phiếu kiểm kê ' || NEW.code,
+      NEW.id,
       COALESCE(NEW."approvedById", NEW."createdById"),
       NOW()
     FROM "StocktakeItem" si

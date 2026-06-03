@@ -79,6 +79,8 @@ model StockMovement {
   reason         MovementReason
   note           String?
   transferId     String?
+  stocktakeId    String?
+  stocktake      Stocktake?     @relation("stocktakeAdjustments", fields: [stocktakeId], references: [id])
   voidedAt       DateTime?
   voidedById     String?
   voidReversalOf String?
@@ -89,6 +91,7 @@ model StockMovement {
   @@index([materialId])
   @@index([warehouseId])
   @@index([transferId])
+  @@index([stocktakeId])
   @@index([createdAt])
 }
 
@@ -105,6 +108,7 @@ model Stocktake {
   createdAt    DateTime        @default(now())
   approvedAt   DateTime?
   items        StocktakeItem[]
+  adjustments  StockMovement[] @relation("stocktakeAdjustments")
 }
 
 model StocktakeItem {

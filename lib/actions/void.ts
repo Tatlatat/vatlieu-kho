@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-helpers";
 import { voidSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/actions/movements";
-import { getOnHand } from "@/lib/queries/stock";
 
 /** Hủy 1 chứng từ (hoặc cả cặp chuyển kho) bằng bút toán đảo. */
 export async function voidMovement(formData: FormData): Promise<ActionResult> {
@@ -15,41 +14,61 @@ export async function voidMovement(formData: FormData): Promise<ActionResult> {
     return { ok: false, error: parsed.success ? "Thiếu chứng từ" : parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
   }
 
+  // Pre-transaction guards (cheap reads, no lock needed yet).
   const mv = await prisma.stockMovement.findUnique({ where: { id: parsed.data.movementId } });
   if (!mv) return { ok: false, error: "Không tìm thấy chứng từ" };
   if (mv.voidedAt) return { ok: false, error: "Chứng từ này đã được hủy trước đó" };
   if (mv.reason === "VOID") return { ok: false, error: "Không thể hủy một bút toán hủy" };
 
-  // Nếu là chuyển kho → hủy cả cặp (cùng transferId); ngược lại chỉ dòng này.
-  const targets = mv.transferId
-    ? await prisma.stockMovement.findMany({ where: { transferId: mv.transferId, voidedAt: null } })
-    : [mv];
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Nếu là chuyển kho → hủy cả cặp (cùng transferId); ngược lại chỉ dòng này.
+      const targets = mv.transferId
+        ? await tx.stockMovement.findMany({ where: { transferId: mv.transferId, voidedAt: null } })
+        : [mv];
 
-  // Bug C guard: Trước khi đảo, kiểm tra kho nguồn đủ tồn cho mỗi leg IN bị đảo thành OUT.
-  for (const t of targets) {
-    if (t.type === "IN") {
-      const onHand = await getOnHand(t.materialId, t.warehouseId);
-      if (onHand < t.quantity) {
-        return {
-          ok: false,
-          error: `Không thể hủy: kho không đủ tồn để đảo (cần ${t.quantity}, còn ${onHand}). Có thể hàng đã được xuất/chuyển đi.`,
-        };
+      // Acquire advisory locks for each distinct (materialId, warehouseId) slot
+      // to prevent concurrent exports from driving stock negative.
+      const slots = Array.from(
+        new Map(targets.map((t) => [`${t.materialId}:${t.warehouseId}`, t])).keys()
+      );
+      for (const slot of slots) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${slot}))`;
       }
-    }
+
+      // Re-check on-hand INSIDE the transaction for IN-leg targets.
+      for (const t of targets) {
+        if (t.type === "IN") {
+          const rows = await tx.$queryRaw<{ on_hand: number }[]>`
+            SELECT on_hand FROM current_stock
+            WHERE material_id = ${t.materialId} AND warehouse_id = ${t.warehouseId}`;
+          const onHand = rows.length ? Number(rows[0].on_hand) : 0;
+          if (onHand < t.quantity) {
+            throw new Error(
+              `Không thể hủy: kho không đủ tồn để đảo (cần ${t.quantity}, còn ${onHand}). Có thể hàng đã được xuất/chuyển đi.`
+            );
+          }
+        }
+      }
+
+      await tx.stockMovement.updateMany({
+        where: { id: { in: targets.map((t) => t.id) } },
+        data: { voidedAt: new Date(), voidedById: user.id },
+      });
+      for (const t of targets) {
+        await tx.stockMovement.create({ data: {
+          materialId: t.materialId, warehouseId: t.warehouseId,
+          type: t.type === "IN" ? "OUT" : "IN", quantity: t.quantity,
+          reason: "VOID", note: `Hủy chứng từ: ${parsed.data.reason}`,
+          voidReversalOf: t.id, createdById: user.id,
+        }});
+      }
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Lỗi khi hủy chứng từ";
+    return { ok: false, error: msg };
   }
 
-  await prisma.$transaction([
-    prisma.stockMovement.updateMany({
-      where: { id: { in: targets.map((t) => t.id) } },
-      data: { voidedAt: new Date(), voidedById: user.id },
-    }),
-    ...targets.map((t) => prisma.stockMovement.create({ data: {
-      materialId: t.materialId, warehouseId: t.warehouseId,
-      type: t.type === "IN" ? "OUT" : "IN", quantity: t.quantity,
-      reason: "VOID", note: `Hủy chứng từ: ${parsed.data.reason}`,
-      voidReversalOf: t.id, createdById: user.id,
-    }})),
-  ]);
   revalidatePath("/"); revalidatePath("/lich-su");
   return { ok: true };
 }
@@ -68,7 +87,7 @@ export async function voidStocktake(formData: FormData): Promise<ActionResult> {
   if (st.status !== "APPROVED") return { ok: false, error: "Chỉ hủy được phiếu đã duyệt" };
 
   const adjusts = await prisma.stockMovement.findMany({
-    where: { reason: "STOCKTAKE_ADJUST", note: { contains: st.code }, voidedAt: null },
+    where: { stocktakeId: stocktakeId, reason: "STOCKTAKE_ADJUST", voidedAt: null },
   });
   await prisma.$transaction([
     prisma.stockMovement.updateMany({
