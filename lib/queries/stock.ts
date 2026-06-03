@@ -15,7 +15,7 @@ export interface CurrentStockRow {
 }
 
 /** Tồn hiện tại. Nếu truyền warehouseId thì lọc theo kho; không thì gộp mọi kho theo mã. */
-export async function getCurrentStock(warehouseId?: string): Promise<CurrentStockRow[]> {
+export async function getCurrentStock(warehouseId?: string, opts?: { includeZero?: boolean }): Promise<CurrentStockRow[]> {
   if (warehouseId) {
     const rows = await prisma.$queryRaw<CurrentStockRow[]>`
       SELECT material_id, name, code, unit, min_stock, warehouse_id, warehouse_name, on_hand, status
@@ -24,9 +24,14 @@ export async function getCurrentStock(warehouseId?: string): Promise<CurrentStoc
       ORDER BY CASE status WHEN 'OUT' THEN 0 WHEN 'LOW' THEN 1 ELSE 2 END, name`;
     return rows.map((r) => ({ ...r, min_stock: Number(r.min_stock), on_hand: Number(r.on_hand) }));
   }
-  const rows = await prisma.$queryRaw<Array<{ material_id: string; name: string; code: string; unit: string; min_stock: number; total_on_hand: number }>>`
-    SELECT material_id, name, code, unit, min_stock, total_on_hand FROM stock_by_material
-    WHERE total_on_hand <> 0 ORDER BY name`;
+  type StockByMaterialRow = { material_id: string; name: string; code: string; unit: string; min_stock: number; total_on_hand: number };
+  const rows = opts?.includeZero
+    ? await prisma.$queryRaw<StockByMaterialRow[]>`
+        SELECT material_id, name, code, unit, min_stock, total_on_hand FROM stock_by_material
+        ORDER BY name`
+    : await prisma.$queryRaw<StockByMaterialRow[]>`
+        SELECT material_id, name, code, unit, min_stock, total_on_hand FROM stock_by_material
+        WHERE total_on_hand <> 0 ORDER BY name`;
   return rows.map((r) => ({
     material_id: r.material_id, name: r.name, code: r.code, unit: r.unit,
     min_stock: Number(r.min_stock), warehouse_id: "", warehouse_name: "Tất cả kho",
