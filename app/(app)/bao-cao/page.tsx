@@ -7,6 +7,8 @@ import {
   getTopLossMaterials,
   getAlerts,
 } from "@/lib/queries/reports";
+import { getBalanceReport } from "@/lib/queries/balance";
+import { getWarehouses } from "@/lib/queries/warehouses";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -18,17 +20,34 @@ import {
 } from "@/components/ui/table";
 import { StockStatusBadge } from "@/components/stock-status-badge";
 import { LossCharts } from "@/components/loss-charts-client";
+import { BalanceReport } from "@/components/balance-report";
 
-export default async function BaoCaoPage() {
+export default async function BaoCaoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string; wh?: string }>;
+}) {
   await requireRole("OWNER");
 
-  const [summary, monthData, reasonData, topLoss, alerts] = await Promise.all([
-    getDashboardSummary(),
-    getLossByMonth(),
-    getLossByReason(),
-    getTopLossMaterials(5),
-    getAlerts(),
-  ]);
+  const sp = await searchParams;
+
+  const now = new Date();
+  const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const todayStr = now.toISOString().slice(0, 10);
+  const from = sp.from ?? firstOfMonth;
+  const to = sp.to ?? todayStr;
+  const wh = sp.wh ?? "";
+
+  const [summary, monthData, reasonData, topLoss, alerts, balanceRows, warehouses] =
+    await Promise.all([
+      getDashboardSummary(),
+      getLossByMonth(),
+      getLossByReason(),
+      getTopLossMaterials(5),
+      getAlerts(),
+      getBalanceReport(from, to, wh || undefined),
+      getWarehouses(),
+    ]);
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
@@ -40,6 +59,15 @@ export default async function BaoCaoPage() {
           Thống kê hao hụt vật liệu, trạng thái kho dành cho Ban Quản Lý (Owner)
         </p>
       </div>
+
+      {/* Balance report — per period & warehouse */}
+      <BalanceReport
+        rows={balanceRows}
+        warehouses={warehouses}
+        from={from}
+        to={to}
+        warehouseId={wh}
+      />
 
       {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-4">
