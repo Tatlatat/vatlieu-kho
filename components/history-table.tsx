@@ -150,7 +150,7 @@ export function HistoryTable({ rows, isOwner }: { rows: HistoryRow[]; isOwner: b
         id: "actions",
         header: "",
         cell: ({ row }) => {
-          if (!isOwner || row.original.voided || row.original.reason === "VOID") {
+          if (!isOwner || row.original.voided || row.original.reason === "VOID" || row.original.reason === "STOCKTAKE_ADJUST") {
             return null;
           }
           return (
