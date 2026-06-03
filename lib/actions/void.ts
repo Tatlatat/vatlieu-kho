@@ -39,3 +39,35 @@ export async function voidMovement(formData: FormData): Promise<ActionResult> {
   revalidatePath("/"); revalidatePath("/lich-su");
   return { ok: true };
 }
+
+/** Hủy phiếu kiểm kê đã duyệt: đảo các STOCKTAKE_ADJUST nó sinh ra + đánh dấu phiếu VOIDED. */
+export async function voidStocktake(formData: FormData): Promise<ActionResult> {
+  const user = await requireRole("OWNER");
+  const stocktakeId = formData.get("stocktakeId") as string;
+  const reason = (formData.get("reason") as string)?.trim();
+  if (!stocktakeId) return { ok: false, error: "Thiếu phiếu kiểm kê" };
+  if (!reason) return { ok: false, error: "Vui lòng nhập lý do hủy" };
+
+  const st = await prisma.stocktake.findUnique({ where: { id: stocktakeId } });
+  if (!st) return { ok: false, error: "Không tìm thấy phiếu" };
+  if (st.status === "VOIDED") return { ok: false, error: "Phiếu đã bị hủy" };
+  if (st.status !== "APPROVED") return { ok: false, error: "Chỉ hủy được phiếu đã duyệt" };
+
+  const adjusts = await prisma.stockMovement.findMany({
+    where: { reason: "STOCKTAKE_ADJUST", note: { contains: st.code }, voidedAt: null },
+  });
+  await prisma.$transaction([
+    prisma.stockMovement.updateMany({
+      where: { id: { in: adjusts.map((a) => a.id) } },
+      data: { voidedAt: new Date(), voidedById: user.id },
+    }),
+    ...adjusts.map((a) => prisma.stockMovement.create({ data: {
+      materialId: a.materialId, warehouseId: a.warehouseId,
+      type: a.type === "IN" ? "OUT" : "IN", quantity: a.quantity,
+      reason: "VOID", note: `Hủy kiểm kê ${st.code}: ${reason}`, voidReversalOf: a.id, createdById: user.id,
+    }})),
+    prisma.stocktake.update({ where: { id: stocktakeId }, data: { status: "VOIDED" } }),
+  ]);
+  revalidatePath("/"); revalidatePath("/kiem-ke"); revalidatePath(`/kiem-ke/${stocktakeId}`);
+  return { ok: true };
+}
