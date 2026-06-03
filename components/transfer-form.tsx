@@ -8,15 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { createExport } from "@/lib/actions/movements";
-import { OUT_REASONS } from "@/lib/validation";
+import { createTransfer } from "@/lib/actions/transfer";
 import { toast } from "sonner";
 
 interface Material {
@@ -33,13 +25,13 @@ interface Warehouse {
   isDefault: boolean;
 }
 
-export function ExportForm({ materials, warehouses }: { materials: Material[]; warehouses: Warehouse[] }) {
+export function TransferForm({ materials, warehouses }: { materials: Material[]; warehouses: Warehouse[] }) {
   const router = useRouter();
   const [materialId, setMaterialId] = React.useState("");
-  const [reason, setReason] = React.useState("");
-  const [warehouseId, setWarehouseId] = React.useState(
+  const [fromWarehouseId, setFromWarehouseId] = React.useState(
     () => warehouses.find((w) => w.isDefault)?.id ?? warehouses[0]?.id ?? ""
   );
+  const [toWarehouseId, setToWarehouseId] = React.useState("");
   const [isPending, startTransition] = React.useTransition();
   const formRef = React.useRef<HTMLFormElement>(null);
 
@@ -47,28 +39,32 @@ export function ExportForm({ materials, warehouses }: { materials: Material[]; w
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!warehouseId) {
-      toast.error("Vui lòng chọn kho");
-      return;
-    }
     if (!materialId) {
       toast.error("Vui lòng chọn vật tư");
       return;
     }
-    if (!reason) {
-      toast.error("Vui lòng chọn lý do xuất");
+    if (!fromWarehouseId) {
+      toast.error("Vui lòng chọn kho nguồn");
+      return;
+    }
+    if (!toWarehouseId) {
+      toast.error("Vui lòng chọn kho đích");
+      return;
+    }
+    if (fromWarehouseId === toWarehouseId) {
+      toast.error("Kho nguồn và kho đích phải khác nhau");
       return;
     }
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
       try {
-        const res = await createExport(formData);
+        const res = await createTransfer(formData);
         if (res.ok) {
-          toast.success("Đã xuất kho");
+          toast.success("Đã chuyển kho");
           formRef.current?.reset();
           setMaterialId("");
-          setReason("");
+          setToWarehouseId("");
           router.push("/");
         } else {
           toast.error(res.error || "Có lỗi xảy ra");
@@ -84,21 +80,11 @@ export function ExportForm({ materials, warehouses }: { materials: Material[]; w
       <Card className="w-full max-w-md shadow-lg border border-border bg-card/60 backdrop-blur-md">
         <CardHeader>
           <CardTitle className="text-xl font-bold tracking-tight text-foreground text-center">
-            Xuất Hàng
+            Chuyển Kho
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2 flex flex-col">
-              <Label className="text-sm font-medium">Kho</Label>
-              <WarehouseSelect
-                warehouses={warehouses}
-                name="warehouseId"
-                value={warehouseId}
-                onChange={setWarehouseId}
-              />
-            </div>
-
             <div className="space-y-2 flex flex-col">
               <Label htmlFor="materialId" className="text-sm font-medium">Vật tư</Label>
               <SearchableMaterialSelect
@@ -110,22 +96,25 @@ export function ExportForm({ materials, warehouses }: { materials: Material[]; w
             </div>
 
             <div className="space-y-2 flex flex-col">
-              <Label htmlFor="reason" className="text-sm font-medium">Lý do xuất</Label>
-              <Select value={reason} onValueChange={(v) => setReason(v ?? "")}>
-                <SelectTrigger className="w-full h-10">
-                  <SelectValue placeholder="Chọn lý do...">
-                    {OUT_REASONS.find((r) => r.value === reason)?.label ?? null}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {OUT_REASONS.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {r.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <input type="hidden" name="reason" value={reason} />
+              <Label className="text-sm font-medium">Kho nguồn</Label>
+              <WarehouseSelect
+                warehouses={warehouses}
+                name="fromWarehouseId"
+                value={fromWarehouseId}
+                onChange={setFromWarehouseId}
+                placeholder="Kho nguồn..."
+              />
+            </div>
+
+            <div className="space-y-2 flex flex-col">
+              <Label className="text-sm font-medium">Kho đích</Label>
+              <WarehouseSelect
+                warehouses={warehouses}
+                name="toWarehouseId"
+                value={toWarehouseId}
+                onChange={setToWarehouseId}
+                placeholder="Kho đích..."
+              />
             </div>
 
             <div className="space-y-2 flex flex-col">
@@ -172,7 +161,7 @@ export function ExportForm({ materials, warehouses }: { materials: Material[]; w
                 disabled={isPending}
                 className="flex-1 h-10 cursor-pointer"
               >
-                {isPending ? "Đang xử lý..." : "Lưu phiếu xuất"}
+                {isPending ? "Đang xử lý..." : "Lưu phiếu chuyển"}
               </Button>
             </div>
           </form>

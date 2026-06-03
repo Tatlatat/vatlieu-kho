@@ -4,7 +4,7 @@ import { getHistory } from "@/lib/queries/history";
 import { HistoryTable } from "@/components/history-table";
 
 export default async function LichSuPage() {
-  await requireUser();
+  const user = await requireUser();
   const rows = await getHistory();
 
   return (
@@ -18,7 +18,7 @@ export default async function LichSuPage() {
         </p>
       </div>
 
-      <HistoryTable rows={rows} />
+      <HistoryTable rows={rows} isOwner={user.role === "OWNER"} />
     </div>
   );
 }

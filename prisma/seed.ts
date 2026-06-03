@@ -1,5 +1,6 @@
 import { PrismaClient, Material, MovementType, MovementReason } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -10,6 +11,7 @@ async function main() {
   await prisma.stocktake.deleteMany({});
   await prisma.material.deleteMany({});
   await prisma.user.deleteMany({});
+  await prisma.warehouse.deleteMany({});
 
   // 2. Create 2 users
   const passwordHash = await bcrypt.hash("123456", 10);
@@ -57,7 +59,19 @@ async function main() {
     return new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
   };
 
-  // 4. Create ~30 StockMovements spread across last 3 months
+  // 4. Create 2 warehouses
+  const khoChinh = await prisma.warehouse.upsert({
+    where: { code: "KHO-CHINH" },
+    update: {},
+    create: { name: "Kho chính", code: "KHO-CHINH", isDefault: true },
+  });
+  const khoCongTrinh = await prisma.warehouse.upsert({
+    where: { code: "KHO-CT-A" },
+    update: {},
+    create: { name: "Kho công trình A", code: "KHO-CT-A", isDefault: false },
+  });
+
+  // 5. Create ~30 StockMovements spread across last 3 months
   const movementDefinitions = [
     // XM-PCB40 (Xi măng PCB40) - 5 movements
     { code: "XM-PCB40", type: "IN", quantity: 100, reason: "PURCHASE", daysAgo: 85, note: "Nhập hàng đợt 1" },
@@ -111,6 +125,7 @@ async function main() {
     await prisma.stockMovement.create({
       data: {
         materialId: material.id,
+        warehouseId: khoChinh.id,
         type: m.type as MovementType,
         quantity: m.quantity,
         reason: m.reason as MovementReason,
@@ -121,7 +136,37 @@ async function main() {
     });
   }
 
-  // 5. Create 1 Stocktake in DRAFT state
+  // Demo transfer: 20 GACH-ONG from Kho chính → Kho công trình A
+  const transferId = randomUUID();
+  const gachOng = materials["GACH-ONG"];
+  await prisma.stockMovement.create({
+    data: {
+      materialId: gachOng.id,
+      warehouseId: khoChinh.id,
+      type: "OUT",
+      quantity: 20,
+      reason: "TRANSFER_OUT",
+      note: "Chuyển ra công trình A",
+      transferId,
+      createdById: staff.id,
+      createdAt: getPastDate(3),
+    },
+  });
+  await prisma.stockMovement.create({
+    data: {
+      materialId: gachOng.id,
+      warehouseId: khoCongTrinh.id,
+      type: "IN",
+      quantity: 20,
+      reason: "TRANSFER_IN",
+      note: "Chuyển ra công trình A",
+      transferId,
+      createdById: staff.id,
+      createdAt: getPastDate(3),
+    },
+  });
+
+  // 6. Create 1 Stocktake in DRAFT state
   // Calculated stocks for the first 3 materials:
   // - XM-PCB40: IN(100+50) - OUT(60+5+10) = 150 - 75 = 75
   // - TH-D16: IN(200+100) - OUT(80+5) = 300 - 85 = 215
@@ -131,6 +176,7 @@ async function main() {
     data: {
       code: "KK-2026-01",
       status: "DRAFT",
+      warehouseId: khoChinh.id,
       createdById: staff.id,
       items: {
         create: [

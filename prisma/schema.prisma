@@ -24,11 +24,15 @@ enum MovementReason {
   EXPIRED
   NATURAL_LOSS
   STOCKTAKE_ADJUST
+  TRANSFER_OUT
+  TRANSFER_IN
+  VOID
 }
 
 enum StocktakeStatus {
   DRAFT
   APPROVED
+  VOIDED
 }
 
 model User {
@@ -54,19 +58,40 @@ model Material {
   stocktakeItems StocktakeItem[]
 }
 
+model Warehouse {
+  id         String          @id @default(cuid())
+  name       String
+  code       String          @unique
+  isDefault  Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  movements  StockMovement[]
+  stocktakes Stocktake[]
+}
+
 model StockMovement {
-  id          String         @id @default(cuid())
-  materialId  String
-  material    Material       @relation(fields: [materialId], references: [id])
-  type        MovementType
-  quantity    Float
-  reason      MovementReason
-  note        String?
-  createdById String
-  createdBy   User           @relation(fields: [createdById], references: [id])
-  createdAt   DateTime       @default(now())
+  id             String         @id @default(cuid())
+  materialId     String
+  material       Material       @relation(fields: [materialId], references: [id])
+  warehouseId    String
+  warehouse      Warehouse      @relation(fields: [warehouseId], references: [id])
+  type           MovementType
+  quantity       Float
+  reason         MovementReason
+  note           String?
+  transferId     String?
+  stocktakeId    String?
+  stocktake      Stocktake?     @relation("stocktakeAdjustments", fields: [stocktakeId], references: [id])
+  voidedAt       DateTime?
+  voidedById     String?
+  voidReversalOf String?
+  createdById    String
+  createdBy      User           @relation(fields: [createdById], references: [id])
+  createdAt      DateTime       @default(now())
 
   @@index([materialId])
+  @@index([warehouseId])
+  @@index([transferId])
+  @@index([stocktakeId])
   @@index([createdAt])
 }
 
@@ -74,6 +99,8 @@ model Stocktake {
   id           String          @id @default(cuid())
   code         String          @unique
   status       StocktakeStatus @default(DRAFT)
+  warehouseId  String
+  warehouse    Warehouse       @relation(fields: [warehouseId], references: [id])
   createdById  String
   createdBy    User            @relation("created", fields: [createdById], references: [id])
   approvedById String?
@@ -81,6 +108,7 @@ model Stocktake {
   createdAt    DateTime        @default(now())
   approvedAt   DateTime?
   items        StocktakeItem[]
+  adjustments  StockMovement[] @relation("stocktakeAdjustments")
 }
 
 model StocktakeItem {

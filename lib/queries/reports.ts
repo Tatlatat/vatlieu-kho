@@ -11,7 +11,7 @@ export interface LossByMonthRow {
 
 /** Tổng quan dashboard: số liệu cho các card. */
 export async function getDashboardSummary() {
-  const stock = await getCurrentStock();
+  const stock = await getCurrentStock(undefined, { includeZero: true });
   const totalMaterials = stock.length;
   const lowCount = stock.filter((s) => s.status === "LOW").length;
   const outCount = stock.filter((s) => s.status === "OUT").length;
@@ -64,6 +64,7 @@ export async function getTopLossMaterials(limit = 5) {
     FROM "StockMovement" sm
     JOIN "Material" m ON m.id = sm."materialId"
     WHERE sm.type = 'OUT'
+      AND sm."voidedAt" IS NULL
       AND sm.reason IN ('DAMAGED','EXPIRED','NATURAL_LOSS','STOCKTAKE_ADJUST')
     GROUP BY m.name, m.unit
     ORDER BY total DESC
@@ -74,6 +75,6 @@ export async function getTopLossMaterials(limit = 5) {
 
 /** Vật liệu cần chú ý (sắp hết / hết). */
 export async function getAlerts() {
-  const stock = await getCurrentStock();
+  const stock = await getCurrentStock(undefined, { includeZero: true });
   return stock.filter((s) => s.status !== "OK");
 }

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth-helpers";
 import { getCurrentStock } from "@/lib/queries/stock";
 import { getDashboardSummary } from "@/lib/queries/reports";
+import { getWarehouses } from "@/lib/queries/warehouses";
 import { StockStatusBadge } from "@/components/stock-status-badge";
+import { WarehouseFilter } from "@/components/warehouse-filter";
 import {
   Table,
   TableBody,
@@ -27,12 +29,19 @@ const actions = [
   { href: "/lich-su", label: "Lịch sử", icon: Search, color: "bg-slate-500" },
 ];
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ wh?: string }>;
+}) {
   const user = await requireUser();
   const isOwner = user.role === "OWNER";
-  const [stock, summary] = await Promise.all([
-    getCurrentStock(),
+  const sp = await searchParams;
+  const wh = sp.wh ?? "";
+  const [stock, summary, warehouses] = await Promise.all([
+    getCurrentStock(wh || undefined),
     isOwner ? getDashboardSummary() : Promise.resolve(null),
+    getWarehouses(),
   ]);
 
   return (
@@ -84,8 +93,9 @@ export default async function HomePage() {
       </div>
 
       <div className="rounded-xl border bg-white">
-        <div className="border-b px-4 py-3">
+        <div className="flex items-center justify-between border-b px-4 py-3">
           <h2 className="font-semibold">Vật liệu đang có trong kho</h2>
+          <WarehouseFilter warehouses={warehouses} value={wh} />
         </div>
         <Table>
           <TableHeader>

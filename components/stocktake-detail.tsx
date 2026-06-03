@@ -12,9 +12,18 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import Link from "next/link";
 import { BarChart3 } from "lucide-react";
 import { updateStocktakeItem, approveStocktake } from "@/lib/actions/stocktake";
+import { voidStocktake } from "@/lib/actions/void";
 import { toast } from "sonner";
 
 interface StocktakeItemDetail {
@@ -32,7 +41,7 @@ interface StocktakeItemDetail {
 interface Stocktake {
   id: string;
   code: string;
-  status: "DRAFT" | "APPROVED";
+  status: "DRAFT" | "APPROVED" | "VOIDED";
   items: StocktakeItemDetail[];
 }
 
@@ -44,6 +53,8 @@ interface StocktakeDetailProps {
 export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
+  const [voidOpen, setVoidOpen] = React.useState(false);
+  const [voidReason, setVoidReason] = React.useState("");
 
   const handleBlur = (itemId: string, originalVal: number, valueStr: string) => {
     const value = parseFloat(valueStr);
@@ -91,12 +102,35 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
     });
   };
 
+  const handleVoidStocktake = () => {
+    startTransition(async () => {
+      try {
+        const fd = new FormData();
+        fd.append("stocktakeId", stocktake.id);
+        fd.append("reason", voidReason);
+        const res = await voidStocktake(fd);
+        if (res.ok) {
+          toast.success("Đã hủy phiếu kiểm kê");
+          setVoidOpen(false);
+          setVoidReason("");
+          router.refresh();
+        } else {
+          toast.error(res.error || "Không thể hủy phiếu");
+        }
+      } catch {
+        toast.error("Lỗi kết nối mạng");
+      }
+    });
+  };
+
   const totalLoss = stocktake.items.reduce(
     (sum, item) => sum + (item.diff < 0 ? -item.diff : 0),
     0
   );
 
   const isDraft = stocktake.status === "DRAFT";
+  const isApproved = stocktake.status === "APPROVED";
+  const isVoided = stocktake.status === "VOIDED";
 
   return (
     <div className="space-y-6">
@@ -169,7 +203,11 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t pt-6 gap-4">
         <div>
-          {!isDraft ? (
+          {isVoided ? (
+            <p className="text-sm font-semibold text-destructive">
+              Phiếu đã bị hủy.
+            </p>
+          ) : isApproved ? (
             <div className="space-y-2">
               <p className="text-sm font-semibold text-destructive">
                 Tổng hao hụt: -{totalLoss.toLocaleString("vi-VN")}
@@ -192,16 +230,58 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
           )}
         </div>
 
-        {role === "OWNER" && isDraft && (
-          <Button
-            onClick={handleApprove}
-            disabled={isPending}
-            className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/95 cursor-pointer"
-          >
-            {isPending ? "Đang xử lý..." : "Duyệt phiếu"}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {role === "OWNER" && isDraft && (
+            <Button
+              onClick={handleApprove}
+              disabled={isPending}
+              className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/95 cursor-pointer"
+            >
+              {isPending ? "Đang xử lý..." : "Duyệt phiếu"}
+            </Button>
+          )}
+          {role === "OWNER" && isApproved && (
+            <Button
+              variant="outline"
+              onClick={() => setVoidOpen(true)}
+              disabled={isPending}
+              className="w-full sm:w-auto border-destructive text-destructive hover:bg-destructive/10 cursor-pointer"
+            >
+              Hủy phiếu
+            </Button>
+          )}
+        </div>
       </div>
+
+      <Dialog open={voidOpen} onOpenChange={setVoidOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hủy phiếu kiểm kê</DialogTitle>
+            <DialogDescription>
+              Thao tác này sẽ đảo các điều chỉnh tồn kho và đánh dấu phiếu là đã hủy. Không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="voidReason">Lý do hủy</Label>
+              <Input
+                id="voidReason"
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                placeholder="Nhập lý do hủy..."
+                disabled={isPending}
+              />
+            </div>
+            <Button
+              onClick={handleVoidStocktake}
+              disabled={isPending || !voidReason.trim()}
+              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
+            >
+              {isPending ? "Đang xử lý..." : "Xác nhận hủy"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

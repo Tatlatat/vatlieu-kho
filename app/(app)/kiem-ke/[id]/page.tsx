@@ -44,6 +44,10 @@ export default async function KiemKeDetailPage({ params }: PageProps) {
                 <Badge variant="secondary" className="bg-muted text-muted-foreground border-transparent px-2.5 py-0.5">
                   Nháp
                 </Badge>
+              ) : stocktake.status === "VOIDED" ? (
+                <Badge variant="destructive" className="border-transparent px-2.5 py-0.5">
+                  Đã hủy
+                </Badge>
               ) : (
                 <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-transparent px-2.5 py-0.5">
                   Đã duyệt
@@ -52,6 +56,9 @@ export default async function KiemKeDetailPage({ params }: PageProps) {
             </div>
             <p className="text-sm text-muted-foreground">
               Người lập: <span className="font-medium text-foreground">{stocktake.createdBy.name}</span>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Kho: <span className="font-medium text-foreground">{stocktake.warehouse?.name}</span>
             </p>
           </div>
           <div className="text-sm text-muted-foreground sm:text-right">
