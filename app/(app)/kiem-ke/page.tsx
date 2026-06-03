@@ -2,6 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-helpers";
 import { listStocktakes } from "@/lib/queries/stocktake";
+import { getWarehouses } from "@/lib/queries/warehouses";
 import { NewStocktakeButton } from "@/components/new-stocktake-button";
 import {
   Table,
@@ -17,7 +18,7 @@ import { HuongDanKiemKe } from "@/components/huong-dan-kiem-ke";
 
 export default async function KiemKePage() {
   await requireUser();
-  const takes = await listStocktakes();
+  const [takes, warehouses] = await Promise.all([listStocktakes(), getWarehouses()]);
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
@@ -30,7 +31,7 @@ export default async function KiemKePage() {
             Quản lý và lập phiếu kiểm kê hao hụt định kỳ
           </p>
         </div>
-        <NewStocktakeButton />
+        <NewStocktakeButton warehouses={warehouses} />
       </div>
 
       <HuongDanKiemKe />
@@ -50,6 +51,7 @@ export default async function KiemKePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Mã phiếu</TableHead>
+                    <TableHead>Kho</TableHead>
                     <TableHead>Ngày tạo</TableHead>
                     <TableHead>Người tạo</TableHead>
                     <TableHead>Trạng thái</TableHead>
@@ -61,6 +63,7 @@ export default async function KiemKePage() {
                   {takes.map((t) => (
                     <TableRow key={t.id}>
                       <TableCell className="font-mono font-medium">{t.code}</TableCell>
+                      <TableCell>{t.warehouse?.name}</TableCell>
                       <TableCell>
                         {new Date(t.createdAt).toLocaleString("vi-VN", {
                           year: "numeric",

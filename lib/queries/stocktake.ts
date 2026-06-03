@@ -7,6 +7,7 @@ export async function listStocktakes() {
     include: {
       createdBy: { select: { name: true } },
       approvedBy: { select: { name: true } },
+      warehouse: { select: { name: true } },
       items: { select: { diff: true } },
     },
   });
@@ -24,6 +25,7 @@ export async function getStocktake(id: string) {
     include: {
       createdBy: { select: { name: true } },
       approvedBy: { select: { name: true } },
+      warehouse: { select: { name: true } },
       items: {
         include: { material: { select: { name: true, code: true, unit: true } } },
         orderBy: { material: { name: "asc" } },

@@ -6,12 +6,13 @@ import { requireUser, requireRole } from "@/lib/auth-helpers";
 import { getCurrentStock } from "@/lib/queries/stock";
 import type { ActionResult } from "@/lib/actions/movements";
 
-/** Tạo phiếu kiểm kê mới: chốt systemQty hiện tại cho mọi vật liệu. */
-export async function createStocktake(): Promise<ActionResult & { id?: string }> {
+/** Tạo phiếu kiểm kê mới: chốt systemQty hiện tại cho mọi vật liệu trong kho chỉ định. */
+export async function createStocktake(warehouseId: string): Promise<ActionResult & { id?: string }> {
+  if (!warehouseId) return { ok: false, error: "Vui lòng chọn kho để kiểm kê." };
   const user = await requireUser();
-  const stock = await getCurrentStock();
+  const stock = await getCurrentStock(warehouseId);
   if (stock.length === 0) {
-    return { ok: false, error: "Chưa có vật liệu nào để kiểm kê." };
+    return { ok: false, error: "Kho này chưa có vật tư nào để kiểm kê." };
   }
 
   const code = `KK-${new Date().toISOString().slice(0, 10)}-${Math.floor(
@@ -23,6 +24,7 @@ export async function createStocktake(): Promise<ActionResult & { id?: string }>
       code,
       status: "DRAFT",
       createdById: user.id,
+      warehouseId,
       items: {
         create: stock.map((s) => ({
           materialId: s.material_id,

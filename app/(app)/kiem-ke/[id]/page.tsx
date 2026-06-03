@@ -53,6 +53,9 @@ export default async function KiemKeDetailPage({ params }: PageProps) {
             <p className="text-sm text-muted-foreground">
               Người lập: <span className="font-medium text-foreground">{stocktake.createdBy.name}</span>
             </p>
+            <p className="text-sm text-muted-foreground">
+              Kho: <span className="font-medium text-foreground">{stocktake.warehouse?.name}</span>
+            </p>
           </div>
           <div className="text-sm text-muted-foreground sm:text-right">
             <p>

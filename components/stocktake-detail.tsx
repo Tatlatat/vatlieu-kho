@@ -32,7 +32,7 @@ interface StocktakeItemDetail {
 interface Stocktake {
   id: string;
   code: string;
-  status: "DRAFT" | "APPROVED";
+  status: "DRAFT" | "APPROVED" | "VOIDED";
   items: StocktakeItemDetail[];
 }
 
