@@ -155,6 +155,25 @@ export async function voidDocument(documentId: string, reason: string): Promise<
       for (const s of slots)
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${s}))`;
 
+      // Recheck on-hand SAU khi lock: đảo một movement IN sẽ sinh OUT (giảm tồn).
+      // Nếu hàng đã xuất/chuyển đi, đảo sẽ làm tồn ÂM → chặn (chính xác kiểm toán).
+      // Gộp nhu cầu giảm theo slot (gồm cả TRANSFER_IN ở kho đích khi hủy phiếu chuyển).
+      const needReduce = new Map<string, { materialId: string; warehouseId: string; qty: number }>();
+      for (const m of doc.movements) {
+        if (m.type === "IN") {
+          const slot = `${m.materialId}:${m.warehouseId}`;
+          const cur = needReduce.get(slot);
+          if (cur) cur.qty += m.quantity;
+          else needReduce.set(slot, { materialId: m.materialId, warehouseId: m.warehouseId, qty: m.quantity });
+        }
+      }
+      for (const { materialId, warehouseId, qty } of needReduce.values()) {
+        const rows = await tx.$queryRaw<{ on_hand: number }[]>`SELECT on_hand FROM current_stock WHERE material_id = ${materialId} AND warehouse_id = ${warehouseId}`;
+        const onHand = rows.length ? Number(rows[0].on_hand) : 0;
+        if (qty > onHand)
+          throw new Error(`Không thể hủy: kho không đủ tồn để đảo (cần ${qty}, còn ${onHand}). Có thể hàng đã được xuất/chuyển đi.`);
+      }
+
       for (const m of doc.movements) {
         await tx.stockMovement.create({
           data: {

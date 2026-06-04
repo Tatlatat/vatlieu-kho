@@ -24,9 +24,16 @@ export async function createUser(input: {
   if (existing) return { ok: false, error: `Email "${d.email}" đã được dùng.` };
 
   const passwordHash = await bcrypt.hash(d.password, 10);
-  await prisma.user.create({
-    data: { email: d.email, name: d.name, role: d.role, passwordHash },
-  });
+  try {
+    await prisma.user.create({
+      data: { email: d.email, name: d.name, role: d.role, passwordHash },
+    });
+  } catch (e) {
+    // Race: hai request cùng email vượt qua check ở trên — unique constraint (P2002) bắt ở đây.
+    if (e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002")
+      return { ok: false, error: `Email "${d.email}" đã được dùng.` };
+    throw e;
+  }
   revalidatePath("/nguoi-dung");
   return { ok: true };
 }

@@ -50,9 +50,16 @@ export async function approveTransfer(documentId: string): Promise<ActionResult>
       const fromWh = doc.fromWarehouseId;
       const toWh = doc.toWarehouseId;
 
-      // Khóa slot kho NGUỒN (dedup + sort) rồi recheck tồn.
-      const fromSlots = [...new Set(doc.lines.map((l) => `${l.materialId}:${fromWh}`))].sort();
-      for (const s of fromSlots)
+      // Khóa CẢ slot kho nguồn VÀ kho đích (TRANSFER_IN ghi vào đích) — gộp + sort
+      // một lần để có thứ tự khóa toàn cục nhất quán (chống deadlock + chống race
+      // với các OUT đồng thời ở kho đích).
+      const allSlots = [
+        ...new Set([
+          ...doc.lines.map((l) => `${l.materialId}:${fromWh}`),
+          ...doc.lines.map((l) => `${l.materialId}:${toWh}`),
+        ]),
+      ].sort();
+      for (const s of allSlots)
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${s}))`;
       const need = new Map<string, number>();
       for (const l of doc.lines) need.set(l.materialId, (need.get(l.materialId) ?? 0) + l.quantity);
@@ -86,13 +93,16 @@ export async function approveTransfer(documentId: string): Promise<ActionResult>
 
 /** Từ chối phiếu chuyển kho: PENDING→DRAFT (để người lập sửa lại). */
 export async function rejectTransfer(documentId: string): Promise<ActionResult> {
-  await requireUser();
+  const user = await requireUser();
   try {
     await prisma.$transaction(async (tx) => {
       const doc = await tx.document.findUnique({ where: { id: documentId } });
       if (!doc) throw new Error("Không tìm thấy phiếu");
       if (doc.type !== "TRANSFER") throw new Error("Không phải phiếu chuyển kho");
       if (doc.status !== "PENDING") throw new Error("Chỉ từ chối phiếu đang Chờ duyệt");
+      // Đối xứng với duyệt: người lập không tự xử lý phiếu mình (trừ OWNER).
+      if (doc.createdById === user.id && user.role !== "OWNER")
+        throw new Error("Người lập phiếu không được tự từ chối");
       await tx.document.update({ where: { id: doc.id }, data: { status: "DRAFT" } });
     });
     revalidatePath("/chuyen-kho");
