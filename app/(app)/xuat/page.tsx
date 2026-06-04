@@ -1,8 +1,13 @@
-import { getMaterials } from "@/lib/queries/stock";
-import { getWarehouses } from "@/lib/queries/warehouses";
-import { ExportForm } from "@/components/export-form";
+export const dynamic = "force-dynamic";
+import { listDocuments } from "@/lib/queries/documents";
+import { DocumentList } from "@/components/document-list";
 
-export default async function XuatPage() {
-  const [materials, warehouses] = await Promise.all([getMaterials(), getWarehouses()]);
-  return <ExportForm materials={materials} warehouses={warehouses} />;
+export default async function XuatListPage() {
+  const docs = await listDocuments("OUT");
+  return (
+    <div className="mx-auto max-w-5xl p-4">
+      <h1 className="text-xl font-bold mb-4">Phiếu xuất kho</h1>
+      <DocumentList docs={docs} basePath="/xuat" newLabel="Tạo phiếu xuất" />
+    </div>
+  );
 }

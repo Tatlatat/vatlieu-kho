@@ -1,8 +1,13 @@
-import { getMaterials } from "@/lib/queries/stock";
-import { getWarehouses } from "@/lib/queries/warehouses";
-import { ImportForm } from "@/components/import-form";
+export const dynamic = "force-dynamic";
+import { listDocuments } from "@/lib/queries/documents";
+import { DocumentList } from "@/components/document-list";
 
-export default async function NhapPage() {
-  const [materials, warehouses] = await Promise.all([getMaterials(), getWarehouses()]);
-  return <ImportForm materials={materials} warehouses={warehouses} />;
+export default async function NhapListPage() {
+  const docs = await listDocuments("IN");
+  return (
+    <div className="mx-auto max-w-5xl p-4">
+      <h1 className="text-xl font-bold mb-4">Phiếu nhập kho</h1>
+      <DocumentList docs={docs} basePath="/nhap" newLabel="Tạo phiếu nhập" />
+    </div>
+  );
 }
