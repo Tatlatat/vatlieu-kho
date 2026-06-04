@@ -63,6 +63,26 @@ export const voidSchema = z.object({
   reason: z.string().min(1, "Vui lòng nhập lý do hủy"),
 });
 
+export const docLineSchema = z.object({
+  materialId: z.string().min(1, "Vui lòng chọn vật tư"),
+  quantity: z.coerce.number().positive("Số lượng phải lớn hơn 0"),
+  note: z.string().max(500).optional(),
+});
+
+export const docHeaderSchema = z.object({
+  type: z.enum(["IN", "OUT", "TRANSFER", "STOCKTAKE"]),
+  warehouseId: z.string().optional(),
+  fromWarehouseId: z.string().optional(),
+  toWarehouseId: z.string().optional(),
+  supplierId: z.string().optional(),
+  reason: z.string().optional(),
+  note: z.string().max(500).optional(),
+  lines: z.array(docLineSchema).min(1, "Phiếu phải có ít nhất 1 dòng"),
+});
+
+export type DocLineInput = z.infer<typeof docLineSchema>;
+export type DocHeaderInput = z.infer<typeof docHeaderSchema>;
+
 export type ImportInput = z.infer<typeof importSchema>;
 export type ExportInput = z.infer<typeof exportSchema>;
 export type MaterialInput = z.infer<typeof materialSchema>;
