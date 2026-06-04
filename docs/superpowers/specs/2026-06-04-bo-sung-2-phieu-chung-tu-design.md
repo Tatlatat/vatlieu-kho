@@ -154,4 +154,4 @@ Migration mới (Document/DocumentLine Phase A, Supplier E2, Equipment E3, + cá
 | C | Báo cáo Excel/in/tồn đầu kỳ | ✅ C1-C4 (logic Claude + UI agy), verify thật, đã push |
 | D | Danh mục mã tự do | ✅ nav→Danh mục, STT, bỏ regex mã kho |
 | E | Phân quyền + NCC + Xe/máy | ✅ logic Claude (bcrypt/race) + UI agy, verify login thật + NCC end-to-end |
-| F | Tài liệu đối chiếu | ⬜ |
+| F | Tài liệu đối chiếu | ✅ map 6 mục client, verify khớp code, không lộ field |
