@@ -220,6 +220,17 @@ export function DocumentDetailActions({ id, status, type }: DocumentDetailAction
           </Dialog>
         </>
       )}
+
+      {status !== "DRAFT" && (
+        <a
+          href={`/phieu/${id}/in`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-9 items-center rounded-md border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          In phiếu
+        </a>
+      )}
     </div>
   );
 }
