@@ -24,7 +24,7 @@ const links: { href: string; label: string; icon: typeof Home; roles: Role[] }[]
   { href: "/chuyen-kho", label: "Chuyển kho", icon: ArrowLeftRight, roles: ["OWNER", "STAFF"] },
   { href: "/lich-su", label: "Lịch sử", icon: History, roles: ["OWNER", "STAFF"] },
   { href: "/bao-cao", label: "Báo cáo", icon: BarChart3, roles: ["OWNER"] },
-  { href: "/vat-lieu", label: "Vật liệu", icon: Boxes, roles: ["OWNER"] },
+  { href: "/vat-lieu", label: "Danh mục", icon: Boxes, roles: ["OWNER"] },
 ];
 
 export function Nav({ role, name }: { role: Role; name: string }) {

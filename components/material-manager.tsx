@@ -101,6 +101,7 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[56px]">STT</TableHead>
                     <TableHead>Tên vật liệu</TableHead>
                     <TableHead>Mã</TableHead>
                     <TableHead>Đơn vị</TableHead>
@@ -109,8 +110,9 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {materials.map((m) => (
+                  {materials.map((m, idx) => (
                     <TableRow key={m.id}>
+                      <TableCell className="text-muted-foreground tabular-nums">{idx + 1}</TableCell>
                       <TableCell className="font-semibold text-foreground">
                         {m.name}
                       </TableCell>
