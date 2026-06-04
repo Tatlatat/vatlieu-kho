@@ -141,6 +141,12 @@ export function BalanceReport({ rows, warehouses, from, to, warehouseId }: Props
           <Button size="sm" onClick={handleView} className="h-8 self-end">
             Xem
           </Button>
+          <a
+            href={`/api/bao-cao/excel?from=${from}&to=${to}${warehouseId ? `&wh=${warehouseId}` : ""}`}
+            className="inline-flex h-8 items-center self-end rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-accent"
+          >
+            Tải Excel
+          </a>
         </div>
       </CardHeader>
 
