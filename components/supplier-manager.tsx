@@ -1,0 +1,286 @@
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { createSupplier, updateSupplier, deleteSupplier } from "@/lib/actions/suppliers";
+import { toast } from "sonner";
+
+interface Supplier {
+  id: string;
+  name: string;
+  contact?: string | null;
+  note?: string | null;
+}
+
+interface SupplierManagerProps {
+  suppliers: Supplier[];
+}
+
+export function SupplierManager({ suppliers }: SupplierManagerProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = React.useTransition();
+  const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [editingSupplier, setEditingSupplier] = React.useState<Supplier | null>(null);
+
+  const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const name = fd.get("name") as string;
+    const contact = (fd.get("contact") as string) || undefined;
+    const note = (fd.get("note") as string) || undefined;
+
+    startTransition(async () => {
+      try {
+        const res = await createSupplier({ name, contact, note });
+        if (res.ok) {
+          toast.success("Đã thêm nhà cung cấp thành công");
+          setIsCreateOpen(false);
+          router.refresh();
+        } else {
+          toast.error(res.error || "Có lỗi xảy ra");
+        }
+      } catch {
+        toast.error("Không thể kết nối máy chủ");
+      }
+    });
+  };
+
+  const handleEdit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingSupplier) return;
+    const fd = new FormData(e.currentTarget);
+    const name = fd.get("name") as string;
+    const contact = (fd.get("contact") as string) || undefined;
+    const note = (fd.get("note") as string) || undefined;
+
+    startTransition(async () => {
+      try {
+        const res = await updateSupplier(editingSupplier.id, { name, contact, note });
+        if (res.ok) {
+          toast.success("Đã cập nhật nhà cung cấp thành công");
+          setEditingSupplier(null);
+          router.refresh();
+        } else {
+          toast.error(res.error || "Có lỗi xảy ra");
+        }
+      } catch {
+        toast.error("Không thể kết nối máy chủ");
+      }
+    });
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa nhà cung cấp "${name}"?`)) return;
+
+    startTransition(async () => {
+      try {
+        const res = await deleteSupplier(id);
+        if (res.ok) {
+          toast.success("Đã xóa nhà cung cấp thành công");
+          router.refresh();
+        } else {
+          toast.error(res.error || "Không thể xóa nhà cung cấp");
+        }
+      } catch {
+        toast.error("Không thể kết nối máy chủ");
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setIsCreateOpen(true)} className="cursor-pointer">
+          Thêm nhà cung cấp
+        </Button>
+      </div>
+
+      <Card className="shadow-md border border-border">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Danh sách nhà cung cấp</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {suppliers.length === 0 ? (
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              Chưa có nhà cung cấp nào.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">STT</TableHead>
+                    <TableHead>Tên nhà cung cấp</TableHead>
+                    <TableHead>Liên hệ</TableHead>
+                    <TableHead>Ghi chú</TableHead>
+                    <TableHead className="w-[200px] text-right">Hành động</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {suppliers.map((s, index) => (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-mono text-xs">{index + 1}</TableCell>
+                      <TableCell className="font-semibold text-foreground">{s.name}</TableCell>
+                      <TableCell>{s.contact || <span className="text-muted-foreground italic text-xs">Chưa có</span>}</TableCell>
+                      <TableCell>{s.note || <span className="text-muted-foreground italic text-xs">Không có</span>}</TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingSupplier(s)}
+                          disabled={isPending}
+                          className="cursor-pointer"
+                        >
+                          Sửa
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(s.id, s.name)}
+                          disabled={isPending}
+                          className="cursor-pointer text-destructive hover:bg-destructive/10"
+                        >
+                          Xóa
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dialog thêm mới nhà cung cấp */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Thêm nhà cung cấp mới</DialogTitle>
+            <DialogDescription>
+              Nhập các thông tin chi tiết của nhà cung cấp mới.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="sname">Tên nhà cung cấp <span className="text-destructive">*</span></Label>
+              <Input
+                id="sname"
+                name="name"
+                required
+                placeholder="Công ty TNHH Vật liệu xây dựng"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="scontact">Liên hệ</Label>
+              <Input
+                id="scontact"
+                name="contact"
+                placeholder="Số điện thoại, email hoặc địa chỉ..."
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="snote">Ghi chú</Label>
+              <Input
+                id="snote"
+                name="note"
+                placeholder="Thông tin bổ sung..."
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreateOpen(false)}
+                disabled={isPending}
+                className="cursor-pointer"
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={isPending} className="cursor-pointer">
+                {isPending ? "Đang tạo..." : "Thêm mới"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog chỉnh sửa nhà cung cấp */}
+      <Dialog open={editingSupplier !== null} onOpenChange={(o) => { if (!o) setEditingSupplier(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa nhà cung cấp</DialogTitle>
+            <DialogDescription>
+              Cập nhật thông tin chi tiết nhà cung cấp.
+            </DialogDescription>
+          </DialogHeader>
+          {editingSupplier && (
+            <form onSubmit={handleEdit} className="space-y-4 py-2">
+              <div className="space-y-1">
+                <Label htmlFor="esname">Tên nhà cung cấp <span className="text-destructive">*</span></Label>
+                <Input
+                  id="esname"
+                  name="name"
+                  required
+                  defaultValue={editingSupplier.name}
+                  placeholder="Công ty TNHH Vật liệu xây dựng"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="escontact">Liên hệ</Label>
+                <Input
+                  id="escontact"
+                  name="contact"
+                  defaultValue={editingSupplier.contact || ""}
+                  placeholder="Số điện thoại, email hoặc địa chỉ..."
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="esnote">Ghi chú</Label>
+                <Input
+                  id="esnote"
+                  name="note"
+                  defaultValue={editingSupplier.note || ""}
+                  placeholder="Thông tin bổ sung..."
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingSupplier(null)}
+                  disabled={isPending}
+                  className="cursor-pointer"
+                >
+                  Hủy
+                </Button>
+                <Button type="submit" disabled={isPending} className="cursor-pointer">
+                  {isPending ? "Đang cập nhật..." : "Lưu thay đổi"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

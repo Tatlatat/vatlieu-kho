@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { saveDraft, postDocument } from "@/lib/actions/documents";
 
 interface Warehouse {
@@ -25,12 +26,18 @@ interface Material {
   unit: string;
 }
 
+interface Supplier {
+  id: string;
+  name: string;
+}
+
 interface ImportDocFormProps {
   materials: Material[];
   warehouses: Warehouse[];
+  suppliers: Supplier[];
 }
 
-export function ImportDocForm({ materials, warehouses }: ImportDocFormProps) {
+export function ImportDocForm({ materials, warehouses, suppliers }: ImportDocFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
 
@@ -39,6 +46,7 @@ export function ImportDocForm({ materials, warehouses }: ImportDocFormProps) {
   }, [warehouses]);
 
   const [warehouseId, setWarehouseId] = React.useState(defaultWarehouseId);
+  const [supplierId, setSupplierId] = React.useState("");
   const [note, setNote] = React.useState("");
 
   // Lazy initializer: tạo 1 dòng trống lúc mount (không dùng effect/Math.random — lint cấm).
@@ -71,6 +79,7 @@ export function ImportDocForm({ materials, warehouses }: ImportDocFormProps) {
         const draftResult = await saveDraft({
           type: "IN",
           warehouseId,
+          supplierId: supplierId || undefined,
           note: note.trim() || undefined,
           lines: validLines,
         });
@@ -113,7 +122,7 @@ export function ImportDocForm({ materials, warehouses }: ImportDocFormProps) {
         <CardTitle className="text-lg">Chi tiết phiếu nhập</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="warehouse">Kho nhập <span className="text-destructive">*</span></Label>
             <WarehouseSelect
@@ -123,6 +132,26 @@ export function ImportDocForm({ materials, warehouses }: ImportDocFormProps) {
               onChange={setWarehouseId}
               placeholder="Chọn kho nhập..."
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="supplier">Nhà cung cấp (tùy chọn)</Label>
+            <div className="relative w-full">
+              <Select value={supplierId} onValueChange={(v) => setSupplierId(v ?? "")}>
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Chọn nhà cung cấp...">
+                    {suppliers.find((s) => s.id === supplierId)?.name || "Chọn nhà cung cấp..."}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">— Không chọn —</SelectItem>
+                  {suppliers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="note">Ghi chú phiếu</Label>

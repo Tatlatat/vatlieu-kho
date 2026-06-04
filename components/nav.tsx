@@ -13,6 +13,9 @@ import {
   ClipboardCheck,
   LogOut,
   ArrowLeftRight,
+  Users,
+  Truck,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +28,9 @@ const links: { href: string; label: string; icon: typeof Home; roles: Role[] }[]
   { href: "/lich-su", label: "Lịch sử", icon: History, roles: ["OWNER", "STAFF"] },
   { href: "/bao-cao", label: "Báo cáo", icon: BarChart3, roles: ["OWNER"] },
   { href: "/vat-lieu", label: "Danh mục", icon: Boxes, roles: ["OWNER"] },
+  { href: "/nguoi-dung", label: "Người dùng", icon: Users, roles: ["OWNER"] },
+  { href: "/nha-cung-cap", label: "Nhà cung cấp", icon: Truck, roles: ["OWNER"] },
+  { href: "/xe-may", label: "Xe/máy", icon: Wrench, roles: ["OWNER"] },
 ];
 
 export function Nav({ role, name }: { role: Role; name: string }) {
