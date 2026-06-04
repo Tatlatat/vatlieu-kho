@@ -20,6 +20,7 @@ export async function voidMovement(formData: FormData): Promise<ActionResult> {
   if (mv.voidedAt) return { ok: false, error: "Chứng từ này đã được hủy trước đó" };
   if (mv.reason === "VOID") return { ok: false, error: "Không thể hủy một bút toán hủy" };
   if (mv.reason === "STOCKTAKE_ADJUST") return { ok: false, error: "Không thể hủy riêng điều chỉnh kiểm kê. Hãy hủy cả phiếu kiểm kê." };
+  if (mv.documentId) return { ok: false, error: "Giao dịch này thuộc một phiếu chứng từ. Hãy hủy bằng cách hủy phiếu, không hủy lẻ từng dòng." };
 
   try {
     await prisma.$transaction(async (tx) => {
