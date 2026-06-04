@@ -150,7 +150,7 @@ Migration mới (Document/DocumentLine Phase A, Supplier E2, Equipment E3, + cá
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
 | A | Document engine | ✅ dựng lại xong (khớp DDL cũ, verify DB, đã push) |
-| B | UI 4 menu phiếu | ⬜ |
+| B | UI 4 menu phiếu | ✅ agy code + Claude review/fix, render thật pass, đã push |
 | C | Báo cáo Excel/in/tồn đầu kỳ | ⬜ |
 | D | Danh mục mã tự do | ⬜ |
 | E | Phân quyền + NCC + Xe/máy | ⬜ |
