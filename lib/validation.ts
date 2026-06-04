@@ -83,6 +83,38 @@ export const docHeaderSchema = z.object({
 export type DocLineInput = z.infer<typeof docLineSchema>;
 export type DocHeaderInput = z.infer<typeof docHeaderSchema>;
 
+export const createUserSchema = z.object({
+  email: z.string().email("Email không hợp lệ"),
+  name: z.string().min(1, "Vui lòng nhập tên"),
+  password: z.string().min(6, "Mật khẩu tối thiểu 6 ký tự"),
+  role: z.enum(["OWNER", "STAFF"]),
+});
+
+export const supplierSchema = z.object({
+  name: z.string().min(1, "Vui lòng nhập tên nhà cung cấp"),
+  contact: z.string().max(200).optional(),
+  note: z.string().max(500).optional(),
+});
+
+export const equipmentSchema = z.object({
+  name: z.string().min(1, "Vui lòng nhập tên xe/máy"),
+  type: z.string().max(100).optional(),
+  plateNo: z.string().max(50).optional(),
+  note: z.string().max(500).optional(),
+});
+
+export const equipmentLogSchema = z.object({
+  equipmentId: z.string().min(1, "Vui lòng chọn xe/máy"),
+  logDate: z.string().min(1, "Vui lòng chọn ngày"),
+  hours: z.coerce.number().positive("Số giờ phải lớn hơn 0"),
+  note: z.string().max(500).optional(),
+});
+
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type SupplierInput = z.infer<typeof supplierSchema>;
+export type EquipmentInput = z.infer<typeof equipmentSchema>;
+export type EquipmentLogInput = z.infer<typeof equipmentLogSchema>;
+
 export type ImportInput = z.infer<typeof importSchema>;
 export type ExportInput = z.infer<typeof exportSchema>;
 export type MaterialInput = z.infer<typeof materialSchema>;
