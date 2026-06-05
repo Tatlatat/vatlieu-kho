@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { saveDraft, postDocument } from "@/lib/actions/documents";
+import { IN_REASONS } from "@/lib/validation";
 
 interface Warehouse {
   id: string;
@@ -48,6 +49,8 @@ export function ImportDocForm({ materials, warehouses, suppliers }: ImportDocFor
   const [warehouseId, setWarehouseId] = React.useState(defaultWarehouseId);
   const [supplierId, setSupplierId] = React.useState("");
   const [note, setNote] = React.useState("");
+  const [docDate, setDocDate] = React.useState(() => new Date().toISOString().slice(0, 10));
+  const [reason, setReason] = React.useState<string>(IN_REASONS[0].value);
 
   // Lazy initializer: tạo 1 dòng trống lúc mount (không dùng effect/Math.random — lint cấm).
   const [lines, setLines] = React.useState<LineItem[]>(() => [
@@ -80,6 +83,8 @@ export function ImportDocForm({ materials, warehouses, suppliers }: ImportDocFor
           type: "IN",
           warehouseId,
           supplierId: supplierId || undefined,
+          docDate,
+          reason,
           note: note.trim() || undefined,
           lines: validLines,
         });
@@ -122,7 +127,7 @@ export function ImportDocForm({ materials, warehouses, suppliers }: ImportDocFor
         <CardTitle className="text-lg">Chi tiết phiếu nhập</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="warehouse">Kho nhập <span className="text-destructive">*</span></Label>
             <WarehouseSelect
@@ -154,6 +159,32 @@ export function ImportDocForm({ materials, warehouses, suppliers }: ImportDocFor
             </div>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="docDate">Ngày nhập <span className="text-destructive">*</span></Label>
+            <Input
+              id="docDate"
+              type="date"
+              value={docDate}
+              onChange={(e) => setDocDate(e.target.value)}
+              className="h-10"
+              max={new Date().toISOString().slice(0, 10)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="reason">Lý do nhập <span className="text-destructive">*</span></Label>
+            <Select value={reason} onValueChange={(v) => setReason(v ?? "")}>
+              <SelectTrigger id="reason" className="w-full h-10">
+                <SelectValue placeholder="Chọn lý do nhập..." />
+              </SelectTrigger>
+              <SelectContent>
+                {IN_REASONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2 md:col-span-2 lg:col-span-2">
             <Label htmlFor="note">Ghi chú phiếu</Label>
             <Input
               id="note"

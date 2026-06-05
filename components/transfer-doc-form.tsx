@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { saveDraft } from "@/lib/actions/documents";
 import { submitTransferForApproval } from "@/lib/actions/transfer-approve";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { TRANSFER_REASONS } from "@/lib/validation";
 
 interface Warehouse {
   id: string;
@@ -40,6 +42,8 @@ export function TransferDocForm({ materials, warehouses }: TransferDocFormProps)
     warehouses.length > 1 ? warehouses[1]?.id : warehouses[0]?.id || ""
   );
   const [note, setNote] = React.useState("");
+  const [docDate, setDocDate] = React.useState(() => new Date().toISOString().slice(0, 10));
+  const [reason, setReason] = React.useState<string>(TRANSFER_REASONS[0].value);
 
   // Lazy initializer: tạo 1 dòng trống lúc mount (không dùng effect/Math.random — lint cấm).
   const [lines, setLines] = React.useState<LineItem[]>(() => [
@@ -77,6 +81,8 @@ export function TransferDocForm({ materials, warehouses }: TransferDocFormProps)
           type: "TRANSFER",
           fromWarehouseId,
           toWarehouseId,
+          docDate,
+          reason,
           note: note.trim() || undefined,
           lines: validLines,
         });
@@ -119,7 +125,7 @@ export function TransferDocForm({ materials, warehouses }: TransferDocFormProps)
         <CardTitle className="text-lg">Chi tiết phiếu chuyển kho</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="fromWarehouse">Kho nguồn <span className="text-destructive">*</span></Label>
             <WarehouseSelect
@@ -141,6 +147,32 @@ export function TransferDocForm({ materials, warehouses }: TransferDocFormProps)
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="docDate">Ngày chuyển <span className="text-destructive">*</span></Label>
+            <Input
+              id="docDate"
+              type="date"
+              value={docDate}
+              onChange={(e) => setDocDate(e.target.value)}
+              className="h-10"
+              max={new Date().toISOString().slice(0, 10)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="reason">Lý do chuyển <span className="text-destructive">*</span></Label>
+            <Select value={reason} onValueChange={(v) => setReason(v ?? "")}>
+              <SelectTrigger id="reason" className="w-full h-10">
+                <SelectValue placeholder="Chọn lý do chuyển..." />
+              </SelectTrigger>
+              <SelectContent>
+                {TRANSFER_REASONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2 md:col-span-2 lg:col-span-2">
             <Label htmlFor="note">Ghi chú phiếu</Label>
             <Input
               id="note"

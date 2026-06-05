@@ -43,6 +43,7 @@ export function ExportDocForm({ materials, warehouses }: ExportDocFormProps) {
   const [warehouseId, setWarehouseId] = React.useState(defaultWarehouseId);
   const [reason, setReason] = React.useState<string>(OUT_REASONS[0].value);
   const [note, setNote] = React.useState("");
+  const [docDate, setDocDate] = React.useState(() => new Date().toISOString().slice(0, 10));
 
   // Lazy initializer: tạo 1 dòng trống lúc mount (không dùng effect/Math.random — lint cấm).
   const [lines, setLines] = React.useState<LineItem[]>(() => [
@@ -80,6 +81,7 @@ export function ExportDocForm({ materials, warehouses }: ExportDocFormProps) {
           type: "OUT",
           warehouseId,
           reason,
+          docDate,
           note: note.trim() || undefined,
           lines: validLines,
         });
@@ -122,7 +124,7 @@ export function ExportDocForm({ materials, warehouses }: ExportDocFormProps) {
         <CardTitle className="text-lg">Chi tiết phiếu xuất</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label htmlFor="warehouse">Kho xuất <span className="text-destructive">*</span></Label>
             <WarehouseSelect
@@ -147,6 +149,17 @@ export function ExportDocForm({ materials, warehouses }: ExportDocFormProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="docDate">Ngày xuất <span className="text-destructive">*</span></Label>
+            <Input
+              id="docDate"
+              type="date"
+              value={docDate}
+              onChange={(e) => setDocDate(e.target.value)}
+              className="h-10"
+              max={new Date().toISOString().slice(0, 10)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="note">Ghi chú phiếu</Label>
