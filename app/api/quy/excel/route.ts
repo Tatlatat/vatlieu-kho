@@ -16,7 +16,8 @@ export async function GET(req: NextRequest) {
   if (!fundId) return new NextResponse("Chưa có quỹ", { status: 400 });
 
   const now = new Date();
-  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  // Dựng chuỗi YYYY-MM-01 thủ công (không qua toISOString) để không lệch ngày theo timezone server.
+  const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const todayStr = now.toISOString().slice(0, 10);
   const from = sp.get("from") ?? firstOfMonth;
   const to = sp.get("to") ?? todayStr;
@@ -55,7 +56,7 @@ export async function GET(req: NextRequest) {
 
   for (const e of entries) {
     const d = new Date(e.entryDate);
-    const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+    const dateStr = `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
     ws.addRow([
       dateStr,
       e.type === "THU" ? "Thu" : "Chi",

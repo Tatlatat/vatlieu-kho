@@ -9,12 +9,13 @@ import type { ActionResult } from "@/lib/actions/movements";
 
 /** Parse ngày phiếu (YYYY-MM-DD). Chặn ngày tương lai/rác (kế toán). */
 function parseEntryDate(raw: string): Date {
+  // raw = "YYYY-MM-DD" từ input date → new Date() parse thành UTC-midnight. Nhất quán UTC.
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) throw new Error("Ngày không hợp lệ");
-  const tomorrow = new Date();
-  tomorrow.setHours(0, 0, 0, 0);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  if (d >= tomorrow) throw new Error("Ngày phiếu không được ở tương lai");
+  // Chặn ngày tương lai theo UTC (server Vercel chạy UTC). Mốc = đầu ngày MAI theo UTC.
+  const now = new Date();
+  const tomorrowUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  if (d >= tomorrowUtc) throw new Error("Ngày phiếu không được ở tương lai");
   return d;
 }
 
@@ -78,6 +79,7 @@ export async function createCashEntry(input: {
     });
 
     revalidatePath("/quy");
+    revalidatePath("/quy/danh-muc"); // tồn quỹ hiển thị ở trang danh mục cũng đổi
     return warning ? { ok: true, warning } : { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
@@ -108,6 +110,7 @@ export async function voidCashEntry(id: string, reason: string): Promise<ActionR
       });
     });
     revalidatePath("/quy");
+    revalidatePath("/quy/danh-muc"); // tồn quỹ hiển thị ở trang danh mục cũng đổi
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as Error).message };

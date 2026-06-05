@@ -38,7 +38,9 @@ interface CashEntryRow {
 function formatDate(d: Date | string) {
   const date = typeof d === "string" ? new Date(d) : d;
   if (Number.isNaN(date.getTime())) return "—";
-  return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+  // Ngày phiếu lưu ở UTC-midnight (vd 2026-06-05T00:00:00Z). Đọc theo UTC để KHÔNG bị
+  // lùi/đẩy ngày theo timezone trình duyệt (người dùng múi giờ âm sẽ thấy lệch nếu dùng getDate).
+  return `${String(date.getUTCDate()).padStart(2, "0")}/${String(date.getUTCMonth() + 1).padStart(2, "0")}/${date.getUTCFullYear()}`;
 }
 
 export function CashLedger({ entries, canVoid }: { entries: CashEntryRow[]; canVoid?: boolean }) {

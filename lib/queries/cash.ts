@@ -66,7 +66,8 @@ export async function listCashEntries(
   const entries = await prisma.cashEntry.findMany({
     where: {
       fundId,
-      entryDate: { gte: new Date(from), lte: new Date(`${to}T23:59:59.999`) },
+      // Mốc ngày parse theo UTC nhất quán (thêm Z) — entryDate lưu UTC-midnight.
+      entryDate: { gte: new Date(`${from}T00:00:00.000Z`), lte: new Date(`${to}T23:59:59.999Z`) },
     },
     orderBy: [{ entryDate: "desc" }, { createdAt: "desc" }],
     include: { createdBy: { select: { name: true } } },
@@ -89,7 +90,6 @@ export async function getCashReport(
   from: string,
   to: string
 ): Promise<CashReport> {
-  const toEnd = `${to}T23:59:59.999`;
   const grouped = await prisma.$queryRaw<
     { type: "THU" | "CHI"; category: string; total: number }[]
   >`
@@ -97,8 +97,8 @@ export async function getCashReport(
     FROM "CashEntry"
     WHERE "fundId" = ${fundId}
       AND "voidedAt" IS NULL
-      AND "entryDate" >= ${new Date(from)}
-      AND "entryDate" <= ${new Date(toEnd)}
+      AND "entryDate" >= ${new Date(`${from}T00:00:00.000Z`)}
+      AND "entryDate" <= ${new Date(`${to}T23:59:59.999Z`)}
     GROUP BY type, category
     ORDER BY type, total DESC`;
 
