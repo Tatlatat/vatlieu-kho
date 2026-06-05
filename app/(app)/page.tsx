@@ -16,6 +16,7 @@ import {
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  ArrowLeftRight,
   ClipboardCheck,
   Search,
   TrendingDown,
@@ -25,6 +26,7 @@ import {
 const actions = [
   { href: "/nhap", label: "Nhập hàng", icon: ArrowDownToLine, color: "bg-blue-600" },
   { href: "/xuat", label: "Xuất hàng", icon: ArrowUpFromLine, color: "bg-green-600" },
+  { href: "/chuyen-kho", label: "Chuyển kho", icon: ArrowLeftRight, color: "bg-purple-600" },
   { href: "/kiem-ke", label: "Kiểm kê kho", icon: ClipboardCheck, color: "bg-amber-600" },
   { href: "/lich-su", label: "Lịch sử", icon: Search, color: "bg-slate-500" },
 ];
@@ -76,7 +78,7 @@ export default async function HomePage({
         </Link>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {actions.map((a) => {
           const Icon = a.icon;
           return (
