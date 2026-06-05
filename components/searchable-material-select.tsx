@@ -51,22 +51,32 @@ export function SearchableMaterialSelect({
 
   const ids = React.useMemo(() => materials.map((m) => m.id), [materials]);
 
+  // NGUYÊN NHÂN GỐC (source base-ui ComboboxInput.js): base-ui chỉ tự mở popup khi gõ nếu
+  // `shouldOpenOnInput = !autofillLikeInput`, mà `autofillLikeInput = !inputType`. Với bộ gõ
+  // tiếng Việt / một số trình duyệt, sự kiện `input` có `inputType` RỖNG → base-ui tưởng là
+  // autofill → KHÔNG mở (phải gõ space, lúc đó inputType="insertText", mới mở). Khắc phục:
+  // tự kiểm soát `open` và mở qua onChange DOM thật của Input — luôn fire khi gõ, bất kể inputType.
+  const [open, setOpen] = React.useState(false);
+
   return (
     <div className="relative w-full">
-      {/* KHÔNG controlled `open`: base-ui tự setOpen(true) khi gõ (shouldOpenOnInput)
-          chỉ hoạt động ở chế độ uncontrolled. Truyền open controlled sẽ TẮT cơ chế
-          tự-mở-khi-gõ → phải gõ space mới ra. openOnInputClick mặc định true. */}
       <Combobox.Root
         items={ids}
         value={value || null}
         onValueChange={(v: string | null) => onChange(v ?? "")}
         itemToStringLabel={itemToStringLabel}
         filter={filter}
+        open={open}
+        onOpenChange={(next: boolean) => setOpen(next)}
         openOnInputClick
       >
         <div className="relative">
           <Combobox.Input
             placeholder="Gõ để tìm theo tên hoặc mã..."
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              // Có ký tự trong ô → mở danh sách ngay (kể cả khi inputType rỗng do bộ gõ tiếng Việt).
+              if (e.target.value.length > 0) setOpen(true);
+            }}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pr-9 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
           <Combobox.Trigger
