@@ -230,3 +230,32 @@ export async function voidDocument(documentId: string, reason: string): Promise<
     return { ok: false, error: (e as Error).message };
   }
 }
+
+/** Xóa HẲN phiếu NHÁP (do nhập sai/nhập trùng). Chỉ DRAFT — chưa ghi sổ, chưa
+ *  sinh bút toán, chưa động tồn → xóa không phá audit trail. Phiếu đã lập (POSTED)
+ *  KHÔNG bao giờ xóa, chỉ Hủy (voidDocument). Đây là ranh giới kế toán: bảo vệ cái
+ *  đã ghi sổ, cho phép dọn cái chưa ghi sổ. */
+export async function deleteDraftDocument(documentId: string): Promise<ActionResult> {
+  const user = await requireUser();
+  try {
+    await prisma.$transaction(async (tx) => {
+      const doc = await tx.document.findUnique({ where: { id: documentId } });
+      if (!doc) throw new Error("Không tìm thấy phiếu");
+      // Chặn cứng: chỉ DRAFT mới xóa được. POSTED/PENDING/VOIDED phải qua Hủy.
+      if (doc.status !== "DRAFT")
+        throw new Error("Chỉ xóa được phiếu Nháp. Phiếu đã lập phải dùng chức năng Hủy (giữ lịch sử).");
+      // Người lập hoặc OWNER mới được xóa nháp của mình.
+      if (doc.createdById !== user.id && user.role !== "OWNER")
+        throw new Error("Chỉ người lập phiếu hoặc chủ tài khoản được xóa phiếu nháp này");
+      // Nháp chưa sinh StockMovement — chỉ cần xóa lines rồi document (an toàn FK).
+      await tx.documentLine.deleteMany({ where: { documentId: doc.id } });
+      await tx.document.delete({ where: { id: doc.id } });
+    });
+    revalidatePath("/nhap");
+    revalidatePath("/xuat");
+    revalidatePath("/chuyen-kho");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}

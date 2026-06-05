@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { postDocument, voidDocument } from "@/lib/actions/documents";
+import { postDocument, voidDocument, deleteDraftDocument } from "@/lib/actions/documents";
 import {
   submitTransferForApproval,
   approveTransfer,
@@ -55,6 +55,25 @@ export function DocumentDetailActions({ id, status, type }: DocumentDetailAction
           router.refresh();
         } else {
           toast.error(result.error || "Lỗi hủy phiếu");
+        }
+      } catch (err) {
+        toast.error("Lỗi hệ thống: " + (err as Error).message);
+      }
+    });
+  };
+
+  const handleDeleteDraft = () => {
+    if (!window.confirm("Xóa hẳn phiếu nháp này? (do nhập sai/nhập trùng) — không thể hoàn tác.")) return;
+    startTransition(async () => {
+      try {
+        const result = await deleteDraftDocument(id);
+        if (result.ok) {
+          toast.success("Đã xóa phiếu nháp");
+          // Quay về danh sách theo loại phiếu.
+          router.push(type === "IN" ? "/nhap" : type === "OUT" ? "/xuat" : "/chuyen-kho");
+          router.refresh();
+        } else {
+          toast.error(result.error || "Lỗi xóa phiếu nháp");
         }
       } catch (err) {
         toast.error("Lỗi hệ thống: " + (err as Error).message);
@@ -134,6 +153,19 @@ export function DocumentDetailActions({ id, status, type }: DocumentDetailAction
           className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
         >
           {isPending ? "Đang xử lý..." : "Gửi duyệt"}
+        </Button>
+      )}
+
+      {/* 2b. Xóa hẳn phiếu NHÁP (do nhập sai/nhập trùng) — chỉ DRAFT, mọi loại phiếu */}
+      {status === "DRAFT" && (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isPending}
+          onClick={handleDeleteDraft}
+          className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+        >
+          {isPending ? "Đang xóa..." : "Xóa nháp"}
         </Button>
       )}
 
