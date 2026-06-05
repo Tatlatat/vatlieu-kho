@@ -72,7 +72,7 @@ npm run db:logic    # áp dụng lại view/trigger Postgres
 - **CHECK constraint** — chặn số lượng ≤ 0.
 - **View `loss_by_month`** — tổng hợp hao hụt theo tháng × nguyên nhân cho dashboard.
 
-Xem chi tiết thiết kế tại `docs/superpowers/specs/` và `db/postgres-logic.sql`.
+Các view/constraint/trigger này được định nghĩa trong `prisma/migrations/` (nguồn sự thật duy nhất, tự chạy qua `prisma migrate deploy`). Xem chi tiết thiết kế tại `docs/superpowers/specs/`.
 
 ## Tài liệu
 

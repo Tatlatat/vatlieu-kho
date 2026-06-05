@@ -87,12 +87,6 @@ export const transferSchema = z.object({
   path: ["toWarehouseId"],
 });
 
-export const voidSchema = z.object({
-  movementId: z.string().optional(),
-  stocktakeId: z.string().optional(),
-  reason: z.string().min(1, "Vui lòng nhập lý do hủy"),
-});
-
 export const docLineSchema = z.object({
   materialId: z.string().min(1, "Vui lòng chọn vật tư"),
   quantity: z.coerce.number().positive("Số lượng phải lớn hơn 0"),
@@ -152,4 +146,3 @@ export type ExportInput = z.infer<typeof exportSchema>;
 export type MaterialInput = z.infer<typeof materialSchema>;
 export type WarehouseInput = z.infer<typeof warehouseSchema>;
 export type TransferInput = z.infer<typeof transferSchema>;
-export type VoidInput = z.infer<typeof voidSchema>;

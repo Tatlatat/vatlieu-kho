@@ -10,9 +10,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "db:logic": "docker exec -i vatlieu_db psql -U vatlieu -d vatlieu < db/postgres-logic.sql",
     "db:seed": "prisma db seed",
-    "db:setup": "prisma migrate deploy && npm run db:logic && npm run db:seed"
+    "db:setup": "prisma migrate deploy && npm run db:seed"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
