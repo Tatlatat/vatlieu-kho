@@ -10,10 +10,24 @@ import type { MovementReason } from "@prisma/client";
 
 const LOSS_OUT: MovementReason[] = ["DAMAGED", "EXPIRED", "NATURAL_LOSS"];
 
-/** Map lý do XUẤT sang enum sổ cái để báo cáo hao hụt không sót (spec §3.4). */
+/** Map lý do XUẤT (nhãn phiếu) sang enum sổ cái để báo cáo hao hụt không sót (spec §3.4).
+ *  "Kiểm kê thiếu" (STOCK_SHORTAGE) là hao hụt → quy về NATURAL_LOSS để vào báo cáo loss. */
 function outReasonOf(reason?: string | null): MovementReason {
+  if (reason === "STOCK_SHORTAGE") return "NATURAL_LOSS";
   if (reason && (LOSS_OUT as string[]).includes(reason)) return reason as MovementReason;
   return "PROJECT";
+}
+
+/** Parse docDate từ form (YYYY-MM-DD). Trống → hôm nay. Chặn ngày tương lai (kiểm toán). */
+function parseDocDate(docDate?: string): Date {
+  if (!docDate) return new Date();
+  const d = new Date(docDate);
+  if (Number.isNaN(d.getTime())) throw new Error("Ngày chứng từ không hợp lệ");
+  const tomorrow = new Date();
+  tomorrow.setHours(0, 0, 0, 0);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (d >= tomorrow) throw new Error("Ngày chứng từ không được ở tương lai");
+  return d;
 }
 
 /** Lưu nháp: KHÔNG động tồn. Tạo Document(DRAFT) + lines. */
@@ -36,6 +50,13 @@ export async function saveDraft(
     return { ok: false, error: "Vui lòng chọn kho" };
   }
 
+  let docDate: Date;
+  try {
+    docDate = parseDocDate(d.docDate);
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+
   try {
     const id = await prisma.$transaction(async (tx) => {
       const code = await nextDocCode(tx, d.type);
@@ -45,6 +66,7 @@ export async function saveDraft(
           type: d.type,
           status: "DRAFT",
           reason: d.reason,
+          docDate,
           note: d.note,
           warehouseId: d.type === "TRANSFER" ? null : d.warehouseId,
           fromWarehouseId: d.type === "TRANSFER" ? d.fromWarehouseId : null,

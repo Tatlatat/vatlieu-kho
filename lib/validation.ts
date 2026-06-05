@@ -5,6 +5,25 @@ export const OUT_REASONS = [
   { value: "DAMAGED", label: "Hỏng / vỡ" },
   { value: "EXPIRED", label: "Hết hạn / không dùng được" },
   { value: "NATURAL_LOSS", label: "Hao hụt tự nhiên" },
+  { value: "STOCK_SHORTAGE", label: "Kiểm kê thiếu" },
+] as const;
+
+// Lý do NHẬP — nhãn linh hoạt lưu ở Document.reason. Bút toán kho luôn IN/PURCHASE,
+// KHÔNG ảnh hưởng cách tính tồn/báo cáo. Thêm nhãn mới chỉ cần bổ sung mảng này.
+export const IN_REASONS = [
+  { value: "PURCHASE", label: "Nhập mua mới" },
+  { value: "REUSE", label: "Tái sử dụng" },
+  { value: "STOCK_SURPLUS", label: "Kiểm kê thừa" },
+  { value: "RETURN", label: "Hoàn trả về kho" },
+  { value: "OTHER_IN", label: "Khác" },
+] as const;
+
+// Lý do CHUYỂN KHO — nhãn linh hoạt ở Document.reason. Bút toán luôn TRANSFER_OUT/IN.
+export const TRANSFER_REASONS = [
+  { value: "LEND", label: "Xuất mượn" },
+  { value: "TO_SITE", label: "Xuất thẳng cho công trình" },
+  { value: "REBALANCE", label: "Điều chuyển cân đối kho" },
+  { value: "OTHER_TRANSFER", label: "Khác" },
 ] as const;
 
 export const REASON_LABELS: Record<string, string> = {
@@ -13,10 +32,21 @@ export const REASON_LABELS: Record<string, string> = {
   DAMAGED: "Hỏng / vỡ",
   EXPIRED: "Hết hạn",
   NATURAL_LOSS: "Hao hụt tự nhiên",
+  STOCK_SHORTAGE: "Kiểm kê thiếu",
   STOCKTAKE_ADJUST: "Điều chỉnh kiểm kê",
   TRANSFER_OUT: "Chuyển kho (đi)",
   TRANSFER_IN: "Chuyển kho (đến)",
   VOID: "Hủy chứng từ",
+  // Nhãn lý do NHẬP
+  REUSE: "Tái sử dụng",
+  STOCK_SURPLUS: "Kiểm kê thừa",
+  RETURN: "Hoàn trả về kho",
+  OTHER_IN: "Nhập khác",
+  // Nhãn lý do CHUYỂN
+  LEND: "Xuất mượn",
+  TO_SITE: "Xuất thẳng cho công trình",
+  REBALANCE: "Điều chuyển cân đối kho",
+  OTHER_TRANSFER: "Chuyển khác",
 };
 
 export const importSchema = z.object({
@@ -76,6 +106,8 @@ export const docHeaderSchema = z.object({
   toWarehouseId: z.string().optional(),
   supplierId: z.string().optional(),
   reason: z.string().optional(),
+  // Ngày chứng từ (YYYY-MM-DD). Tùy chọn — backend mặc định hôm nay nếu trống.
+  docDate: z.string().optional(),
   note: z.string().max(500).optional(),
   lines: z.array(docLineSchema).min(1, "Phiếu phải có ít nhất 1 dòng"),
 });
