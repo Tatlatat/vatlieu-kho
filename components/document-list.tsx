@@ -22,6 +22,7 @@ interface DocumentItem {
   warehouse?: { name: string } | null;
   fromWarehouse?: { name: string } | null;
   toWarehouse?: { name: string } | null;
+  supplier?: { name: string } | null;
   createdBy?: { name: string } | null;
   _count: { lines: number };
 }
@@ -34,6 +35,7 @@ interface DocumentListProps {
 
 export function DocumentList({ docs, basePath, newLabel }: DocumentListProps) {
   const router = useRouter();
+  const showSupplier = basePath === "/nhap"; // Chỉ phiếu nhập có nhà cung cấp.
 
   const formatDate = (dateInput: Date | string) => {
     if (!dateInput) return "—";
@@ -75,6 +77,7 @@ export function DocumentList({ docs, basePath, newLabel }: DocumentListProps) {
               <TableHead className="font-semibold">
                 {basePath === "/chuyen-kho" ? "Kho nguồn → Kho đích" : "Kho"}
               </TableHead>
+              {showSupplier && <TableHead className="font-semibold">Nhà cung cấp</TableHead>}
               <TableHead className="font-semibold text-center">Số dòng</TableHead>
               <TableHead className="font-semibold">Trạng thái</TableHead>
               <TableHead className="font-semibold">Người lập</TableHead>
@@ -83,7 +86,7 @@ export function DocumentList({ docs, basePath, newLabel }: DocumentListProps) {
           <TableBody>
             {docs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={showSupplier ? 7 : 6} className="text-center py-8 text-muted-foreground">
                   Chưa có phiếu nào
                 </TableCell>
               </TableRow>
@@ -97,6 +100,7 @@ export function DocumentList({ docs, basePath, newLabel }: DocumentListProps) {
                   <TableCell className="font-medium text-primary">{doc.code}</TableCell>
                   <TableCell>{formatDate(doc.docDate)}</TableCell>
                   <TableCell>{getWarehouseText(doc)}</TableCell>
+                  {showSupplier && <TableCell>{doc.supplier?.name || "—"}</TableCell>}
                   <TableCell className="text-center">{doc._count.lines}</TableCell>
                   <TableCell>
                     <DocStatusBadge status={doc.status} />

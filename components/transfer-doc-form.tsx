@@ -161,7 +161,9 @@ export function TransferDocForm({ materials, warehouses }: TransferDocFormProps)
             <Label htmlFor="reason">Lý do chuyển <span className="text-destructive">*</span></Label>
             <Select value={reason} onValueChange={(v) => setReason(v ?? "")}>
               <SelectTrigger id="reason" className="w-full h-10">
-                <SelectValue placeholder="Chọn lý do chuyển..." />
+                <SelectValue placeholder="Chọn lý do chuyển...">
+                  {() => TRANSFER_REASONS.find((r) => r.value === reason)?.label ?? "Chọn lý do chuyển..."}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {TRANSFER_REASONS.map((r) => (

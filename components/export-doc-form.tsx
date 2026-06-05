@@ -139,7 +139,9 @@ export function ExportDocForm({ materials, warehouses }: ExportDocFormProps) {
             <Label htmlFor="reason">Lý do xuất <span className="text-destructive">*</span></Label>
             <Select value={reason} onValueChange={(v) => setReason(v ?? "")}>
               <SelectTrigger id="reason" className="w-full h-10">
-                <SelectValue placeholder="Chọn lý do xuất..." />
+                <SelectValue placeholder="Chọn lý do xuất...">
+                  {() => OUT_REASONS.find((r) => r.value === reason)?.label ?? "Chọn lý do xuất..."}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {OUT_REASONS.map((r) => (

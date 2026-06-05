@@ -173,7 +173,9 @@ export function ImportDocForm({ materials, warehouses, suppliers }: ImportDocFor
             <Label htmlFor="reason">Lý do nhập <span className="text-destructive">*</span></Label>
             <Select value={reason} onValueChange={(v) => setReason(v ?? "")}>
               <SelectTrigger id="reason" className="w-full h-10">
-                <SelectValue placeholder="Chọn lý do nhập..." />
+                <SelectValue placeholder="Chọn lý do nhập...">
+                  {() => IN_REASONS.find((r) => r.value === reason)?.label ?? "Chọn lý do nhập..."}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {IN_REASONS.map((r) => (
