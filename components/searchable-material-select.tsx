@@ -51,23 +51,18 @@ export function SearchableMaterialSelect({
 
   const ids = React.useMemo(() => materials.map((m) => m.id), [materials]);
 
-  // Kiểm soát mở popup: mở NGAY khi người dùng gõ (mỗi ký tự), không đợi dấu cách.
-  const [open, setOpen] = React.useState(false);
-
   return (
     <div className="relative w-full">
+      {/* KHÔNG controlled `open`: base-ui tự setOpen(true) khi gõ (shouldOpenOnInput)
+          chỉ hoạt động ở chế độ uncontrolled. Truyền open controlled sẽ TẮT cơ chế
+          tự-mở-khi-gõ → phải gõ space mới ra. openOnInputClick mặc định true. */}
       <Combobox.Root
         items={ids}
         value={value || null}
         onValueChange={(v: string | null) => onChange(v ?? "")}
         itemToStringLabel={itemToStringLabel}
         filter={filter}
-        open={open}
-        onOpenChange={(next: boolean) => setOpen(next)}
-        onInputValueChange={(text: string) => {
-          // Có chữ → mở danh sách gợi ý ngay từ ký tự đầu tiên.
-          if (text.length > 0) setOpen(true);
-        }}
+        openOnInputClick
       >
         <div className="relative">
           <Combobox.Input
