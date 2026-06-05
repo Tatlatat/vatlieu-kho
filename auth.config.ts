@@ -1,6 +1,8 @@
 import type { NextAuthConfig } from "next-auth";
 
 export default {
+  // Vercel đặt host động qua header → cần tin host để callback/redirect đúng domain.
+  trustHost: true,
   pages: { signIn: "/login" },
   callbacks: {
     jwt({ token, user }) {
