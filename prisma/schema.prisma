@@ -66,6 +66,8 @@ model User {
   docsApproved       Document[]      @relation("docApproved")
   docsVoided         Document[]      @relation("docVoided")
   equipmentLogs      EquipmentLog[]
+  cashCreated        CashEntry[]     @relation("cashCreated")
+  cashVoided         CashEntry[]     @relation("cashVoided")
 }
 
 model Material {
@@ -227,4 +229,45 @@ model EquipmentLog {
 
   @@index([equipmentId])
   @@index([logDate])
+}
+
+// ===== QUỸ (Thu – Chi – Tồn) — Bổ sung 2 mục 6 =====
+enum CashType {
+  THU
+  CHI
+}
+
+// Danh mục quỹ theo công trường (giống Warehouse).
+model Fund {
+  id        String      @id @default(cuid())
+  name      String
+  code      String      @unique
+  note      String?
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  entries   CashEntry[]
+}
+
+// Sổ cái tiền BẤT BIẾN, append-only (giống StockMovement). Sửa sai = đánh dấu void
+// (không tạo bút toán đảo — view fund_balance đã loại voided). amount luôn > 0.
+model CashEntry {
+  id           String    @id @default(cuid())
+  fundId       String
+  fund         Fund      @relation(fields: [fundId], references: [id])
+  type         CashType
+  category     String
+  amount       Decimal   @db.Decimal(15, 0)
+  entryDate    DateTime
+  note         String?
+  createdById  String
+  createdBy    User      @relation("cashCreated", fields: [createdById], references: [id])
+  createdAt    DateTime  @default(now())
+  voidedAt     DateTime?
+  voidedById   String?
+  voidedBy     User?     @relation("cashVoided", fields: [voidedById], references: [id])
+  voidReason   String?
+
+  @@index([fundId, entryDate])
+  @@index([type])
+  @@index([createdAt])
 }

@@ -136,6 +136,49 @@ export const equipmentLogSchema = z.object({
   note: z.string().max(500).optional(),
 });
 
+// ===== QUỸ (Thu – Chi) =====
+// Hạng mục cố định theo loại. Báo cáo nhóm theo category. Dễ thêm: chỉ bổ sung mảng.
+export const CASH_IN_CATEGORIES = [
+  { value: "CAPITAL", label: "Ứng vốn" },
+  { value: "DEBT_COLLECT", label: "Thu nợ / thu hồi" },
+  { value: "REFUND_ADVANCE", label: "Hoàn ứng" },
+  { value: "OTHER_IN", label: "Khác" },
+] as const;
+export const CASH_OUT_CATEGORIES = [
+  { value: "BUY_MATERIAL", label: "Mua vật tư" },
+  { value: "LABOR", label: "Nhân công" },
+  { value: "EQUIPMENT", label: "Xe/máy (xăng dầu, sửa chữa)" },
+  { value: "MEALS", label: "Ăn uống / sinh hoạt" },
+  { value: "ADVANCE", label: "Tạm ứng" },
+  { value: "OTHER_OUT", label: "Khác" },
+] as const;
+export const CASH_CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+  [...CASH_IN_CATEGORIES, ...CASH_OUT_CATEGORIES].map((c) => [c.value, c.label])
+);
+const CASH_IN_VALUES = CASH_IN_CATEGORIES.map((c) => c.value) as string[];
+const CASH_OUT_VALUES = CASH_OUT_CATEGORIES.map((c) => c.value) as string[];
+
+export const fundSchema = z.object({
+  name: z.string().min(1, "Vui lòng nhập tên quỹ"),
+  code: z.string().min(1, "Vui lòng nhập mã quỹ"),
+  note: z.string().max(500).optional(),
+});
+
+export const cashEntrySchema = z
+  .object({
+    fundId: z.string().min(1, "Vui lòng chọn quỹ"),
+    type: z.enum(["THU", "CHI"]),
+    category: z.string().min(1, "Vui lòng chọn hạng mục"),
+    amount: z.coerce.number().positive("Số tiền phải lớn hơn 0").max(999_999_999_999, "Số tiền quá lớn"),
+    entryDate: z.string().min(1, "Vui lòng chọn ngày"),
+    note: z.string().max(500).optional(),
+  })
+  // Hạng mục phải khớp loại THU/CHI (tránh ghi nhầm hạng mục chi vào phiếu thu).
+  .refine(
+    (d) => (d.type === "THU" ? CASH_IN_VALUES : CASH_OUT_VALUES).includes(d.category),
+    { message: "Hạng mục không hợp lệ với loại phiếu", path: ["category"] }
+  );
+
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type SupplierInput = z.infer<typeof supplierSchema>;
 export type EquipmentInput = z.infer<typeof equipmentSchema>;
@@ -146,3 +189,5 @@ export type ExportInput = z.infer<typeof exportSchema>;
 export type MaterialInput = z.infer<typeof materialSchema>;
 export type WarehouseInput = z.infer<typeof warehouseSchema>;
 export type TransferInput = z.infer<typeof transferSchema>;
+export type FundInput = z.infer<typeof fundSchema>;
+export type CashEntryInput = z.infer<typeof cashEntrySchema>;
