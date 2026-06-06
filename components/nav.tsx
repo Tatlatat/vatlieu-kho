@@ -21,20 +21,25 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Role = "OWNER" | "STAFF";
+type Role = "ADMIN" | "MANAGER" | "KEEPER";
 
-const links: { href: string; label: string; icon: typeof Home; roles: Role[] }[] = [
-  { href: "/", label: "Trang chính", icon: Home, roles: ["OWNER", "STAFF"] },
-  { href: "/kiem-ke", label: "Kiểm kê", icon: ClipboardCheck, roles: ["OWNER", "STAFF"] },
-  { href: "/chuyen-kho", label: "Chuyển kho", icon: ArrowLeftRight, roles: ["OWNER", "STAFF"] },
-  { href: "/quy", label: "Quỹ", icon: Wallet, roles: ["OWNER", "STAFF"] },
-  { href: "/lich-su", label: "Lịch sử", icon: History, roles: ["OWNER", "STAFF"] },
-  { href: "/bao-cao", label: "Báo cáo", icon: BarChart3, roles: ["OWNER"] },
-  { href: "/cong-trinh", label: "Công trình", icon: Building2, roles: ["OWNER"] },
-  { href: "/vat-lieu", label: "Danh mục", icon: Boxes, roles: ["OWNER"] },
-  { href: "/nguoi-dung", label: "Người dùng", icon: Users, roles: ["OWNER"] },
-  { href: "/nha-cung-cap", label: "Nhà cung cấp", icon: Truck, roles: ["OWNER"] },
-  { href: "/xe-may", label: "Xe/máy", icon: Wrench, roles: ["OWNER"] },
+// Cấp vai trò (khớp ROLE_LEVEL ở lib/auth-helpers; định nghĩa cục bộ vì nav là
+// client component, không import được server helper).
+const ROLE_LEVEL: Record<Role, number> = { ADMIN: 3, MANAGER: 2, KEEPER: 1 };
+const roleLabel = (r: Role) => (r === "ADMIN" ? "Quản trị" : r === "MANAGER" ? "Quản lý" : "Thủ kho");
+
+const links: { href: string; label: string; icon: typeof Home; minRole: Role }[] = [
+  { href: "/", label: "Trang chính", icon: Home, minRole: "KEEPER" },
+  { href: "/kiem-ke", label: "Kiểm kê", icon: ClipboardCheck, minRole: "KEEPER" },
+  { href: "/chuyen-kho", label: "Chuyển kho", icon: ArrowLeftRight, minRole: "KEEPER" },
+  { href: "/lich-su", label: "Lịch sử", icon: History, minRole: "KEEPER" },
+  { href: "/bao-cao", label: "Báo cáo", icon: BarChart3, minRole: "KEEPER" },
+  { href: "/quy", label: "Quỹ", icon: Wallet, minRole: "MANAGER" },
+  { href: "/cong-trinh", label: "Công trình", icon: Building2, minRole: "MANAGER" },
+  { href: "/vat-lieu", label: "Danh mục", icon: Boxes, minRole: "MANAGER" },
+  { href: "/nha-cung-cap", label: "Nhà cung cấp", icon: Truck, minRole: "MANAGER" },
+  { href: "/xe-may", label: "Xe/máy", icon: Wrench, minRole: "MANAGER" },
+  { href: "/nguoi-dung", label: "Người dùng", icon: Users, minRole: "ADMIN" },
 ];
 
 export function Nav({ role, name }: { role: Role; name: string }) {
@@ -52,7 +57,7 @@ export function Nav({ role, name }: { role: Role; name: string }) {
 
         <nav className="flex flex-1 flex-wrap items-center gap-1">
           {links
-            .filter((l) => l.roles.includes(role))
+            .filter((l) => ROLE_LEVEL[role] >= ROLE_LEVEL[l.minRole])
             .map((l) => {
               const active =
                 l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
@@ -79,7 +84,7 @@ export function Nav({ role, name }: { role: Role; name: string }) {
 
         <div className="flex items-center gap-2">
           <span className="hidden text-sm text-slate-500 sm:inline">
-            {name} ({role === "OWNER" ? "Quản lý" : "Thủ kho"})
+            {name} ({roleLabel(role)})
           </span>
           <form action={logoutAction}>
             <Button variant="ghost" size="sm" type="submit" title="Đăng xuất" aria-label="Đăng xuất">

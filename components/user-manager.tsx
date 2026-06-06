@@ -21,15 +21,17 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { createUser, updateUserRole, resetPassword } from "@/lib/actions/users";
 import { toast } from "sonner";
+
+type Role = "ADMIN" | "MANAGER" | "KEEPER";
+const ROLE_LABEL: Record<Role, string> = { ADMIN: "Quản trị", MANAGER: "Quản lý", KEEPER: "Thủ kho" };
 
 interface User {
   id: string;
   email: string;
   name: string;
-  role: "OWNER" | "STAFF";
+  role: Role;
   createdAt: Date | string;
 }
 
@@ -43,9 +45,9 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
   const [isPending, startTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [resettingUser, setResettingUser] = React.useState<User | null>(null);
-  
+
   // State for form Select
-  const [createRole, setCreateRole] = React.useState<"OWNER" | "STAFF">("STAFF");
+  const [createRole, setCreateRole] = React.useState<Role>("KEEPER");
 
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,7 +67,7 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
         if (res.ok) {
           toast.success("Đã thêm người dùng thành công");
           setIsCreateOpen(false);
-          setCreateRole("STAFF");
+          setCreateRole("KEEPER");
           router.refresh();
         } else {
           toast.error(res.error || "Có lỗi xảy ra");
@@ -76,8 +78,8 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
     });
   };
 
-  const handleToggleRole = (user: User) => {
-    const newRole = user.role === "OWNER" ? "STAFF" : "OWNER";
+  const handleChangeRole = (user: User, newRole: Role) => {
+    if (newRole === user.role) return;
     startTransition(async () => {
       try {
         const res = await updateUserRole(user.id, newRole);
@@ -153,25 +155,29 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
                       <TableCell>
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            u.role === "OWNER"
+                            u.role === "ADMIN"
                               ? "bg-blue-100 text-blue-800 dark:bg-blue-900/35 dark:text-blue-200"
-                              : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
+                              : u.role === "MANAGER"
+                                ? "bg-amber-100 text-amber-800 dark:bg-amber-900/35 dark:text-amber-200"
+                                : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
                           }`}
                         >
-                          {u.role === "OWNER" ? "Chủ" : "Thủ kho"}
+                          {ROLE_LABEL[u.role]}
                         </span>
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         {u.id !== currentUserId ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleToggleRole(u)}
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleChangeRole(u, e.target.value as Role)}
                             disabled={isPending}
-                            className="cursor-pointer"
+                            aria-label={`Đổi vai trò cho ${u.name}`}
+                            className="inline-flex h-9 rounded-md border border-input bg-background px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            Đổi vai trò
-                          </Button>
+                            <option value="ADMIN">Quản trị</option>
+                            <option value="MANAGER">Quản lý</option>
+                            <option value="KEEPER">Thủ kho</option>
+                          </select>
                         ) : (
                           <span className="text-xs text-muted-foreground italic px-2">
                             Tài khoản hiện tại
@@ -237,23 +243,17 @@ export function UserManager({ users, currentUserId }: UserManagerProps) {
               />
             </div>
             <div className="space-y-1">
-              <Label>Vai trò</Label>
-              <div className="relative w-full">
-                <Select
-                  value={createRole}
-                  onValueChange={(v) => setCreateRole((v ?? "STAFF") as "OWNER" | "STAFF")}
-                >
-                  <SelectTrigger className="w-full h-10">
-                    <SelectValue placeholder="Chọn vai trò">
-                      {createRole === "OWNER" ? "Chủ" : "Thủ kho"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="OWNER">Chủ</SelectItem>
-                    <SelectItem value="STAFF">Thủ kho</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Label htmlFor="crole">Vai trò</Label>
+              <select
+                id="crole"
+                value={createRole}
+                onChange={(e) => setCreateRole(e.target.value as Role)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="ADMIN">Quản trị</option>
+                <option value="MANAGER">Quản lý</option>
+                <option value="KEEPER">Thủ kho</option>
+              </select>
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button
