@@ -11,8 +11,9 @@ datasource db {
 }
 
 enum Role {
-  OWNER
-  STAFF
+  ADMIN
+  MANAGER
+  KEEPER
 }
 
 enum MovementType {
@@ -57,7 +58,7 @@ model User {
   email              String          @unique
   passwordHash       String
   name               String
-  role               Role            @default(STAFF)
+  role               Role            @default(KEEPER)
   createdAt          DateTime        @default(now())
   movements          StockMovement[]
   stocktakesCreated  Stocktake[]     @relation("created")
