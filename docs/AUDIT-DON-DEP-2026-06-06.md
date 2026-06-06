@@ -64,3 +64,11 @@ giảm rối env. KHÔNG gấp (app không đọc), nhưng nên làm để hết
 | 🔴 Gây nhầm (Neon refs) | ~6 chỗ | SỬA code/docs vận hành; gỡ Neon integration |
 | 🟡 Rác lịch sử | 6 file | XÓA (5 AGY-* + AI-CHANNEL) |
 | ✅ Tưởng rác nhưng GIỮ | 6 | không động |
+
+---
+## ĐÃ XỬ LÝ (2026-06-06)
+- ✅ Sửa tham chiếu Neon→Supabase: app/api/ping/route.ts (code), production-checklist.md, bugs-log.md (note).
+- ✅ Thêm NGUỒN SỰ THẬT hạ tầng vào AGENTS.md (section "Hạ tầng").
+- ✅ Xóa 6 file rác: 5 AGY-SPEC/REVIEW + AI-CHANNEL.md.
+- ✅ NGẮT Neon integration khỏi Vercel (resource neon-green-marble) → env hết key NEON_*/POSTGRES_* rác. Verify: production vẫn chạy (login 200, /cong-trinh 200); DATABASE_URL/DIRECT_URL Supabase còn nguyên. Data Neon cũ (4 kho, 37 movements) VẪN còn ở Neon dashboard (chỉ ngắt liên kết, không xóa DB).
+- ✅ Verify KHÔNG có dead component (loss-charts + material-select đang dùng).
