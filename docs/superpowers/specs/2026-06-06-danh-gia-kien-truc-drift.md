@@ -111,3 +111,45 @@ trục không chung 1 `projectId`.
 App drift có thật, ở đúng điểm thiếu thực thể **Công trình**. Cách lành mạnh:
 thêm `Project` làm trục chung (PA1), làm DẦN — bắt đầu NGAY TRƯỚC báo cáo quỹ
 đa-CT, không đại phẫu, không chắp vá thêm.
+
+---
+
+## 9. TẦM NHÌN SÂU HƠN của client (bổ sung 2026-06-06, RẤT QUAN TRỌNG)
+
+Sau khi nghe phân tích "thêm Project", client làm rõ: vấn đề KHÔNG chỉ là thiếu
+1 thực thể. Tầng sâu hơn:
+
+> "Nó còn là câu chuyện về **quản lý quỹ** (vốn ban đầu không có, phong cách quản
+> lý KHÁC), rồi **xe/máy** cũng quản lý theo kiểu khác, rồi **kho bãi** các kiểu…
+> Ở tầng sâu, nó yêu cầu sự thay đổi không chỉ là quản lý nữa, mà liên quan tới
+> **sự khéo léo, tinh tế trong sắp xếp thông tin** — để vừa NHỎ GỌN, vừa CHÍNH
+> XÁC trong quản lý. Cái cần KHÔNG phải đại tu lớn lao, mà là **sự sắp xếp tối ưu
+> thực dụng giữa các tầng sâu**, để dữ liệu **tương tác chồng chéo** với nhau mà
+> không gặp vấn đề. Tương lai còn nhiều bổ sung như này."
+
+### Diễn giải đúng vấn đề
+- App đang tích tụ NHIỀU "phong cách quản lý" khác nhau, mỗi cái client thêm vào
+  mang 1 TƯ DUY riêng:
+  - Kho: quản theo **số lượng tồn** (StockMovement đếm quantity).
+  - Quỹ: quản theo **dòng tiền** (CashEntry Thu/Chi, append-only).
+  - Xe/máy: quản theo **giờ làm/công suất** (EquipmentLog hours), sắp tới gắn CT.
+- Mỗi "phong cách" là 1 mô hình ghi sổ khác nhau. Yêu cầu thật của client:
+  **một nền sắp xếp thông tin cho phép các phong cách này CHỒNG LẤN/GIAO THOA**
+  (vd: tổng chi phí 1 CT = vật tư + tiền + giờ xe) mà không xung đột, không phình to.
+
+### Nguyên tắc thiết kế client ĐÃ NÊU (ghi để mọi quyết định sau bám theo)
+1. KHÔNG đại tu lớn. Thực dụng.
+2. NHỎ GỌN + CHÍNH XÁC đồng thời (không hi sinh cái nào).
+3. Dữ liệu nhiều phong cách phải GIAO THOA được qua trục/khóa chung.
+4. Thiết kế phải MỞ cho bổ sung tương lai (extensible) mà không phải sửa lại nền.
+
+### Hướng suy nghĩ (chưa chốt — cần brainstorm tiếp)
+- Project là TRỤC GOM (cái "chồng chéo" hội tụ về). Đúng nhưng CHƯA ĐỦ.
+- Có thể cần 1 khái niệm chung hơn cho "phong cách ghi sổ": cả StockMovement,
+  CashEntry, EquipmentLog đều là **sổ cái append-only theo thời gian, gắn 1 đối
+  tượng + 1 công trình** → có thể có pattern chung (ledger pattern) để báo cáo
+  tổng hợp đa-chiều mà không hardcode từng loại.
+- CẨN TRỌNG: đừng trừu tượng hóa quá sớm thành "EAV/bảng vạn năng" (mất chính
+  xác + khó). Phải cân giữa "1 trục chung" và "giữ từng sổ đúng bản chất riêng".
+- Đây là bài toán THIẾT KẾ THÔNG TIN, không phải coding. Cần brainstorm kỹ trục
+  + cách các sổ giao nhau TRƯỚC khi đụng schema.
