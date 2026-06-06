@@ -30,9 +30,16 @@ interface Warehouse {
   name: string;
   code: string;
   isDefault: boolean;
+  projectId?: string | null;
 }
 
-export function WarehouseManager({ warehouses }: { warehouses: Warehouse[] }) {
+interface Project {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+export function WarehouseManager({ warehouses, projects }: { warehouses: Warehouse[]; projects: Project[] }) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
@@ -101,6 +108,7 @@ export function WarehouseManager({ warehouses }: { warehouses: Warehouse[] }) {
                   <TableRow>
                     <TableHead>Tên kho</TableHead>
                     <TableHead>Mã</TableHead>
+                    <TableHead>Công trình</TableHead>
                     <TableHead>Mặc định</TableHead>
                     <TableHead className="w-[100px] text-right">Hành động</TableHead>
                   </TableRow>
@@ -110,6 +118,11 @@ export function WarehouseManager({ warehouses }: { warehouses: Warehouse[] }) {
                     <TableRow key={w.id}>
                       <TableCell className="font-semibold text-foreground">{w.name}</TableCell>
                       <TableCell className="font-mono text-xs">{w.code}</TableCell>
+                      <TableCell className="text-sm">
+                        {projects.find((p) => p.id === w.projectId)?.name || (
+                          <span className="text-muted-foreground italic">— Không có —</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {w.isDefault && (
                           <Badge className="bg-blue-500/10 text-blue-600 border-transparent">
@@ -152,6 +165,21 @@ export function WarehouseManager({ warehouses }: { warehouses: Warehouse[] }) {
               <Label htmlFor="wcode">Mã kho</Label>
               <Input id="wcode" name="code" required placeholder="Ví dụ: KHO-CT-A" />
             </div>
+            <div className="space-y-1">
+              <Label htmlFor="wproject">Công trình (không bắt buộc)</Label>
+              <select
+                id="wproject"
+                name="projectId"
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">— Không thuộc CT —</option>
+                {projects.filter((p) => p.isActive).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button
                 type="button"
@@ -186,6 +214,24 @@ export function WarehouseManager({ warehouses }: { warehouses: Warehouse[] }) {
               <div className="space-y-1">
                 <Label htmlFor="ewcode">Mã kho</Label>
                 <Input id="ewcode" name="code" defaultValue={editing.code} required />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ewproject">Công trình (không bắt buộc)</Label>
+                <select
+                  id="ewproject"
+                  name="projectId"
+                  defaultValue={editing.projectId || ""}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">— Không thuộc CT —</option>
+                  {projects
+                    .filter((p) => p.isActive || p.id === editing.projectId)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                </select>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <Button

@@ -44,6 +44,7 @@ export async function getAllFunds() {
       code: true,
       note: true,
       isActive: true,
+      projectId: true,
       _count: { select: { entries: true } },
     },
   });

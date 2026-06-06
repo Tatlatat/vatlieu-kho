@@ -26,10 +26,17 @@ interface FundRow {
   note?: string | null;
   isActive: boolean;
   balance: number;
+  projectId?: string | null;
   _count: { entries: number };
 }
 
-export function FundManager({ funds }: { funds: FundRow[] }) {
+interface ProjectOption {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+export function FundManager({ funds, projects = [] }: { funds: FundRow[]; projects?: ProjectOption[] }) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
@@ -37,7 +44,7 @@ export function FundManager({ funds }: { funds: FundRow[] }) {
 
   const submit = (
     e: React.FormEvent<HTMLFormElement>,
-    action: (d: { name: string; code: string; note?: string }) => Promise<{ ok: boolean; error?: string }>,
+    action: (d: { name: string; code: string; note?: string; projectId?: string | null }) => Promise<{ ok: boolean; error?: string }>,
     okMsg: string,
     onOk: () => void
   ) => {
@@ -46,9 +53,10 @@ export function FundManager({ funds }: { funds: FundRow[] }) {
     const name = fd.get("name") as string;
     const code = fd.get("code") as string;
     const note = (fd.get("note") as string) || undefined;
+    const projectId = (fd.get("projectId") as string) || null;
     startTransition(async () => {
       try {
-        const res = await action({ name, code, note });
+        const res = await action({ name, code, note, projectId });
         if (res.ok) {
           toast.success(okMsg);
           onOk();
@@ -156,6 +164,15 @@ export function FundManager({ funds }: { funds: FundRow[] }) {
               <Label htmlFor="fnote">Ghi chú</Label>
               <Input id="fnote" name="note" placeholder="Thông tin bổ sung..." />
             </div>
+            <div className="space-y-1">
+              <Label htmlFor="fproject">Công trình (không bắt buộc)</Label>
+              <select id="fproject" name="projectId" className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+                <option value="">— Không thuộc CT —</option>
+                {projects.filter((p) => p.isActive).map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isPending}>Hủy</Button>
               <Button type="submit" disabled={isPending}>{isPending ? "Đang tạo..." : "Thêm mới"}</Button>
@@ -181,6 +198,15 @@ export function FundManager({ funds }: { funds: FundRow[] }) {
               <div className="space-y-1">
                 <Label htmlFor="efnote">Ghi chú</Label>
                 <Input id="efnote" name="note" defaultValue={editing.note || ""} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="efproject">Công trình (không bắt buộc)</Label>
+                <select id="efproject" name="projectId" defaultValue={editing.projectId || ""} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+                  <option value="">— Không thuộc CT —</option>
+                  {projects.filter((p) => p.isActive).map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => setEditing(null)} disabled={isPending}>Hủy</Button>

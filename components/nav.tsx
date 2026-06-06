@@ -17,6 +17,7 @@ import {
   Truck,
   Wrench,
   Wallet,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const links: { href: string; label: string; icon: typeof Home; roles: Role[] }[]
   { href: "/quy", label: "Quỹ", icon: Wallet, roles: ["OWNER", "STAFF"] },
   { href: "/lich-su", label: "Lịch sử", icon: History, roles: ["OWNER", "STAFF"] },
   { href: "/bao-cao", label: "Báo cáo", icon: BarChart3, roles: ["OWNER"] },
+  { href: "/cong-trinh", label: "Công trình", icon: Building2, roles: ["OWNER"] },
   { href: "/vat-lieu", label: "Danh mục", icon: Boxes, roles: ["OWNER"] },
   { href: "/nguoi-dung", label: "Người dùng", icon: Users, roles: ["OWNER"] },
   { href: "/nha-cung-cap", label: "Nhà cung cấp", icon: Truck, roles: ["OWNER"] },
