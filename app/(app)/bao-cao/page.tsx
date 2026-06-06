@@ -1,5 +1,5 @@
 import * as React from "react";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import {
   getDashboardSummary,
   getLossByMonth,
@@ -27,7 +27,7 @@ export default async function BaoCaoPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string; wh?: string }>;
 }) {
-  await requireRole("OWNER");
+  await requireAtLeast("KEEPER");
 
   const sp = await searchParams;
 

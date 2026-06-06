@@ -244,9 +244,9 @@ export async function deleteDraftDocument(documentId: string): Promise<ActionRes
       // Chặn cứng: chỉ DRAFT mới xóa được. POSTED/PENDING/VOIDED phải qua Hủy.
       if (doc.status !== "DRAFT")
         throw new Error("Chỉ xóa được phiếu Nháp. Phiếu đã lập phải dùng chức năng Hủy (giữ lịch sử).");
-      // Người lập hoặc OWNER mới được xóa nháp của mình.
-      if (doc.createdById !== user.id && user.role !== "OWNER")
-        throw new Error("Chỉ người lập phiếu hoặc chủ tài khoản được xóa phiếu nháp này");
+      // Người lập, hoặc cấp Quản lý/Quản trị, mới được xóa nháp.
+      if (doc.createdById !== user.id && user.role === "KEEPER")
+        throw new Error("Chỉ người lập phiếu hoặc cấp quản lý được xóa phiếu nháp này");
       // Nháp chưa sinh StockMovement — chỉ cần xóa lines rồi document (an toàn FK).
       await tx.documentLine.deleteMany({ where: { documentId: doc.id } });
       await tx.document.delete({ where: { id: doc.id } });

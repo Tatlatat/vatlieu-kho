@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { supplierSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/actions/movements";
 
@@ -11,7 +11,7 @@ export async function createSupplier(input: {
   contact?: string;
   note?: string;
 }): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requireAtLeast("KEEPER");
   const parsed = supplierSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
@@ -24,7 +24,7 @@ export async function updateSupplier(
   id: string,
   input: { name: string; contact?: string; note?: string }
 ): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requireAtLeast("KEEPER");
   const parsed = supplierSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
@@ -36,7 +36,7 @@ export async function updateSupplier(
 }
 
 export async function deleteSupplier(id: string): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requireAtLeast("KEEPER");
   // Không xóa nếu đã gắn với phiếu nhập (giữ toàn vẹn dữ liệu lịch sử).
   const used = await prisma.document.count({ where: { supplierId: id } });
   if (used > 0)

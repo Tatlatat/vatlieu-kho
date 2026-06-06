@@ -1,12 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { getMaterials } from "@/lib/queries/stock";
 import { getWarehouses } from "@/lib/queries/warehouses";
 import { OpeningStockForm } from "@/components/opening-stock-form";
 
 export default async function TonDauKyPage() {
-  await requireRole("OWNER"); // chỉ chủ được nhập tồn đầu kỳ
+  await requireAtLeast("MANAGER"); // chỉ chủ được nhập tồn đầu kỳ
   const [materials, warehouses] = await Promise.all([
     getMaterials(),
     getWarehouses(),

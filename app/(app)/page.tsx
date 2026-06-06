@@ -37,7 +37,7 @@ export default async function HomePage({
   searchParams: Promise<{ wh?: string }>;
 }) {
   const user = await requireUser();
-  const isOwner = user.role === "OWNER";
+  const isOwner = user.role === "ADMIN" || user.role === "MANAGER";
   const sp = await searchParams;
   const wh = sp.wh ?? "";
   const [stock, summary, warehouses] = await Promise.all([

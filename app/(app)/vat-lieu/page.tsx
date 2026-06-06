@@ -1,5 +1,5 @@
 import * as React from "react";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { getMaterials } from "@/lib/queries/stock";
 import { getWarehouses } from "@/lib/queries/warehouses";
 import { getAllProjects } from "@/lib/queries/projects";
@@ -7,7 +7,7 @@ import { MaterialManager } from "@/components/material-manager";
 import { WarehouseManager } from "@/components/warehouse-manager";
 
 export default async function VatLieuPage() {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
   const [materials, warehouses, projects] = await Promise.all([
     getMaterials(),
     getWarehouses(),

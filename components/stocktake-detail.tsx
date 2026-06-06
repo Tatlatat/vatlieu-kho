@@ -47,12 +47,14 @@ interface Stocktake {
 
 interface StocktakeDetailProps {
   stocktake: Stocktake;
-  role: "OWNER" | "STAFF";
+  role: "ADMIN" | "MANAGER" | "KEEPER";
 }
 
 export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
+  // Duyệt/hủy kiểm kê = Quản lý trở lên.
+  const canApprove = role === "ADMIN" || role === "MANAGER";
   const [voidOpen, setVoidOpen] = React.useState(false);
   const [voidReason, setVoidReason] = React.useState("");
 
@@ -231,7 +233,7 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
         </div>
 
         <div className="flex gap-2">
-          {role === "OWNER" && isDraft && (
+          {canApprove && isDraft && (
             <Button
               onClick={handleApprove}
               disabled={isPending}
@@ -240,7 +242,7 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
               {isPending ? "Đang xử lý..." : "Duyệt phiếu"}
             </Button>
           )}
-          {role === "OWNER" && isApproved && (
+          {canApprove && isApproved && (
             <Button
               variant="outline"
               onClick={() => setVoidOpen(true)}

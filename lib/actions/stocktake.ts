@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireRole } from "@/lib/auth-helpers";
+import { requireUser, requireAtLeast } from "@/lib/auth-helpers";
 import { getCurrentStock } from "@/lib/queries/stock";
 import type { ActionResult } from "@/lib/actions/movements";
 
@@ -70,7 +70,7 @@ export async function updateStocktakeItem(
 
 /** Duyệt phiếu (chỉ OWNER): set APPROVED → trigger DB sinh STOCKTAKE_ADJUST. */
 export async function approveStocktake(stocktakeId: string): Promise<ActionResult> {
-  const user = await requireRole("OWNER");
+  const user = await requireAtLeast("MANAGER");
 
   const st = await prisma.stocktake.findUnique({ where: { id: stocktakeId } });
   if (!st) return { ok: false, error: "Không tìm thấy phiếu." };

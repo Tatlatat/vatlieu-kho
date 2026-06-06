@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { getAllProjects, getAllProjectsSummary } from "@/lib/queries/projects";
 import { ProjectManager } from "@/components/project-manager";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -17,7 +17,7 @@ import { formatVnd } from "@/lib/utils";
 import { Building2 } from "lucide-react";
 
 export default async function CongTrinhPage() {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
 
   const [projectsSummary, allProjects] = await Promise.all([
     getAllProjectsSummary(),

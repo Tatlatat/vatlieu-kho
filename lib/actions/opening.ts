@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { nextDocCode } from "@/lib/doc-codes";
 import type { ActionResult } from "@/lib/actions/movements";
 
@@ -22,7 +22,7 @@ export interface OpeningEntry {
  * dedup slot trùng + lock theo thứ tự xác định (chống race + deadlock).
  */
 export async function createOpeningStock(entries: OpeningEntry[]): Promise<ActionResult> {
-  const user = await requireRole("OWNER");
+  const user = await requireAtLeast("MANAGER");
 
   // Lọc bỏ dòng trống / quantity<=0.
   const valid = entries.filter(

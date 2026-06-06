@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { getProjectSummary } from "@/lib/queries/projects";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
@@ -21,7 +21,7 @@ export default async function CongTrinhDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
 
   const { id } = await params;
   const summary = await getProjectSummary(id);

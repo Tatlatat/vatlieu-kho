@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { getBalanceReport } from "@/lib/queries/balance";
 import { getWarehouses } from "@/lib/queries/warehouses";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 /** Xuất báo cáo cân đối Đầu kỳ–Nhập–Xuất–Tồn ra file .xlsx (chỉ OWNER). */
 export async function GET(req: NextRequest) {
-  await requireRole("OWNER");
+  await requireAtLeast("KEEPER");
 
   const sp = req.nextUrl.searchParams;
   const now = new Date();

@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { getUsers } from "@/lib/queries/users";
 import { UserManager } from "@/components/user-manager";
 
 export default async function NguoiDungPage() {
-  const me = await requireRole("OWNER");
+  const me = await requireAtLeast("ADMIN");
   const users = await getUsers();
   return (
     <div className="container mx-auto py-8 px-4">

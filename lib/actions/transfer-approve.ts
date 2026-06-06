@@ -42,8 +42,8 @@ export async function approveTransfer(documentId: string): Promise<ActionResult>
       if (doc.type !== "TRANSFER") throw new Error("Không phải phiếu chuyển kho");
       if (doc.status !== "PENDING") throw new Error("Chỉ duyệt phiếu đang Chờ duyệt");
       if (!doc.fromWarehouseId || !doc.toWarehouseId) throw new Error("Thiếu kho nguồn/đích");
-      // Segregation of duties: người tạo không tự duyệt, trừ OWNER.
-      if (doc.createdById === user.id && user.role !== "OWNER")
+      // Segregation of duties: người tạo không tự duyệt, trừ Quản trị.
+      if (doc.createdById === user.id && user.role !== "ADMIN")
         throw new Error("Người lập phiếu không được tự duyệt");
 
       const transferId = randomUUID(); // 1 transferId / phiếu (hoisted ngoài loop)
@@ -100,8 +100,8 @@ export async function rejectTransfer(documentId: string): Promise<ActionResult> 
       if (!doc) throw new Error("Không tìm thấy phiếu");
       if (doc.type !== "TRANSFER") throw new Error("Không phải phiếu chuyển kho");
       if (doc.status !== "PENDING") throw new Error("Chỉ từ chối phiếu đang Chờ duyệt");
-      // Đối xứng với duyệt: người lập không tự xử lý phiếu mình (trừ OWNER).
-      if (doc.createdById === user.id && user.role !== "OWNER")
+      // Đối xứng với duyệt: người lập không tự xử lý phiếu mình (trừ Quản trị).
+      if (doc.createdById === user.id && user.role !== "ADMIN")
         throw new Error("Người lập phiếu không được tự từ chối");
       await tx.document.update({ where: { id: doc.id }, data: { status: "DRAFT" } });
     });

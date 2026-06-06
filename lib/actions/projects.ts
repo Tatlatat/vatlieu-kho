@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { projectSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/actions/movements";
 
@@ -12,7 +12,7 @@ export async function createProject(input: {
   code: string;
   note?: string;
 }): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
   const parsed = projectSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
@@ -31,7 +31,7 @@ export async function updateProject(
   id: string,
   input: { name: string; code: string; note?: string }
 ): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
   const parsed = projectSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
@@ -50,7 +50,7 @@ export async function updateProject(
 
 /** Xóa công trình — CHẶN nếu còn kho/quỹ gắn vào (gỡ liên kết trước). */
 export async function deleteProject(id: string): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
   const [nWh, nFund] = await Promise.all([
     prisma.warehouse.count({ where: { projectId: id } }),
     prisma.fund.count({ where: { projectId: id } }),

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { requireUser } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { getFunds, getFundBalances, listCashEntries, getCashReport } from "@/lib/queries/cash";
 import { CashLedger } from "@/components/cash-ledger";
 import { CashFilter } from "@/components/cash-filter";
@@ -14,7 +14,7 @@ export default async function QuyPage({
 }: {
   searchParams: Promise<{ fund?: string; from?: string; to?: string }>;
 }) {
-  const user = await requireUser();
+  await requireAtLeast("MANAGER");
   const sp = await searchParams;
 
   const funds = await getFunds();
@@ -25,11 +25,9 @@ export default async function QuyPage({
         <div className="rounded-xl border bg-white p-8 text-center text-slate-500">
           <Wallet className="mx-auto mb-3 h-10 w-10 text-slate-300" />
           <p>Chưa có quỹ nào.</p>
-          {user.role === "OWNER" && (
-            <Link href="/quy/danh-muc" className="mt-3 inline-block text-blue-600 hover:underline">
-              Tạo quỹ đầu tiên →
-            </Link>
-          )}
+          <Link href="/quy/danh-muc" className="mt-3 inline-block text-blue-600 hover:underline">
+            Tạo quỹ đầu tiên →
+          </Link>
         </div>
       </div>
     );
@@ -58,14 +56,12 @@ export default async function QuyPage({
           <p className="text-sm text-slate-500">Sổ thu – chi – tồn quỹ công trường</p>
         </div>
         <div className="flex items-center gap-2">
-          {user.role === "OWNER" && (
-            <Link
-              href="/quy/danh-muc"
-              className="inline-flex h-9 items-center rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Danh mục quỹ
-            </Link>
-          )}
+          <Link
+            href="/quy/danh-muc"
+            className="inline-flex h-9 items-center rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Danh mục quỹ
+          </Link>
           <Link
             href={`/quy/moi?fund=${fundId}`}
             className="inline-flex h-9 items-center gap-1.5 rounded-md bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700"

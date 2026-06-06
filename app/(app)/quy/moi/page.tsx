@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { requireUser } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { getFunds } from "@/lib/queries/cash";
 import { CashEntryForm } from "@/components/cash-entry-form";
 import { redirect } from "next/navigation";
@@ -10,7 +10,7 @@ export default async function QuyMoiPage({
 }: {
   searchParams: Promise<{ fund?: string }>;
 }) {
-  await requireUser();
+  await requireAtLeast("MANAGER");
   const sp = await searchParams;
   const funds = await getFunds();
   if (funds.length === 0) redirect("/quy");

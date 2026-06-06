@@ -20,7 +20,7 @@ async function main() {
     data: {
       email: "owner@vatlieu.vn",
       name: "Anh Chu",
-      role: "OWNER",
+      role: "ADMIN",
       passwordHash,
     },
   });
@@ -29,7 +29,7 @@ async function main() {
     data: {
       email: "staff@vatlieu.vn",
       name: "Anh Tam",
-      role: "STAFF",
+      role: "KEEPER",
       passwordHash,
     },
   });

@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import type { ActionResult } from "@/lib/actions/movements";
 
 /** Hủy phiếu kiểm kê đã duyệt: đảo các STOCKTAKE_ADJUST nó sinh ra + đánh dấu phiếu VOIDED. */
 export async function voidStocktake(formData: FormData): Promise<ActionResult> {
-  const user = await requireRole("OWNER");
+  const user = await requireAtLeast("MANAGER");
   const stocktakeId = formData.get("stocktakeId") as string;
   const reason = (formData.get("reason") as string)?.trim();
   if (!stocktakeId) return { ok: false, error: "Thiếu phiếu kiểm kê" };

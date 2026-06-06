@@ -120,7 +120,7 @@ export const createUserSchema = z.object({
   email: z.string().email("Email không hợp lệ"),
   name: z.string().min(1, "Vui lòng nhập tên"),
   password: z.string().min(6, "Mật khẩu tối thiểu 6 ký tự"),
-  role: z.enum(["OWNER", "STAFF"]),
+  role: z.enum(["ADMIN", "MANAGER", "KEEPER"]),
 });
 
 export const supplierSchema = z.object({

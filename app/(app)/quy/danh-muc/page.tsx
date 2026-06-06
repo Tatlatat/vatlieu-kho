@@ -1,12 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { getAllFunds, getFundBalances } from "@/lib/queries/cash";
 import { getAllProjects } from "@/lib/queries/projects";
 import { FundManager } from "@/components/fund-manager";
 
 export default async function QuyDanhMucPage() {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
   const [funds, balances, projects] = await Promise.all([getAllFunds(), getFundBalances(), getAllProjects()]);
   const balanceMap = Object.fromEntries(balances.map((b) => [b.fund_id, b.balance]));
   const rows = funds.map((f) => ({ ...f, balance: balanceMap[f.id] ?? 0 }));

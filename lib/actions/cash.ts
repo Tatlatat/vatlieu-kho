@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { cashEntrySchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/actions/movements";
 
@@ -32,7 +32,7 @@ export async function createCashEntry(input: {
   entryDate: string;
   note?: string;
 }): Promise<ActionResult & { warning?: string }> {
-  const user = await requireUser();
+  const user = await requireAtLeast("MANAGER");
   const parsed = cashEntrySchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
@@ -92,7 +92,7 @@ export async function createCashEntry(input: {
  * Lịch sử giữ nguyên (entry gốc còn, hiển thị gạch mờ).
  */
 export async function voidCashEntry(id: string, reason: string): Promise<ActionResult> {
-  const user = await requireUser();
+  const user = await requireAtLeast("MANAGER");
   if (!reason?.trim()) return { ok: false, error: "Vui lòng nhập lý do hủy" };
   try {
     await prisma.$transaction(async (tx) => {

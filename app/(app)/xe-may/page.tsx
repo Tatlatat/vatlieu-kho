@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { getEquipment } from "@/lib/queries/equipment";
 import { EquipmentManager } from "@/components/equipment-manager";
 
 export default async function XeMayPage() {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
   const equipment = await getEquipment();
   return (
     <div className="container mx-auto py-8 px-4">

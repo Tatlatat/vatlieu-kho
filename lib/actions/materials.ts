@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { materialSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/actions/movements";
 
 export async function createMaterial(formData: FormData): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
   const parsed = materialSchema.safeParse({
     name: formData.get("name"),
     code: formData.get("code"),
@@ -28,7 +28,7 @@ export async function createMaterial(formData: FormData): Promise<ActionResult> 
 }
 
 export async function updateMaterial(id: string, formData: FormData): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
   const parsed = materialSchema.safeParse({
     name: formData.get("name"),
     code: formData.get("code"),

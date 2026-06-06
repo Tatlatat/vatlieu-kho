@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireRole, requireUser } from "@/lib/auth-helpers";
+import { requireAtLeast, requireUser } from "@/lib/auth-helpers";
 import { equipmentSchema, equipmentLogSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/actions/movements";
 
@@ -12,7 +12,7 @@ export async function createEquipment(input: {
   plateNo?: string;
   note?: string;
 }): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
   const parsed = equipmentSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
@@ -25,7 +25,7 @@ export async function updateEquipment(
   id: string,
   input: { name: string; type?: string; plateNo?: string; note?: string }
 ): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
   const parsed = equipmentSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
@@ -37,7 +37,7 @@ export async function updateEquipment(
 }
 
 export async function deleteEquipment(id: string): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requireAtLeast("MANAGER");
   // Không xóa nếu đã có nhật ký giờ chạy (cascade sẽ mất dữ liệu kiểm toán).
   const logs = await prisma.equipmentLog.count({ where: { equipmentId: id } });
   if (logs > 0)
