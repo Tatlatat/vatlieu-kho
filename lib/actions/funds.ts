@@ -11,6 +11,7 @@ export async function createFund(input: {
   name: string;
   code: string;
   note?: string;
+  projectId?: string | null;
 }): Promise<ActionResult> {
   await requireRole("OWNER");
   const parsed = fundSchema.safeParse(input);
@@ -30,7 +31,7 @@ export async function createFund(input: {
 
 export async function updateFund(
   id: string,
-  input: { name: string; code: string; note?: string }
+  input: { name: string; code: string; note?: string; projectId?: string | null }
 ): Promise<ActionResult> {
   await requireRole("OWNER");
   const parsed = fundSchema.safeParse(input);

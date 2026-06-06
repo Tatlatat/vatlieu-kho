@@ -74,6 +74,13 @@ export const materialSchema = z.object({
 export const warehouseSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên kho"),
   code: z.string().min(1, "Vui lòng nhập mã kho"),
+  projectId: z.string().optional().nullable(),
+});
+
+export const projectSchema = z.object({
+  name: z.string().min(1, "Vui lòng nhập tên công trình"),
+  code: z.string().min(1, "Vui lòng nhập mã công trình"),
+  note: z.string().max(500).optional(),
 });
 
 export const transferSchema = z.object({
@@ -162,6 +169,7 @@ export const fundSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên quỹ"),
   code: z.string().min(1, "Vui lòng nhập mã quỹ"),
   note: z.string().max(500).optional(),
+  projectId: z.string().optional().nullable(),
 });
 
 export const cashEntrySchema = z
