@@ -23,6 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createSupplier, updateSupplier, deleteSupplier } from "@/lib/actions/suppliers";
 import { toast } from "sonner";
+import { lookupTaxCode } from "@/lib/actions/tax-lookup";
+
 
 interface Supplier {
   id: string;
@@ -42,6 +44,34 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
   const [isPending, startTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [editingSupplier, setEditingSupplier] = React.useState<Supplier | null>(null);
+
+  const [lookingUp, startLookup] = React.useTransition();
+  // refs cho form THÊM
+  const createNameRef = React.useRef<HTMLInputElement>(null);
+  const createAddrRef = React.useRef<HTMLInputElement>(null);
+  // refs cho form SỬA
+  const editNameRef = React.useRef<HTMLInputElement>(null);
+  const editAddrRef = React.useRef<HTMLInputElement>(null);
+
+  const handleTaxBlur = (
+    mst: string,
+    nameRef: React.RefObject<HTMLInputElement | null>,
+    addrRef: React.RefObject<HTMLInputElement | null>
+  ) => {
+    const digits = (mst ?? "").replace(/-/g, "").trim();
+    if (!/^\d{10}(\d{3})?$/.test(digits)) return; // chưa hợp lệ → im lặng
+    startLookup(async () => {
+      const res = await lookupTaxCode(digits);
+      if (res.ok) {
+        if (nameRef.current && !nameRef.current.value) nameRef.current.value = res.name;
+        if (addrRef.current && !addrRef.current.value) addrRef.current.value = res.address;
+        toast.success("Đã lấy thông tin từ mã số thuế");
+      } else {
+        toast.error(res.error || "Không tra được thông tin, vui lòng nhập tay");
+      }
+    });
+  };
+
 
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -196,15 +226,20 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
               <Input
                 id="sname"
                 name="name"
+                ref={createNameRef}
                 required
                 placeholder="Công ty TNHH Vật liệu xây dựng"
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="staxCode">Mã số thuế</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="staxCode">Mã số thuế</Label>
+                {lookingUp && <span className="text-xs text-slate-400 animate-pulse">Đang tra cứu...</span>}
+              </div>
               <Input
                 id="staxCode"
                 name="taxCode"
+                onBlur={(e) => handleTaxBlur(e.target.value, createNameRef, createAddrRef)}
                 placeholder="Mã số thuế..."
               />
             </div>
@@ -213,6 +248,7 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
               <Input
                 id="saddress"
                 name="address"
+                ref={createAddrRef}
                 placeholder="Địa chỉ nhà cung cấp..."
               />
             </div>
@@ -266,16 +302,21 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
                 <Input
                   id="esname"
                   name="name"
+                  ref={editNameRef}
                   required
                   defaultValue={editingSupplier.name}
                   placeholder="Công ty TNHH Vật liệu xây dựng"
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="estaxCode">Mã số thuế</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="estaxCode">Mã số thuế</Label>
+                  {lookingUp && <span className="text-xs text-slate-400 animate-pulse">Đang tra cứu...</span>}
+                </div>
                 <Input
                   id="estaxCode"
                   name="taxCode"
+                  onBlur={(e) => handleTaxBlur(e.target.value, editNameRef, editAddrRef)}
                   defaultValue={editingSupplier.taxCode || ""}
                   placeholder="Mã số thuế..."
                 />
@@ -285,6 +326,7 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
                 <Input
                   id="esaddress"
                   name="address"
+                  ref={editAddrRef}
                   defaultValue={editingSupplier.address || ""}
                   placeholder="Địa chỉ nhà cung cấp..."
                 />
