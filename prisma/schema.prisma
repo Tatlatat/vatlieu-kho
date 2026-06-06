@@ -87,12 +87,16 @@ model Warehouse {
   name       String
   code       String          @unique
   isDefault  Boolean         @default(false)
+  projectId  String?
+  project    Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
   createdAt  DateTime        @default(now())
   movements  StockMovement[]
   stocktakes Stocktake[]
   docsWhse   Document[]      @relation("docWarehouse")
   docsFrom   Document[]      @relation("docFromWarehouse")
   docsTo     Document[]      @relation("docToWarehouse")
+
+  @@index([projectId])
 }
 
 model StockMovement {
@@ -237,35 +241,51 @@ enum CashType {
   CHI
 }
 
-// Danh mục quỹ theo công trường (giống Warehouse).
+// Công trình — trục gom Kho + Quỹ (+ sau này Xe/máy). Báo cáo "theo công trình".
+model Project {
+  id         String      @id @default(cuid())
+  code       String      @unique
+  name       String
+  isActive   Boolean     @default(true)
+  note       String?
+  createdAt  DateTime    @default(now())
+  warehouses Warehouse[]
+  funds      Fund[]
+}
+
+// Danh mục quỹ theo công trường (giống Warehouse). Gắn Project (nullable).
 model Fund {
   id        String      @id @default(cuid())
   name      String
   code      String      @unique
   note      String?
   isActive  Boolean     @default(true)
+  projectId String?
+  project   Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
   createdAt DateTime    @default(now())
   entries   CashEntry[]
+
+  @@index([projectId])
 }
 
 // Sổ cái tiền BẤT BIẾN, append-only (giống StockMovement). Sửa sai = đánh dấu void
 // (không tạo bút toán đảo — view fund_balance đã loại voided). amount luôn > 0.
 model CashEntry {
-  id           String    @id @default(cuid())
-  fundId       String
-  fund         Fund      @relation(fields: [fundId], references: [id])
-  type         CashType
-  category     String
-  amount       Decimal   @db.Decimal(15, 0)
-  entryDate    DateTime
-  note         String?
-  createdById  String
-  createdBy    User      @relation("cashCreated", fields: [createdById], references: [id])
-  createdAt    DateTime  @default(now())
-  voidedAt     DateTime?
-  voidedById   String?
-  voidedBy     User?     @relation("cashVoided", fields: [voidedById], references: [id])
-  voidReason   String?
+  id          String    @id @default(cuid())
+  fundId      String
+  fund        Fund      @relation(fields: [fundId], references: [id])
+  type        CashType
+  category    String
+  amount      Decimal   @db.Decimal(15, 0)
+  entryDate   DateTime
+  note        String?
+  createdById String
+  createdBy   User      @relation("cashCreated", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  voidedAt    DateTime?
+  voidedById  String?
+  voidedBy    User?     @relation("cashVoided", fields: [voidedById], references: [id])
+  voidReason  String?
 
   @@index([fundId, entryDate])
   @@index([type])
