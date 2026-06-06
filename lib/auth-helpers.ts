@@ -1,7 +1,10 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
-export type Role = "OWNER" | "STAFF";
+export type Role = "ADMIN" | "MANAGER" | "KEEPER";
+
+/** Cấp vai trò (phân cấp lồng nhau): ADMIN ⊃ MANAGER ⊃ KEEPER. */
+const ROLE_LEVEL: Record<Role, number> = { ADMIN: 3, MANAGER: 2, KEEPER: 1 };
 
 export interface SessionUser {
   id: string;
@@ -17,9 +20,14 @@ export async function requireUser(): Promise<SessionUser> {
   return session.user as unknown as SessionUser;
 }
 
-/** Yêu cầu đúng vai trò, sai thì đẩy về trang chính. */
-export async function requireRole(role: Role): Promise<SessionUser> {
+/** Yêu cầu cấp >= minRole (phân cấp lồng nhau). Thấp hơn thì đẩy về trang chính. */
+export async function requireAtLeast(minRole: Role): Promise<SessionUser> {
   const user = await requireUser();
-  if (user.role !== role) redirect("/");
+  if (ROLE_LEVEL[user.role] < ROLE_LEVEL[minRole]) redirect("/");
   return user;
+}
+
+/** Nhãn vai trò tiếng Việt (dùng ở UI). */
+export function roleLabel(role: Role): string {
+  return role === "ADMIN" ? "Quản trị" : role === "MANAGER" ? "Quản lý" : "Thủ kho";
 }
