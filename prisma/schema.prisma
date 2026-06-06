@@ -215,6 +215,7 @@ model Supplier {
 
 model Equipment {
   id        String         @id @default(cuid())
+  code      String?        @unique
   name      String
   type      String?
   plateNo   String?
