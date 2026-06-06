@@ -122,5 +122,11 @@ guard trang.
 - Danh mục nền: Admin + Manager.
 - Đổi enum: Cách A (RENAME VALUE).
 
-## 7. Giai đoạn sau
+## 7. CÂN NHẮC — treo lại (client sẽ lôi ra khi cần)
+- **Thủ kho (KEEPER) lập phiếu quỹ:** spec hiện CHẶN (quỹ = MANAGER+, đổi từ
+  requireUser). Client chốt: ĐỂ TREO ở mục cân nhắc, KHI NÀO CẦN sẽ lôi lại. Hiện
+  tại làm theo spec (KEEPER không lập phiếu quỹ). Nếu sau client muốn, chỉ cần hạ
+  guard cash.ts lập-phiếu xuống KEEPER (báo cáo quỹ vẫn MANAGER+) — sửa 1 chỗ.
+
+## 8. Giai đoạn sau
 Gắn xe/máy vào Công trình; 2 việc nhỏ minStock+NCC; rồi deploy gộp.
