@@ -68,7 +68,7 @@ export const materialSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên vật liệu"),
   code: z.string().min(1, "Vui lòng nhập mã vật liệu"),
   unit: z.string().min(1, "Vui lòng nhập đơn vị (bao, cây, m³...)"),
-  minStock: z.coerce.number().min(0, "Mức tối thiểu không được âm"),
+  minStock: z.coerce.number().min(0, "Mức tối thiểu không được âm").optional().default(0),
 });
 
 export const warehouseSchema = z.object({

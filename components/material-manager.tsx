@@ -161,13 +161,12 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
               <Input id="unit" name="unit" required placeholder="Ví dụ: bao, cây, m3..." />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="minStock">Định mức tồn kho tối thiểu</Label>
+              <Label htmlFor="minStock">Định mức tồn kho tối thiểu (không bắt buộc)</Label>
               <Input
                 id="minStock"
                 name="minStock"
                 type="number"
                 step="any"
-                required
                 placeholder="Ví dụ: 20"
               />
             </div>
@@ -233,14 +232,13 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="edit-minStock">Định mức tồn kho tối thiểu</Label>
+                <Label htmlFor="edit-minStock">Định mức tồn kho tối thiểu (không bắt buộc)</Label>
                 <Input
                   id="edit-minStock"
                   name="minStock"
                   type="number"
                   step="any"
                   defaultValue={editingMaterial.minStock}
-                  required
                 />
               </div>
               <div className="flex justify-end gap-3 pt-2">
