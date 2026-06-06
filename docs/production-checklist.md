@@ -60,7 +60,7 @@ Thủ kho: staff@vatlieu.vn — mật khẩu 123456
 **Vấn đề:** Chưa có chiến lược backup. Mất DB = mất sạch sổ kho, không lấy lại được.
 
 **Cách làm:**
-- Neon có **Point-in-Time Restore**, nhưng gói free giới hạn cửa sổ thời gian → **kiểm tra gói hiện tại có đủ không**.
+- Supabase có **Point-in-Time Restore**, nhưng gói free giới hạn cửa sổ thời gian → **kiểm tra gói hiện tại có đủ không**.
 - Cân nhắc export định kỳ: `pg_dump` (qua GitHub Actions cron, tương tự keep-warm) đẩy file backup ra nơi an toàn.
 - **Quan trọng nhất: thử RESTORE một lần** để chắc backup dùng được — backup chưa test = chưa có backup.
 
@@ -94,4 +94,4 @@ Thủ kho: staff@vatlieu.vn — mật khẩu 123456
 2. **Tuần đầu vận hành:** rate limiting + đổi mật khẩu (🟠).
 3. **Khi app đã được dùng đều:** domain riêng, error monitoring, cân nhắc Pro.
 
-> **Lưu ý chi phí:** Tất cả nhóm 🔴 và phần lớn 🟠 đều **miễn phí** (free tier của Neon/Vercel/Upstash/Sentry). Chỉ Vercel Pro và domain riêng là tốn tiền, và chỉ cần khi app thật sự đông người dùng.
+> **Lưu ý chi phí:** Tất cả nhóm 🔴 và phần lớn 🟠 đều **miễn phí** (free tier của Supabase/Vercel/Upstash/Sentry). Chỉ Vercel Pro và domain riêng là tốn tiền, và chỉ cần khi app thật sự đông người dùng.

@@ -11,8 +11,8 @@ export const dynamic = "force-dynamic";
  * gọi vào đây mỗi vài phút để Serverless Function không "ngủ" — nhờ đó người
  * dùng tránh được cold-start (TTFB 2–10s lần đầu sau khi web rảnh một lúc).
  *
- * Truy vấn cực nhẹ `SELECT 1` để đánh thức luôn cả kết nối Prisma ↔ Neon
- * (Neon cũng tự ngủ sau ~5 phút không hoạt động).
+ * Truy vấn cực nhẹ `SELECT 1` để đánh thức luôn cả kết nối Prisma ↔ Supabase
+ * (DB cũng có thể ngủ/đóng kết nối sau một lúc không hoạt động).
  */
 export async function GET() {
   const start = Date.now();
