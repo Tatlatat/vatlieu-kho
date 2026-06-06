@@ -31,6 +31,7 @@ import { toast } from "sonner";
 
 interface Equipment {
   id: string;
+  code?: string | null;
   name: string;
   type?: string | null;
   plateNo?: string | null;
@@ -65,6 +66,7 @@ export function EquipmentManager({ equipment, projects }: EquipmentManagerProps)
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const code = (fd.get("code") as string) || undefined;
     const name = fd.get("name") as string;
     const type = (fd.get("type") as string) || undefined;
     const plateNo = (fd.get("plateNo") as string) || undefined;
@@ -72,7 +74,7 @@ export function EquipmentManager({ equipment, projects }: EquipmentManagerProps)
 
     startTransition(async () => {
       try {
-        const res = await createEquipment({ name, type, plateNo, note });
+        const res = await createEquipment({ code, name, type, plateNo, note });
         if (res.ok) {
           toast.success("Đã thêm xe/máy thành công");
           setIsCreateOpen(false);
@@ -90,6 +92,7 @@ export function EquipmentManager({ equipment, projects }: EquipmentManagerProps)
     e.preventDefault();
     if (!editingEquipment) return;
     const fd = new FormData(e.currentTarget);
+    const code = (fd.get("code") as string) || undefined;
     const name = fd.get("name") as string;
     const type = (fd.get("type") as string) || undefined;
     const plateNo = (fd.get("plateNo") as string) || undefined;
@@ -97,7 +100,7 @@ export function EquipmentManager({ equipment, projects }: EquipmentManagerProps)
 
     startTransition(async () => {
       try {
-        const res = await updateEquipment(editingEquipment.id, { name, type, plateNo, note });
+        const res = await updateEquipment(editingEquipment.id, { code, name, type, plateNo, note });
         if (res.ok) {
           toast.success("Đã cập nhật xe/máy thành công");
           setEditingEquipment(null);
@@ -188,6 +191,7 @@ export function EquipmentManager({ equipment, projects }: EquipmentManagerProps)
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[80px]">STT</TableHead>
+                    <TableHead>Mã</TableHead>
                     <TableHead>Tên xe/máy</TableHead>
                     <TableHead>Loại</TableHead>
                     <TableHead>Biển số</TableHead>
@@ -199,6 +203,7 @@ export function EquipmentManager({ equipment, projects }: EquipmentManagerProps)
                   {equipment.map((eq, index) => (
                     <TableRow key={eq.id}>
                       <TableCell className="font-mono text-xs">{index + 1}</TableCell>
+                      <TableCell className="font-mono text-xs font-semibold text-muted-foreground">{eq.code || "—"}</TableCell>
                       <TableCell className="font-semibold text-foreground">{eq.name}</TableCell>
                       <TableCell>{eq.type || <span className="text-muted-foreground italic text-xs">Chưa rõ</span>}</TableCell>
                       <TableCell>{eq.plateNo || <span className="text-muted-foreground italic text-xs">Chưa có</span>}</TableCell>
@@ -255,6 +260,14 @@ export function EquipmentManager({ equipment, projects }: EquipmentManagerProps)
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="eqcode">Mã xe/máy</Label>
+              <Input
+                id="eqcode"
+                name="code"
+                placeholder="Ví dụ: MX-01..."
+              />
+            </div>
             <div className="space-y-1">
               <Label htmlFor="eqname">Tên thiết bị <span className="text-destructive">*</span></Label>
               <Input
@@ -317,6 +330,15 @@ export function EquipmentManager({ equipment, projects }: EquipmentManagerProps)
           </DialogHeader>
           {editingEquipment && (
             <form onSubmit={handleEdit} className="space-y-4 py-2">
+              <div className="space-y-1">
+                <Label htmlFor="eeqcode">Mã xe/máy</Label>
+                <Input
+                  id="eeqcode"
+                  name="code"
+                  defaultValue={editingEquipment.code || ""}
+                  placeholder="Ví dụ: MX-01..."
+                />
+              </div>
               <div className="space-y-1">
                 <Label htmlFor="eeqname">Tên thiết bị <span className="text-destructive">*</span></Label>
                 <Input

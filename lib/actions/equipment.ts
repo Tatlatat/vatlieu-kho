@@ -7,6 +7,7 @@ import { equipmentSchema, equipmentLogSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/actions/movements";
 
 export async function createEquipment(input: {
+  code?: string;
   name: string;
   type?: string;
   plateNo?: string;
@@ -16,14 +17,25 @@ export async function createEquipment(input: {
   const parsed = equipmentSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
-  await prisma.equipment.create({ data: parsed.data });
+  try {
+    const data = {
+      ...parsed.data,
+      code: parsed.data.code?.trim() || null,
+    };
+    await prisma.equipment.create({ data });
+  } catch (e) {
+    if (e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002") {
+      return { ok: false, error: "Mã xe/máy đã tồn tại" };
+    }
+    throw e;
+  }
   revalidatePath("/xe-may");
   return { ok: true };
 }
 
 export async function updateEquipment(
   id: string,
-  input: { name: string; type?: string; plateNo?: string; note?: string }
+  input: { code?: string; name: string; type?: string; plateNo?: string; note?: string }
 ): Promise<ActionResult> {
   await requireAtLeast("MANAGER");
   const parsed = equipmentSchema.safeParse(input);
@@ -31,7 +43,18 @@ export async function updateEquipment(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
   const exists = await prisma.equipment.findUnique({ where: { id } });
   if (!exists) return { ok: false, error: "Không tìm thấy xe/máy" };
-  await prisma.equipment.update({ where: { id }, data: parsed.data });
+  try {
+    const data = {
+      ...parsed.data,
+      code: parsed.data.code?.trim() || null,
+    };
+    await prisma.equipment.update({ where: { id }, data });
+  } catch (e) {
+    if (e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002") {
+      return { ok: false, error: "Mã xe/máy đã tồn tại" };
+    }
+    throw e;
+  }
   revalidatePath("/xe-may");
   return { ok: true };
 }

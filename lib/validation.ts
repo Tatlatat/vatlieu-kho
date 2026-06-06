@@ -132,6 +132,7 @@ export const supplierSchema = z.object({
 });
 
 export const equipmentSchema = z.object({
+  code: z.string().max(50).optional(),
   name: z.string().min(1, "Vui lòng nhập tên xe/máy"),
   type: z.string().max(100).optional(),
   plateNo: z.string().max(50).optional(),

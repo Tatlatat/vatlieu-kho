@@ -4,7 +4,7 @@ export async function getEquipment() {
   return prisma.equipment.findMany({
     orderBy: { name: "asc" },
     select: {
-      id: true, name: true, type: true, plateNo: true, note: true,
+      id: true, code: true, name: true, type: true, plateNo: true, note: true,
       _count: { select: { logs: true } },
     },
   });
