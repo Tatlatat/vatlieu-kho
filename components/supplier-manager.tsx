@@ -27,6 +27,8 @@ import { toast } from "sonner";
 interface Supplier {
   id: string;
   name: string;
+  taxCode?: string | null;
+  address?: string | null;
   contact?: string | null;
   note?: string | null;
 }
@@ -45,12 +47,14 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const name = fd.get("name") as string;
+    const taxCode = (fd.get("taxCode") as string) || undefined;
+    const address = (fd.get("address") as string) || undefined;
     const contact = (fd.get("contact") as string) || undefined;
     const note = (fd.get("note") as string) || undefined;
 
     startTransition(async () => {
       try {
-        const res = await createSupplier({ name, contact, note });
+        const res = await createSupplier({ name, taxCode, address, contact, note });
         if (res.ok) {
           toast.success("Đã thêm nhà cung cấp thành công");
           setIsCreateOpen(false);
@@ -69,12 +73,14 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
     if (!editingSupplier) return;
     const fd = new FormData(e.currentTarget);
     const name = fd.get("name") as string;
+    const taxCode = (fd.get("taxCode") as string) || undefined;
+    const address = (fd.get("address") as string) || undefined;
     const contact = (fd.get("contact") as string) || undefined;
     const note = (fd.get("note") as string) || undefined;
 
     startTransition(async () => {
       try {
-        const res = await updateSupplier(editingSupplier.id, { name, contact, note });
+        const res = await updateSupplier(editingSupplier.id, { name, taxCode, address, contact, note });
         if (res.ok) {
           toast.success("Đã cập nhật nhà cung cấp thành công");
           setEditingSupplier(null);
@@ -130,6 +136,8 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
                   <TableRow>
                     <TableHead className="w-[80px]">STT</TableHead>
                     <TableHead>Tên nhà cung cấp</TableHead>
+                    <TableHead>Mã số thuế</TableHead>
+                    <TableHead>Địa chỉ</TableHead>
                     <TableHead>Liên hệ</TableHead>
                     <TableHead>Ghi chú</TableHead>
                     <TableHead className="w-[200px] text-right">Hành động</TableHead>
@@ -140,6 +148,8 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
                     <TableRow key={s.id}>
                       <TableCell className="font-mono text-xs">{index + 1}</TableCell>
                       <TableCell className="font-semibold text-foreground">{s.name}</TableCell>
+                      <TableCell>{s.taxCode || <span className="text-muted-foreground italic text-xs">—</span>}</TableCell>
+                      <TableCell>{s.address || <span className="text-muted-foreground italic text-xs">—</span>}</TableCell>
                       <TableCell>{s.contact || <span className="text-muted-foreground italic text-xs">Chưa có</span>}</TableCell>
                       <TableCell>{s.note || <span className="text-muted-foreground italic text-xs">Không có</span>}</TableCell>
                       <TableCell className="text-right space-x-2">
@@ -188,6 +198,22 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
                 name="name"
                 required
                 placeholder="Công ty TNHH Vật liệu xây dựng"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="staxCode">Mã số thuế</Label>
+              <Input
+                id="staxCode"
+                name="taxCode"
+                placeholder="Mã số thuế..."
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="saddress">Địa chỉ</Label>
+              <Input
+                id="saddress"
+                name="address"
+                placeholder="Địa chỉ nhà cung cấp..."
               />
             </div>
             <div className="space-y-1">
@@ -243,6 +269,24 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
                   required
                   defaultValue={editingSupplier.name}
                   placeholder="Công ty TNHH Vật liệu xây dựng"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="estaxCode">Mã số thuế</Label>
+                <Input
+                  id="estaxCode"
+                  name="taxCode"
+                  defaultValue={editingSupplier.taxCode || ""}
+                  placeholder="Mã số thuế..."
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="esaddress">Địa chỉ</Label>
+                <Input
+                  id="esaddress"
+                  name="address"
+                  defaultValue={editingSupplier.address || ""}
+                  placeholder="Địa chỉ nhà cung cấp..."
                 />
               </div>
               <div className="space-y-1">

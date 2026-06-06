@@ -205,6 +205,8 @@ model DocumentLine {
 model Supplier {
   id        String     @id @default(cuid())
   name      String
+  taxCode   String?
+  address   String?
   contact   String?
   note      String?
   createdAt DateTime   @default(now())

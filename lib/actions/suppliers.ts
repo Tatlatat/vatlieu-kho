@@ -8,6 +8,8 @@ import type { ActionResult } from "@/lib/actions/movements";
 
 export async function createSupplier(input: {
   name: string;
+  taxCode?: string;
+  address?: string;
   contact?: string;
   note?: string;
 }): Promise<ActionResult> {
@@ -22,7 +24,7 @@ export async function createSupplier(input: {
 
 export async function updateSupplier(
   id: string,
-  input: { name: string; contact?: string; note?: string }
+  input: { name: string; taxCode?: string; address?: string; contact?: string; note?: string }
 ): Promise<ActionResult> {
   await requireAtLeast("KEEPER");
   const parsed = supplierSchema.safeParse(input);

@@ -125,6 +125,8 @@ export const createUserSchema = z.object({
 
 export const supplierSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên nhà cung cấp"),
+  taxCode: z.string().max(50).optional(),
+  address: z.string().max(500).optional(),
   contact: z.string().max(200).optional(),
   note: z.string().max(500).optional(),
 });
