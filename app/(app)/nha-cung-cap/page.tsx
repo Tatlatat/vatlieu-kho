@@ -1,15 +1,5 @@
-export const dynamic = "force-dynamic";
-import { requireAtLeast } from "@/lib/auth-helpers";
-import { getSuppliers } from "@/lib/queries/suppliers";
-import { SupplierManager } from "@/components/supplier-manager";
+import { redirect } from "next/navigation";
 
-export default async function NhaCungCapPage() {
-  await requireAtLeast("MANAGER");
-  const suppliers = await getSuppliers();
-  return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-4">Quản lý nhà cung cấp</h1>
-      <SupplierManager suppliers={suppliers} />
-    </div>
-  );
+export default function Page() {
+  redirect("/danh-muc?tab=ncc");
 }
