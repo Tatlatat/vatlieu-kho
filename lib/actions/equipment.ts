@@ -52,6 +52,7 @@ export async function logHours(input: {
   equipmentId: string;
   logDate: string;
   hours: number;
+  projectId?: string | null;
   note?: string;
 }): Promise<ActionResult> {
   const user = await requireUser();
@@ -74,6 +75,7 @@ export async function logHours(input: {
       equipmentId: parsed.data.equipmentId,
       logDate,
       hours: parsed.data.hours,
+      projectId: parsed.data.projectId || null,
       note: parsed.data.note,
       createdById: user.id,
     },

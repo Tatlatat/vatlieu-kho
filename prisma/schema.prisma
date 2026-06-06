@@ -227,12 +227,15 @@ model EquipmentLog {
   equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
   logDate     DateTime
   hours       Float
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   note        String?
   createdById String
   createdBy   User      @relation(fields: [createdById], references: [id])
   createdAt   DateTime  @default(now())
 
   @@index([equipmentId])
+  @@index([projectId])
   @@index([logDate])
 }
 
@@ -244,14 +247,15 @@ enum CashType {
 
 // Công trình — trục gom Kho + Quỹ (+ sau này Xe/máy). Báo cáo "theo công trình".
 model Project {
-  id         String      @id @default(cuid())
-  code       String      @unique
-  name       String
-  isActive   Boolean     @default(true)
-  note       String?
-  createdAt  DateTime    @default(now())
-  warehouses Warehouse[]
-  funds      Fund[]
+  id            String         @id @default(cuid())
+  code          String         @unique
+  name          String
+  isActive      Boolean        @default(true)
+  note          String?
+  createdAt     DateTime       @default(now())
+  warehouses    Warehouse[]
+  funds         Fund[]
+  equipmentLogs EquipmentLog[]
 }
 
 // Danh mục quỹ theo công trường (giống Warehouse). Gắn Project (nullable).

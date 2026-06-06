@@ -40,11 +40,19 @@ interface Equipment {
   };
 }
 
-interface EquipmentManagerProps {
-  equipment: Equipment[];
+interface SimpleProject {
+  id: string;
+  code: string;
+  name: string;
+  isActive: boolean;
 }
 
-export function EquipmentManager({ equipment }: EquipmentManagerProps) {
+interface EquipmentManagerProps {
+  equipment: Equipment[];
+  projects: SimpleProject[];
+}
+
+export function EquipmentManager({ equipment, projects }: EquipmentManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
@@ -127,6 +135,7 @@ export function EquipmentManager({ equipment }: EquipmentManagerProps) {
     const fd = new FormData(e.currentTarget);
     const logDate = fd.get("logDate") as string;
     const hours = Number(fd.get("hours"));
+    const projectId = (fd.get("projectId") as string) || null;
     const note = (fd.get("note") as string) || undefined;
 
     if (isNaN(hours) || hours <= 0) {
@@ -140,6 +149,7 @@ export function EquipmentManager({ equipment }: EquipmentManagerProps) {
           equipmentId: loggingHoursEquipment.id,
           logDate,
           hours,
+          projectId,
           note,
         });
         if (res.ok) {
@@ -395,6 +405,23 @@ export function EquipmentManager({ equipment }: EquipmentManagerProps) {
                   required
                   placeholder="Ví dụ: 8 hoặc 5.5"
                 />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="logproject">Công trình</Label>
+                <select
+                  id="logproject"
+                  name="projectId"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">— Không thuộc CT —</option>
+                  {projects
+                    .filter((p) => p.isActive)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.code})
+                      </option>
+                    ))}
+                </select>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="lognote">Ghi chú</Label>

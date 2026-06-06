@@ -14,7 +14,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { formatVnd } from "@/lib/utils";
-import { ChevronLeft, Building2, Landmark, Package, CircleDollarSign } from "lucide-react";
+import { ChevronLeft, Building2, Landmark, Package, CircleDollarSign, Truck } from "lucide-react";
 
 export default async function CongTrinhDetailPage({
   params,
@@ -30,7 +30,7 @@ export default async function CongTrinhDetailPage({
     notFound();
   }
 
-  const { project, stock, cash, totalCostVnd } = summary;
+  const { project, stock, cash, equipment, totalCostVnd } = summary;
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-6 max-w-5xl">
@@ -153,6 +153,44 @@ export default async function CongTrinhDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Khối Xe/máy (giờ) */}
+      <Card className="border border-border shadow-md">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <Truck className="h-5 w-5 text-blue-600" />
+            Xe/máy (giờ)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {equipment.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">Chưa có giờ xe.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tên xe/máy</TableHead>
+                    <TableHead>Biển số</TableHead>
+                    <TableHead className="text-right">Tổng giờ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {equipment.map((eq, i) => (
+                    <TableRow key={eq.equipmentName + (eq.plateNo ?? "") + i}>
+                      <TableCell className="font-semibold">{eq.equipmentName}</TableCell>
+                      <TableCell>{eq.plateNo || <span className="text-muted-foreground italic text-xs">—</span>}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">
+                        {eq.totalHours.toLocaleString("vi-VN")} <span className="text-xs text-muted-foreground font-normal">GIỜ</span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

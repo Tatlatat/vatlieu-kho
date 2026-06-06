@@ -140,6 +140,7 @@ export const equipmentLogSchema = z.object({
   equipmentId: z.string().min(1, "Vui lòng chọn xe/máy"),
   logDate: z.string().min(1, "Vui lòng chọn ngày"),
   hours: z.coerce.number().positive("Số giờ phải lớn hơn 0"),
+  projectId: z.string().optional().nullable(),
   note: z.string().max(500).optional(),
 });
 

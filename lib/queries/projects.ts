@@ -14,10 +14,17 @@ export interface ProjectCash {
   balance: number;
 }
 
+export interface ProjectEquipmentRow {
+  equipmentName: string;
+  plateNo: string | null;
+  totalHours: number;
+}
+
 export interface ProjectSummary {
   project: { id: string; code: string; name: string; isActive: boolean; note: string | null };
   stock: ProjectStockRow[];
   cash: ProjectCash;
+  equipment: ProjectEquipmentRow[];
   totalCostVnd: number;
 }
 
@@ -69,6 +76,16 @@ export async function getProjectSummary(projectId: string): Promise<ProjectSumma
         ORDER BY m.name`
     : [];
 
+  // Giờ xe: group EquipmentLog theo xe qua projectId, tổng giờ.
+  const equipment: ProjectEquipmentRow[] = await prisma.$queryRaw<ProjectEquipmentRow[]>`
+    SELECT e.name AS "equipmentName", e."plateNo" AS "plateNo",
+      ROUND(COALESCE(SUM(el.hours), 0)::numeric, 1)::float8 AS "totalHours"
+    FROM "EquipmentLog" el
+    JOIN "Equipment" e ON e.id = el."equipmentId"
+    WHERE el."projectId" = ${projectId}
+    GROUP BY e.name, e."plateNo"
+    ORDER BY e.name`;
+
   // Dòng tiền quỹ: tổng Thu/Chi loại voided. Đơn vị VND.
   const cashRows = fundIds.length
     ? await prisma.$queryRaw<{ totalIn: number; totalOut: number }[]>`
@@ -86,7 +103,7 @@ export async function getProjectSummary(projectId: string): Promise<ProjectSumma
   // giờ xe) sau = cộng thêm dòng, KHÔNG sửa khung.
   const totalCostVnd = cash.totalOut;
 
-  return { project, stock, cash, totalCostVnd };
+  return { project, stock, cash, equipment, totalCostVnd };
 }
 
 export interface ProjectSummaryRow {
