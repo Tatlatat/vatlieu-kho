@@ -12,6 +12,8 @@ on:
   # Cho phép bấm chạy thủ công từ tab Actions để kiểm tra ngay.
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   ping:
     runs-on: ubuntu-latest
