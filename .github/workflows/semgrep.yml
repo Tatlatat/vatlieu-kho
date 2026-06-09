@@ -1,0 +1,39 @@
+name: Semgrep CE
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "43 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Semgrep CE
+        run: |
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/src" \
+            semgrep/semgrep:latest \
+            semgrep scan \
+              --config p/default \
+              --exclude docs \
+              --sarif \
+              --output /src/semgrep.sarif \
+              /src
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep.sarif
