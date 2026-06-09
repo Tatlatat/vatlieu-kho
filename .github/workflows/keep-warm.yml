@@ -1,0 +1,28 @@
+name: Keep warm
+
+# Gọi /api/ping định kỳ để giữ ấm Serverless Function trên Vercel + đánh thức
+# Neon, tránh cold-start (TTFB 2–10s lần đầu sau khi web rảnh một lúc).
+# Miễn phí với repo public, không cần dịch vụ uptime bên thứ ba.
+
+on:
+  schedule:
+    # Mỗi 5 phút. Lưu ý: GitHub đôi khi chạy trễ vài phút khi hệ thống bận —
+    # đủ tốt cho mục đích giữ ấm.
+    - cron: "*/5 * * * *"
+  # Cho phép bấm chạy thủ công từ tab Actions để kiểm tra ngay.
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /api/ping
+        run: |
+          echo "Pinging keep-warm endpoint..."
+          code=$(curl -s -o /tmp/body -w "%{http_code}" --max-time 30 \
+            https://vatlieu-kho.vercel.app/api/ping)
+          echo "HTTP $code"
+          cat /tmp/body
+          echo
+          # Coi là thành công nếu trả 200; nếu không thì để job báo đỏ.
+          test "$code" = "200"
