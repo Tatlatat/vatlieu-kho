@@ -28,12 +28,20 @@ interface Material {
   unit: string;
 }
 
+interface Approver {
+  id: string;
+  name: string;
+  email: string | null;
+}
+
 interface TransferDocFormProps {
   materials: Material[];
   warehouses: Warehouse[];
+  currentUser: { id: string; role: "ADMIN" | "MANAGER" | "KEEPER" };
+  approvers: Approver[];
 }
 
-export function TransferDocForm({ materials, warehouses }: TransferDocFormProps) {
+export function TransferDocForm({ materials, warehouses, currentUser, approvers }: TransferDocFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
 
@@ -44,6 +52,7 @@ export function TransferDocForm({ materials, warehouses }: TransferDocFormProps)
   const [note, setNote] = React.useState("");
   const [docDate, setDocDate] = React.useState(() => new Date().toISOString().slice(0, 10));
   const [reason, setReason] = React.useState<string>(TRANSFER_REASONS[0].value);
+  const [requestedApproverId, setRequestedApproverId] = React.useState("");
 
   // Lazy initializer: tạo 1 dòng trống lúc mount (không dùng effect/Math.random — lint cấm).
   const [lines, setLines] = React.useState<LineItem[]>(() => [
@@ -53,6 +62,10 @@ export function TransferDocForm({ materials, warehouses }: TransferDocFormProps)
   const handleSubmit = async (submitType: "DRAFT" | "SUBMIT") => {
     if (!fromWarehouseId || !toWarehouseId) {
       toast.error("Vui lòng chọn đầy đủ kho nguồn và kho đích");
+      return;
+    }
+    if (submitType === "SUBMIT" && currentUser.role !== "ADMIN" && !requestedApproverId) {
+      toast.error("Vui lòng chọn thủ kho đích duyệt phiếu");
       return;
     }
 
@@ -83,8 +96,10 @@ export function TransferDocForm({ materials, warehouses }: TransferDocFormProps)
           toWarehouseId,
           docDate,
           reason,
+          requestedApproverId: currentUser.role === "ADMIN" ? undefined : requestedApproverId || undefined,
           note: note.trim() || undefined,
           lines: validLines,
+          equipmentLines: [],
         });
 
         if (!draftResult.ok) {
@@ -106,7 +121,7 @@ export function TransferDocForm({ materials, warehouses }: TransferDocFormProps)
           // SUBMIT FOR APPROVAL
           const submitResult = await submitTransferForApproval(docId);
           if (submitResult.ok) {
-            toast.success("Đã lưu & gửi duyệt phiếu chuyển kho thành công");
+            toast.success(currentUser.role === "ADMIN" ? "Đã lập phiếu chuyển kho thành công" : "Đã lưu & gửi duyệt phiếu chuyển kho thành công");
             router.push("/chuyen-kho");
             router.refresh();
           } else {
@@ -185,6 +200,30 @@ export function TransferDocForm({ materials, warehouses }: TransferDocFormProps)
               className="h-10"
             />
           </div>
+          {currentUser.role !== "ADMIN" && (
+            <div className="space-y-2 md:col-span-2 lg:col-span-3">
+              <Label htmlFor="requestedApproverId">Thủ kho đích duyệt <span className="text-destructive">*</span></Label>
+              <Select value={requestedApproverId} onValueChange={(v) => setRequestedApproverId(v ?? "")}>
+                <SelectTrigger id="requestedApproverId" className="w-full h-10">
+                  <SelectValue placeholder="Chọn thủ kho nhận và duyệt">
+                    {approvers.find((a) => a.id === requestedApproverId)?.name || "Chọn thủ kho nhận và duyệt"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {approvers
+                    .filter((approver) => approver.id !== currentUser.id)
+                    .map((approver) => (
+                      <SelectItem key={approver.id} value={approver.id}>
+                        {approver.name}{approver.email ? ` (${approver.email})` : ""}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {approvers.filter((approver) => approver.id !== currentUser.id).length === 0 && (
+                <p className="text-sm text-amber-600">Không có thủ kho đích khả dụng để duyệt phiếu.</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -216,10 +255,11 @@ export function TransferDocForm({ materials, warehouses }: TransferDocFormProps)
           </Button>
           <Button
             type="button"
-            disabled={isPending}
+            className={currentUser.role === "ADMIN" ? "bg-green-600 hover:bg-green-700" : undefined}
+            disabled={isPending || (currentUser.role !== "ADMIN" && approvers.filter((approver) => approver.id !== currentUser.id).length === 0)}
             onClick={() => handleSubmit("SUBMIT")}
           >
-            {isPending ? "Đang xử lý..." : "Lưu & Gửi duyệt"}
+            {isPending ? "Đang xử lý..." : currentUser.role === "ADMIN" ? "Lưu & Lập phiếu" : "Lưu & Gửi thủ kho đích duyệt"}
           </Button>
         </div>
       </CardContent>

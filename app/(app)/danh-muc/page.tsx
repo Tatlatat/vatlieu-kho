@@ -3,12 +3,14 @@ import { requireAtLeast, type Role } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import { DanhMucTabs, type TabDef } from "@/components/danh-muc-tabs";
 import { getMaterials } from "@/lib/queries/stock";
+import { getActiveUnits, getAllUnits } from "@/lib/queries/units";
 import { getWarehouses } from "@/lib/queries/warehouses";
 import { getAllProjects } from "@/lib/queries/projects";
 import { getAllFunds, getFundBalances } from "@/lib/queries/cash";
 import { getSuppliers } from "@/lib/queries/suppliers";
 import { getEquipment } from "@/lib/queries/equipment";
 import { MaterialManager } from "@/components/material-manager";
+import { UnitManager } from "@/components/unit-manager";
 import { WarehouseManager } from "@/components/warehouse-manager";
 import { FundManager } from "@/components/fund-manager";
 import { SupplierManager } from "@/components/supplier-manager";
@@ -19,6 +21,7 @@ const ROLE_LEVEL: Record<Role, number> = { ADMIN: 3, MANAGER: 2, KEEPER: 1 };
 // Định nghĩa tab + quyền tối thiểu.
 const ALL_TABS: { key: string; label: string; minRole: Role }[] = [
   { key: "vat-tu", label: "Vật tư & Kho", minRole: "MANAGER" },
+  { key: "don-vi", label: "Đơn vị tính", minRole: "MANAGER" },
   { key: "quy", label: "Quỹ", minRole: "MANAGER" },
   { key: "ncc", label: "Nhà cung cấp", minRole: "KEEPER" },
   { key: "xe-may", label: "Xe/máy", minRole: "MANAGER" },
@@ -41,13 +44,21 @@ export default async function DanhMucPage({
   // Chỉ fetch data cho tab ĐANG active (tránh fetch thừa).
   let content: React.ReactNode = null;
   if (active === "vat-tu") {
-    const [materials, warehouses, projects] = await Promise.all([getMaterials(), getWarehouses(), getAllProjects()]);
+    const [materials, units, warehouses, projects] = await Promise.all([
+      getMaterials(),
+      getActiveUnits(),
+      getWarehouses(),
+      getAllProjects(),
+    ]);
     content = (
       <div className="space-y-8">
-        <MaterialManager materials={materials} />
+        <MaterialManager materials={materials} units={units} />
         <WarehouseManager warehouses={warehouses} projects={projects} />
       </div>
     );
+  } else if (active === "don-vi") {
+    const units = await getAllUnits();
+    content = <UnitManager units={units} />;
   } else if (active === "quy") {
     const [funds, balances, projects] = await Promise.all([getAllFunds(), getFundBalances(), getAllProjects()]);
     const balanceMap = Object.fromEntries(balances.map((b) => [b.fund_id, b.balance]));

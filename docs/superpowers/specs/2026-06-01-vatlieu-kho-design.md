@@ -3,6 +3,11 @@
 **Ngày:** 2026-06-01
 **Trạng thái:** Đã duyệt qua brainstorming
 
+> **Ghi chú lịch sử:** đây là spec gốc ở giai đoạn đầu dự án, trước các đợt mở rộng
+> như `3 vai trò`, `Quỹ`, `Công trình`, `Nhà cung cấp`, `Xe/máy`. Có thể còn nhắc
+> tới `OWNER/STAFF` và phạm vi nhỏ hơn hiện tại. Khi cần hiện trạng thật, đọc
+> `docs/COLLAB-SOURCE-OF-TRUTH.md` và code hiện tại.
+
 > **Ghi chú phiên bản:** `create-next-app` cài Next.js 16.2.6 + React 19 + Tailwind v4 (mới nhất, tốt cho portfolio). Tailwind v4 dùng `@import "tailwindcss"` trong `globals.css` thay cho `tailwind.config.ts`. App Router + Server Actions giữ nguyên như thiết kế.
 
 ## 1. Mục tiêu

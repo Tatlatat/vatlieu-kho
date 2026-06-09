@@ -28,6 +28,7 @@ import { lookupTaxCode } from "@/lib/actions/tax-lookup";
 
 interface Supplier {
   id: string;
+  code: string;
   name: string;
   taxCode?: string | null;
   address?: string | null;
@@ -76,6 +77,7 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const code = fd.get("code") as string;
     const name = fd.get("name") as string;
     const taxCode = (fd.get("taxCode") as string) || undefined;
     const address = (fd.get("address") as string) || undefined;
@@ -84,7 +86,7 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
 
     startTransition(async () => {
       try {
-        const res = await createSupplier({ name, taxCode, address, contact, note });
+        const res = await createSupplier({ code, name, taxCode, address, contact, note });
         if (res.ok) {
           toast.success("Đã thêm nhà cung cấp thành công");
           setIsCreateOpen(false);
@@ -102,6 +104,7 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
     e.preventDefault();
     if (!editingSupplier) return;
     const fd = new FormData(e.currentTarget);
+    const code = fd.get("code") as string;
     const name = fd.get("name") as string;
     const taxCode = (fd.get("taxCode") as string) || undefined;
     const address = (fd.get("address") as string) || undefined;
@@ -110,7 +113,7 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
 
     startTransition(async () => {
       try {
-        const res = await updateSupplier(editingSupplier.id, { name, taxCode, address, contact, note });
+        const res = await updateSupplier(editingSupplier.id, { code, name, taxCode, address, contact, note });
         if (res.ok) {
           toast.success("Đã cập nhật nhà cung cấp thành công");
           setEditingSupplier(null);
@@ -165,6 +168,7 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[80px]">STT</TableHead>
+                    <TableHead>Mã NCC</TableHead>
                     <TableHead>Tên nhà cung cấp</TableHead>
                     <TableHead>Mã số thuế</TableHead>
                     <TableHead>Địa chỉ</TableHead>
@@ -177,6 +181,7 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
                   {suppliers.map((s, index) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-mono text-xs">{index + 1}</TableCell>
+                      <TableCell className="font-mono text-xs font-semibold">{s.code}</TableCell>
                       <TableCell className="font-semibold text-foreground">{s.name}</TableCell>
                       <TableCell>{s.taxCode || <span className="text-muted-foreground italic text-xs">—</span>}</TableCell>
                       <TableCell>{s.address || <span className="text-muted-foreground italic text-xs">—</span>}</TableCell>
@@ -221,6 +226,15 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="scode">Mã NCC <span className="text-destructive">*</span></Label>
+              <Input
+                id="scode"
+                name="code"
+                required
+                placeholder="NCC001"
+              />
+            </div>
             <div className="space-y-1">
               <Label htmlFor="sname">Tên nhà cung cấp <span className="text-destructive">*</span></Label>
               <Input
@@ -297,6 +311,16 @@ export function SupplierManager({ suppliers }: SupplierManagerProps) {
           </DialogHeader>
           {editingSupplier && (
             <form onSubmit={handleEdit} className="space-y-4 py-2">
+              <div className="space-y-1">
+                <Label htmlFor="escode">Mã NCC <span className="text-destructive">*</span></Label>
+                <Input
+                  id="escode"
+                  name="code"
+                  required
+                  defaultValue={editingSupplier.code}
+                  placeholder="NCC001"
+                />
+              </div>
               <div className="space-y-1">
                 <Label htmlFor="esname">Tên nhà cung cấp <span className="text-destructive">*</span></Label>
                 <Input

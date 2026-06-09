@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { requireUser } from "@/lib/auth-helpers";
 import { getDocument } from "@/lib/queries/documents";
 import { DocStatusBadge } from "@/components/status-badge-doc";
 import { DocumentDetailActions } from "@/components/document-detail-actions";
@@ -22,7 +23,7 @@ interface PageProps {
 
 export default async function ChuyenKhoDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const doc = await getDocument(id);
+  const [doc, currentUser] = await Promise.all([getDocument(id), requireUser()]);
 
   if (!doc || doc.type !== "TRANSFER") {
     notFound();
@@ -50,7 +51,12 @@ export default async function ChuyenKhoDetailPage({ params }: PageProps) {
           <ArrowLeft className="h-4 w-4" />
           Quay lại danh sách
         </Link>
-        <DocumentDetailActions id={doc.id} status={doc.status} type={doc.type} />
+        <DocumentDetailActions
+          id={doc.id}
+          status={doc.status}
+          type={doc.type}
+          canApproveTransfer={currentUser.role === "ADMIN" || doc.requestedApprover?.id === currentUser.id}
+        />
       </div>
 
       <Card>
@@ -97,6 +103,16 @@ export default async function ChuyenKhoDetailPage({ params }: PageProps) {
                 {doc.createdBy?.name || "—"}
               </span>
             </div>
+            {doc.requestedApprover && (
+              <div>
+                <span className="text-xs text-muted-foreground block font-medium uppercase tracking-wider">
+                  Thủ kho đích duyệt
+                </span>
+                <span className="text-sm font-medium mt-1 block text-blue-700">
+                  {doc.requestedApprover.name}
+                </span>
+              </div>
+            )}
             {doc.approvedBy && (
               <div>
                 <span className="text-xs text-muted-foreground block font-medium uppercase tracking-wider">

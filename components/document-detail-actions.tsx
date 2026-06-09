@@ -17,9 +17,10 @@ interface DocumentDetailActionsProps {
   id: string;
   status: "DRAFT" | "PENDING" | "POSTED" | "VOIDED" | string;
   type: "IN" | "OUT" | "TRANSFER" | string;
+  canApproveTransfer?: boolean;
 }
 
-export function DocumentDetailActions({ id, status, type }: DocumentDetailActionsProps) {
+export function DocumentDetailActions({ id, status, type, canApproveTransfer = true }: DocumentDetailActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [isVoidDialogOpen, setIsVoidDialogOpen] = React.useState(false);
@@ -170,7 +171,7 @@ export function DocumentDetailActions({ id, status, type }: DocumentDetailAction
       )}
 
       {/* 3. Status PENDING and type is TRANSFER */}
-      {status === "PENDING" && type === "TRANSFER" && (
+      {status === "PENDING" && type === "TRANSFER" && canApproveTransfer && (
         <>
           <Button
             type="button"

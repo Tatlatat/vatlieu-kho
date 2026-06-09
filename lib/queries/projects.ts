@@ -71,7 +71,7 @@ export async function getProjectSummary(projectId: string): Promise<ProjectSumma
           COALESCE(SUM(CASE WHEN sm.type = 'IN' THEN sm.quantity ELSE -sm.quantity END), 0)::float8 AS balance
         FROM "StockMovement" sm
         JOIN "Material" m ON m.id = sm."materialId"
-        WHERE sm."warehouseId" = ANY(${whIds}) AND sm."voidedAt" IS NULL
+        WHERE sm."warehouseId" = ANY(${whIds}) AND sm."voidedAt" IS NULL AND sm.reason <> 'VOID'
         GROUP BY m.name, m.unit
         ORDER BY m.name`
     : [];
@@ -82,7 +82,7 @@ export async function getProjectSummary(projectId: string): Promise<ProjectSumma
       ROUND(COALESCE(SUM(el.hours), 0)::numeric, 1)::float8 AS "totalHours"
     FROM "EquipmentLog" el
     JOIN "Equipment" e ON e.id = el."equipmentId"
-    WHERE el."projectId" = ${projectId}
+    WHERE el."projectId" = ${projectId} AND el."voidedAt" IS NULL
     GROUP BY e.name, e."plateNo"
     ORDER BY e.name`;
 

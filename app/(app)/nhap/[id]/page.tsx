@@ -147,6 +147,41 @@ export default async function NhapDetailPage({ params }: PageProps) {
               </Table>
             </div>
           </div>
+
+          {doc.equipmentLines.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Danh sách xe/máy</h3>
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Xe/máy</TableHead>
+                      <TableHead className="text-right">Số giờ</TableHead>
+                      <TableHead>Công trình</TableHead>
+                      <TableHead>Ghi chú</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {doc.equipmentLines.map((line, idx) => (
+                      <TableRow key={line.id}>
+                        <TableCell>{idx + 1}</TableCell>
+                        <TableCell>
+                          <div className="font-medium">{line.equipment.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {line.equipment.code || "—"}{line.equipment.plateNo ? ` · ${line.equipment.plateNo}` : ""}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">{line.hours}</TableCell>
+                        <TableCell>{line.project ? `${line.project.name} (${line.project.code})` : "—"}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs italic">{line.note || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

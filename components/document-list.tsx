@@ -24,7 +24,7 @@ interface DocumentItem {
   toWarehouse?: { name: string } | null;
   supplier?: { name: string } | null;
   createdBy?: { name: string } | null;
-  _count: { lines: number };
+  _count: { lines: number; equipmentLines?: number };
 }
 
 interface DocumentListProps {
@@ -101,7 +101,7 @@ export function DocumentList({ docs, basePath, newLabel }: DocumentListProps) {
                   <TableCell>{formatDate(doc.docDate)}</TableCell>
                   <TableCell>{getWarehouseText(doc)}</TableCell>
                   {showSupplier && <TableCell>{doc.supplier?.name || "—"}</TableCell>}
-                  <TableCell className="text-center">{doc._count.lines}</TableCell>
+                  <TableCell className="text-center">{doc._count.lines + (doc._count.equipmentLines ?? 0)}</TableCell>
                   <TableCell>
                     <DocStatusBadge status={doc.status} />
                   </TableCell>

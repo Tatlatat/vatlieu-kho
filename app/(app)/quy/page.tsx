@@ -2,9 +2,10 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { requireAtLeast } from "@/lib/auth-helpers";
-import { getFunds, getFundBalances, listCashEntries, getCashReport } from "@/lib/queries/cash";
+import { getFunds, getFundBalances, listCashEntries, getCashReport, getProjectCashSummary } from "@/lib/queries/cash";
 import { CashLedger } from "@/components/cash-ledger";
 import { CashFilter } from "@/components/cash-filter";
+import { ProjectCashSummary } from "@/components/project-cash-summary";
 import { formatVnd } from "@/lib/utils";
 import { CASH_CATEGORY_LABELS } from "@/lib/validation";
 import { Plus, Wallet } from "lucide-react";
@@ -12,7 +13,7 @@ import { Plus, Wallet } from "lucide-react";
 export default async function QuyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ fund?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ fund?: string; from?: string; to?: string; view?: "ledger" | "summary" }>;
 }) {
   await requireAtLeast("MANAGER");
   const sp = await searchParams;
@@ -39,11 +40,13 @@ export default async function QuyPage({
   const fundId = sp.fund && funds.some((f) => f.id === sp.fund) ? sp.fund : funds[0].id;
   const from = sp.from ?? firstOfMonth;
   const to = sp.to ?? todayStr;
+  const view = sp.view === "summary" ? "summary" : "ledger";
 
-  const [balances, entries, report] = await Promise.all([
-    getFundBalances(fundId),
-    listCashEntries(fundId, from, to),
-    getCashReport(fundId, from, to),
+  const [balances, entries, report, summaryRows] = await Promise.all([
+    view === "ledger" ? getFundBalances(fundId) : Promise.resolve([]),
+    view === "ledger" ? listCashEntries(fundId, from, to) : Promise.resolve([]),
+    view === "ledger" ? getCashReport(fundId, from, to) : Promise.resolve({ totalIn: 0, totalOut: 0, balance: 0, byCategory: [] }),
+    view === "summary" ? getProjectCashSummary(from, to) : Promise.resolve([]),
   ]);
   const balance = balances.length ? balances[0].balance : 0;
   const fund = funds.find((f) => f.id === fundId)!;
@@ -71,56 +74,59 @@ export default async function QuyPage({
         </div>
       </div>
 
-      <CashFilter funds={funds} fundId={fundId} from={from} to={to} />
+      <CashFilter funds={funds} fundId={fundId} from={from} to={to} view={view} />
 
-      {/* Thẻ tồn quỹ + tổng thu/chi kỳ */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className={`rounded-xl border p-4 ${balance < 0 ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}`}>
-          <div className="text-xs font-medium text-slate-500">Tồn quỹ hiện tại — {fund.name}</div>
-          <div className={`mt-1 text-2xl font-bold ${balance < 0 ? "text-red-700" : "text-emerald-700"}`}>
-            {formatVnd(balance)}
-          </div>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <div className="text-xs font-medium text-slate-500">Tổng THU trong kỳ</div>
-          <div className="mt-1 text-2xl font-bold text-emerald-700">{formatVnd(report.totalIn)}</div>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <div className="text-xs font-medium text-slate-500">Tổng CHI trong kỳ</div>
-          <div className="mt-1 text-2xl font-bold text-red-700">{formatVnd(report.totalOut)}</div>
-        </div>
-      </div>
-
-      {/* Báo cáo nhóm hạng mục */}
-      {report.byCategory.length > 0 && (
-        <div className="rounded-xl border bg-white p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="font-semibold">Theo hạng mục (trong kỳ)</h2>
-            <a
-              href={`/api/quy/excel?fund=${fundId}&from=${from}&to=${to}`}
-              className="text-sm font-medium text-blue-600 hover:underline"
-            >
-              Tải Excel
-            </a>
-          </div>
-          <div className="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
-            {report.byCategory.map((c) => (
-              <div key={`${c.type}-${c.category}`} className="flex items-center justify-between border-b border-slate-100 py-1 text-sm">
-                <span className="text-slate-600">
-                  <span className={c.type === "THU" ? "text-emerald-600" : "text-red-600"}>
-                    {c.type === "THU" ? "Thu" : "Chi"}
-                  </span>{" "}
-                  · {CASH_CATEGORY_LABELS[c.category] ?? c.category}
-                </span>
-                <span className="font-medium tabular-nums">{formatVnd(c.total)}</span>
+      {view === "ledger" ? (
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className={`rounded-xl border p-4 ${balance < 0 ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}`}>
+              <div className="text-xs font-medium text-slate-500">Tồn quỹ hiện tại — {fund.name}</div>
+              <div className={`mt-1 text-2xl font-bold ${balance < 0 ? "text-red-700" : "text-emerald-700"}`}>
+                {formatVnd(balance)}
               </div>
-            ))}
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="text-xs font-medium text-slate-500">Tổng THU trong kỳ</div>
+              <div className="mt-1 text-2xl font-bold text-emerald-700">{formatVnd(report.totalIn)}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="text-xs font-medium text-slate-500">Tổng CHI trong kỳ</div>
+              <div className="mt-1 text-2xl font-bold text-red-700">{formatVnd(report.totalOut)}</div>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Sổ bút toán */}
-      <CashLedger entries={entries} canVoid />
+          {report.byCategory.length > 0 && (
+            <div className="rounded-xl border bg-white p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="font-semibold">Theo hạng mục (trong kỳ)</h2>
+                <a
+                  href={`/api/quy/excel?fund=${fundId}&from=${from}&to=${to}`}
+                  className="text-sm font-medium text-blue-600 hover:underline"
+                >
+                  Tải Excel
+                </a>
+              </div>
+              <div className="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
+                {report.byCategory.map((c) => (
+                  <div key={`${c.type}-${c.category}`} className="flex items-center justify-between border-b border-slate-100 py-1 text-sm">
+                    <span className="text-slate-600">
+                      <span className={c.type === "THU" ? "text-emerald-600" : "text-red-600"}>
+                        {c.type === "THU" ? "Thu" : "Chi"}
+                      </span>{" "}
+                      · {CASH_CATEGORY_LABELS[c.category] ?? c.category}
+                    </span>
+                    <span className="font-medium tabular-nums">{formatVnd(c.total)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <CashLedger entries={entries} canVoid />
+        </>
+      ) : (
+        <ProjectCashSummary rows={summaryRows} from={from} to={to} />
+      )}
     </div>
   );
 }

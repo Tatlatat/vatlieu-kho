@@ -84,6 +84,7 @@ export function ExportDocForm({ materials, warehouses }: ExportDocFormProps) {
           docDate,
           note: note.trim() || undefined,
           lines: validLines,
+          equipmentLines: [],
         });
 
         if (!draftResult.ok) {

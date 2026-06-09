@@ -1,19 +1,32 @@
 # Kho Vật Liệu — Quản lý & Phát hiện Hao hụt Vật liệu Xây dựng
 
 > 🌐 **Demo trực tuyến:** https://vatlieu-kho.vercel.app
-> Đăng nhập thử — Chủ: `owner@vatlieu.vn` / `123456` · Thủ kho: `staff@vatlieu.vn` / `123456`
+> Đăng nhập thử — Quản trị: `owner@vatlieu.vn` / `123456` · Quản lý: `manager@vatlieu.vn` / `123456` · Thủ kho: `staff@vatlieu.vn` / `123456`
 
-Phần mềm web giúp **một doanh nghiệp vật liệu xây dựng** quản lý tồn kho và **phát hiện hao hụt** vật liệu. Giao diện tiếng Việt, đơn giản cho người không chuyên.
+Phần mềm web giúp **một doanh nghiệp vật liệu xây dựng** quản lý kho vật liệu, chứng từ nhập/xuất/chuyển/kiểm kê, quỹ tiền mặt, công trình và các thực thể vận hành liên quan. Giao diện tiếng Việt, đơn giản cho người không chuyên.
 
 Điểm nhấn kỹ thuật: **logic lõi đặt ở PostgreSQL** (Postgres-centric) — view tự tính tồn kho, trigger tự ghi nhận hao hụt khi duyệt kiểm kê, ràng buộc dữ liệu ngay tại database.
 
+## Nguồn sự thật cộng tác
+
+Nếu bạn là người mới hoặc model mới trong workflow multi-model, hãy đọc theo thứ tự:
+
+1. `docs/COLLAB-SOURCE-OF-TRUTH.md`
+2. `AGENTS.md`
+3. `prisma/schema.prisma`
+4. `lib/auth-helpers.ts`, `proxy.ts`, `lib/actions/*`, `lib/queries/*`
+
+Các tài liệu trong `docs/superpowers/specs/` và `docs/superpowers/plans/` là **snapshot lịch sử**, không mặc định phản ánh hiện trạng mới nhất.
+
 ## Tính năng
 
-- **Nhập / xuất kho** theo sổ cái bất biến (mọi giao dịch được lưu, không sửa/xóa).
-- **Kiểm kê định kỳ** → so sánh số đếm thực tế với tồn trên sổ → **phát hiện hao hụt**. Khi chủ duyệt phiếu, trigger Postgres tự ghi nhận phần chênh lệch.
+- **Phiếu nhập / xuất / chuyển kho / kiểm kê** theo sổ cái bất biến (mọi giao dịch được lưu, không sửa/xóa).
+- **Kiểm kê định kỳ** → so sánh số đếm thực tế với tồn trên sổ → **phát hiện hao hụt**. Khi quản lý duyệt phiếu, trigger Postgres tự ghi nhận phần chênh lệch.
 - **Dashboard hao hụt**: biểu đồ theo tháng, theo nguyên nhân (hỏng / hết hạn / hao tự nhiên / chênh lệch kiểm kê), top vật liệu hao hụt.
 - **Cảnh báo** sắp hết hàng / hết hàng.
-- **2 vai trò**: Chủ (xem báo cáo, duyệt kiểm kê, quản lý vật liệu) và Thủ kho (nhập/xuất, đếm kiểm kê).
+- **Quỹ tiền mặt**: thu / chi / tồn quỹ theo quỹ và kỳ lọc.
+- **Công trình / nhà cung cấp / xe-máy / người dùng** phục vụ vận hành thực tế.
+- **3 vai trò phân cấp**: Quản trị (`ADMIN`), Quản lý (`MANAGER`), Thủ kho (`KEEPER`).
 
 ## Công nghệ
 
@@ -50,7 +63,8 @@ npm run dev
 
 | Vai trò | Email | Mật khẩu |
 |---|---|---|
-| Chủ | `owner@vatlieu.vn` | `123456` |
+| Quản trị | `owner@vatlieu.vn` | `123456` |
+| Quản lý | `manager@vatlieu.vn` | `123456` |
 | Thủ kho | `staff@vatlieu.vn` | `123456` |
 
 ## Lệnh hữu ích
@@ -62,7 +76,7 @@ npm start           # chạy production
 npm run typecheck   # kiểm tra kiểu TypeScript
 npm run lint        # kiểm tra ESLint
 npm run db:seed     # nạp lại dữ liệu mẫu
-npm run db:logic    # áp dụng lại view/trigger Postgres
+npm run db:setup    # migrate + seed local
 ```
 
 ## Kiến trúc Postgres-centric
@@ -76,6 +90,8 @@ Các view/constraint/trigger này được định nghĩa trong `prisma/migratio
 
 ## Tài liệu
 
+- `docs/COLLAB-SOURCE-OF-TRUTH.md` — nguồn sự thật cho multi-model collaboration
+- `AGENTS.md` — hạ tầng, env, deploy, database production
 - `docs/superpowers/specs/` — thiết kế
 - `docs/superpowers/plans/` — kế hoạch triển khai
 - `docs/bugs-log.md` — nhật ký lỗi gặp phải trong quá trình xây dựng

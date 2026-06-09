@@ -17,6 +17,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { createOpeningStock } from "@/lib/actions/opening";
+import { importOpeningStock } from "@/lib/actions/opening-import";
 
 interface Material {
   id: string;
@@ -47,6 +48,8 @@ interface OpeningRow {
 export function OpeningStockForm({ materials, warehouses }: OpeningStockFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
+  const [importErrors, setImportErrors] = React.useState<{ rowNumber: number; message: string }[]>([]);
+  const [file, setFile] = React.useState<File | null>(null);
 
   // Find the default warehouse to pre-select it if possible
   const defaultWarehouse = React.useMemo(() => {
@@ -108,6 +111,7 @@ export function OpeningStockForm({ materials, warehouses }: OpeningStockFormProp
   };
 
   const handleSave = () => {
+    setImportErrors([]);
     // Filter active rows that have at least some value inputted
     const activeRows = rows.filter((r) => r.warehouseId || r.materialId || r.quantity);
 
@@ -166,6 +170,33 @@ export function OpeningStockForm({ materials, warehouses }: OpeningStockFormProp
     });
   };
 
+  const handleImport = () => {
+    if (!file) {
+      toast.error("Vui lòng chọn file Excel");
+      return;
+    }
+    setImportErrors([]);
+    startTransition(async () => {
+      try {
+        const fd = new FormData();
+        fd.set("file", file);
+        const res = await importOpeningStock(fd);
+        if (res.ok) {
+          toast.success(`Đã nhập ${res.insertedCount ?? 0} dòng tồn đầu kỳ`);
+          router.push("/");
+          router.refresh();
+        } else if (res.errors) {
+          setImportErrors(res.errors);
+          toast.error("File có lỗi — chưa ghi dữ liệu");
+        } else {
+          toast.error(res.error || "Không thể nhập file");
+        }
+      } catch (err) {
+        toast.error("Lỗi hệ thống: " + (err as Error).message);
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Information Alert Block */}
@@ -177,6 +208,51 @@ export function OpeningStockForm({ materials, warehouses }: OpeningStockFormProp
             Chỉ dùng khi bắt đầu sử dụng phần mềm. Mỗi vật tư × kho chỉ đặt được 1 lần; ô đã có giao dịch sẽ bị từ chối.
           </p>
         </div>
+      </div>
+
+      <div className="rounded-lg border bg-white p-4 shadow-sm space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="font-semibold text-slate-900">Nhập tồn đầu kỳ từ Excel</p>
+            <p className="text-sm text-slate-500">File mẫu gồm 3 cột: `ma_kho`, `ma_vat_tu`, `so_luong`.</p>
+          </div>
+          <a href="/api/ton-dau-ky/template" className="text-sm font-medium text-blue-600 hover:underline">
+            Tải file mẫu
+          </a>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Input
+            type="file"
+            accept=".xlsx"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            disabled={isPending}
+            className="max-w-sm"
+          />
+          <Button type="button" variant="secondary" disabled={isPending || !file} onClick={handleImport}>
+            {isPending ? "Đang nhập..." : "Nhập từ file"}
+          </Button>
+        </div>
+        {importErrors.length > 0 && (
+          <div className="rounded-md border border-red-200 bg-red-50 p-3">
+            <p className="mb-2 text-sm font-semibold text-red-700">Các dòng lỗi trong file</p>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Dòng</TableHead>
+                  <TableHead>Lỗi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {importErrors.map((error) => (
+                  <TableRow key={`${error.rowNumber}-${error.message}`}>
+                    <TableCell>{error.rowNumber}</TableCell>
+                    <TableCell>{error.message}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       <div className="border rounded-md bg-white shadow-sm overflow-hidden">

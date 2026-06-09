@@ -66,7 +66,9 @@ model User {
   docsCreated        Document[]      @relation("docCreated")
   docsApproved       Document[]      @relation("docApproved")
   docsVoided         Document[]      @relation("docVoided")
-  equipmentLogs      EquipmentLog[]
+  transferRequestsToApprove Document[] @relation("docRequestedApprover")
+  equipmentLogs      EquipmentLog[]  @relation("equipmentLogCreated")
+  equipmentLogsVoided EquipmentLog[] @relation("equipmentLogVoided")
   cashCreated        CashEntry[]     @relation("cashCreated")
   cashVoided         CashEntry[]     @relation("cashVoided")
 }
@@ -76,11 +78,15 @@ model Material {
   name           String
   code           String          @unique
   unit           String
+  unitId         String?
+  unitRef        Unit?           @relation(fields: [unitId], references: [id], onDelete: SetNull)
   minStock       Float           @default(0)
   createdAt      DateTime        @default(now())
   movements      StockMovement[]
   stocktakeItems StocktakeItem[]
   documentLines  DocumentLine[]
+
+  @@index([unitId])
 }
 
 model Warehouse {
@@ -172,6 +178,8 @@ model Document {
   toWarehouse     Warehouse?      @relation("docToWarehouse", fields: [toWarehouseId], references: [id])
   supplierId      String?
   supplier        Supplier?       @relation(fields: [supplierId], references: [id])
+  requestedApproverId String?
+  requestedApprover User?         @relation("docRequestedApprover", fields: [requestedApproverId], references: [id])
   note            String?
   createdById     String
   createdBy       User            @relation("docCreated", fields: [createdById], references: [id])
@@ -184,10 +192,13 @@ model Document {
   voidedBy        User?           @relation("docVoided", fields: [voidedById], references: [id])
   transferId      String?
   lines           DocumentLine[]
+  equipmentLines  DocumentEquipmentLine[]
+  equipmentLogs   EquipmentLog[]  @relation("equipmentLogDocument")
   movements       StockMovement[]
 
   @@index([createdAt])
   @@index([type, status, docDate])
+  @@index([requestedApproverId])
 }
 
 model DocumentLine {
@@ -202,8 +213,26 @@ model DocumentLine {
   @@index([documentId])
 }
 
+model DocumentEquipmentLine {
+  id          String    @id @default(cuid())
+  documentId  String
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  hours       Float
+  note        String?
+  log         EquipmentLog?
+
+  @@index([documentId])
+  @@index([equipmentId])
+  @@index([projectId])
+}
+
 model Supplier {
   id        String     @id @default(cuid())
+  code      String     @unique
   name      String
   taxCode   String?
   address   String?
@@ -222,6 +251,7 @@ model Equipment {
   note      String?
   createdAt DateTime       @default(now())
   logs      EquipmentLog[]
+  documentLines DocumentEquipmentLine[]
 }
 
 model EquipmentLog {
@@ -234,12 +264,31 @@ model EquipmentLog {
   project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   note        String?
   createdById String
-  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdBy   User      @relation("equipmentLogCreated", fields: [createdById], references: [id])
+  documentId  String?
+  document    Document? @relation("equipmentLogDocument", fields: [documentId], references: [id], onDelete: SetNull)
+  documentEquipmentLineId String? @unique
+  documentEquipmentLine DocumentEquipmentLine? @relation(fields: [documentEquipmentLineId], references: [id], onDelete: SetNull)
+  voidedAt    DateTime?
+  voidedById  String?
+  voidedBy    User?     @relation("equipmentLogVoided", fields: [voidedById], references: [id])
+  voidReason  String?
   createdAt   DateTime  @default(now())
 
   @@index([equipmentId])
   @@index([projectId])
   @@index([logDate])
+  @@index([documentId])
+  @@index([voidedById])
+}
+
+model Unit {
+  id        String     @id @default(cuid())
+  code      String     @unique
+  name      String
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  materials Material[]
 }
 
 // ===== QUỸ (Thu – Chi – Tồn) — Bổ sung 2 mục 6 =====
@@ -259,6 +308,7 @@ model Project {
   warehouses    Warehouse[]
   funds         Fund[]
   equipmentLogs EquipmentLog[]
+  documentEquipmentLines DocumentEquipmentLine[]
 }
 
 // Danh mục quỹ theo công trường (giống Warehouse). Gắn Project (nullable).

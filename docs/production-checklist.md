@@ -1,6 +1,6 @@
 # Checklist đưa vatlieu-kho lên Production
 
-> Tài liệu này liệt kê những việc cần làm trước khi để **người dùng thật, dữ liệu thật** sử dụng app. Đánh giá dựa trên rà soát code thực tế (auth.ts, middleware.ts, server actions, seed.ts) — không phải checklist chung chung.
+> Tài liệu này liệt kê những việc cần làm trước khi để **người dùng thật, dữ liệu thật** sử dụng app. Đánh giá dựa trên rà soát code thực tế (`auth.ts`, `proxy.ts`, server actions, `seed.ts`) — không phải checklist chung chung.
 
 **Phân biệt quan trọng:** App hiện tại là một **demo deploy thật**, chưa phải production. Khác biệt nằm ở 3 chữ: *dữ liệu thật, người dùng thật, hậu quả thật*.
 
@@ -11,7 +11,7 @@
 Những thứ khó nhất đã làm đúng:
 
 - **Mật khẩu băm bcrypt** — `auth.ts` dùng `bcrypt.compare`, không lưu plaintext.
-- **Phân quyền chặt** — `middleware.ts` chặn route theo vai trò (OWNER/STAFF); mọi server action đều `requireUser()`/`requireRole()` + validate Zod (`safeParse`) trước khi chạm DB.
+- **Phân quyền chặt** — `proxy.ts` chặn route theo vai trò, mọi server action đều `requireUser()`/`requireAtLeast(...)` + validate Zod (`safeParse`) trước khi chạm DB.
 - **Sổ cái bất biến (append-only)** — bảng `StockMovement` chỉ thêm, không sửa/xóa → audit trail tự nhiên cho nhập/xuất/kiểm kê.
 - **Logic nghiệp vụ trong Postgres** — view `current_stock`, trigger duyệt kiểm kê, CHECK constraint chặn tồn âm → dữ liệu không thể sai dù app có bug.
 - **Migration có version** — thư mục `prisma/migrations/` → deploy DB lặp lại được, an toàn.
@@ -25,10 +25,11 @@ Những thứ khó nhất đã làm đúng:
 ### 1. Bỏ tài khoản demo lộ trên trang đăng nhập
 **Vấn đề:** `app/login/page.tsx` đang in công khai:
 ```
-Quản lý: owner@vatlieu.vn — mật khẩu 123456
+Quản trị: owner@vatlieu.vn — mật khẩu 123456
+Quản lý: manager@vatlieu.vn — mật khẩu 123456
 Thủ kho: staff@vatlieu.vn — mật khẩu 123456
 ```
-→ Bất kỳ ai mở trang login đều đăng nhập được quyền Quản lý. **Lỗ hổng nghiêm trọng nhất.**
+→ Bất kỳ ai mở trang login đều đăng nhập được vào tài khoản demo. **Lỗ hổng nghiêm trọng nhất.**
 
 **Cách sửa:** Xóa khối `<div>` "Tài khoản dùng thử" (dòng ~63–67 trong `app/login/page.tsx`).
 
@@ -36,9 +37,9 @@ Thủ kho: staff@vatlieu.vn — mật khẩu 123456
 **Vấn đề:** Tài khoản hiện có dùng mật khẩu `123456`.
 
 **Cách làm:**
-- Tạo tài khoản thật cho chủ doanh nghiệp + (các) thủ kho, mật khẩu ≥ 12 ký tự.
-- Xóa hẳn `owner@vatlieu.vn` / `staff@vatlieu.vn` khỏi DB production.
-- Tạm thời có thể chèn qua script (băm bằng bcrypt) hoặc thêm trang quản lý người dùng (xem mục 🟠).
+- Tạo tài khoản thật cho quản trị / quản lý / thủ kho, mật khẩu ≥ 12 ký tự.
+- Xóa hẳn `owner@vatlieu.vn` / `manager@vatlieu.vn` / `staff@vatlieu.vn` khỏi DB production.
+- Có thể tạo/xoá/reset ngay qua trang **Người dùng** nếu đang đăng nhập bằng tài khoản `ADMIN`.
 
 ### 3. Kiểm tra AUTH_SECRET
 **Vấn đề:** `AUTH_SECRET` ký JWT phiên đăng nhập. Lộ = giả mạo phiên của bất kỳ ai.
@@ -71,7 +72,7 @@ Thủ kho: staff@vatlieu.vn — mật khẩu 123456
 | Việc | Vì sao cần | Trạng thái |
 |------|-----------|-----------|
 | **Rate limiting trang login** | Chống dò mật khẩu (brute force). Hiện thử mật khẩu vô hạn lần. Dùng Upstash Redis (free tier) hoặc giới hạn theo IP trong middleware. | ❌ Chưa có |
-| **Chức năng đổi mật khẩu trong app** | Để chủ/thủ kho tự đổi, không phải nhờ sửa DB tay. | ❌ Chưa có |
+| **Chức năng tự đổi mật khẩu trong app** | Hiện đã có **ADMIN đặt lại mật khẩu cho người khác**, nhưng chưa có luồng để mỗi người tự đổi mật khẩu của chính mình. | ❌ Chưa có |
 | **Quên mật khẩu / khôi phục** | Mất mật khẩu hiện không có đường lấy lại (cần SMTP gửi email, hoặc owner reset cho staff). | ❌ Chưa có |
 | **Domain riêng + HTTPS** | `*.vercel.app` thiếu chuyên nghiệp với khách thật. Vercel hỗ trợ gắn domain + cấp SSL tự động. | Đang dùng tên Vercel |
 | **Nâng Vercel Pro (nếu đông người dùng)** | Free-tier: cold-start + function ở Mỹ (chậm ở VN). Đã giảm thiểu bằng keep-warm nhưng chưa triệt để. Pro cho đặt function ở Singapore. | Hobby (free) |
@@ -82,7 +83,7 @@ Thủ kho: staff@vatlieu.vn — mật khẩu 123456
 
 - **Theo dõi lỗi (error monitoring)** — Sentry (free tier) để biết khi app lỗi với người dùng thật mà họ không báo.
 - **Audit log mở rộng** — ledger StockMovement đã ghi nhập/xuất/kiểm kê; nên ghi thêm ai sửa danh mục vật tư, ai tạo/sửa tài khoản.
-- **Mở rộng vai trò** — hiện chỉ OWNER/STAFF. Nếu doanh nghiệp lớn hơn: thêm vai trò "kế toán" chỉ-xem-báo-cáo, v.v.
+- **Mở rộng vai trò** — hiện đã có `ADMIN / MANAGER / KEEPER`. Nếu doanh nghiệp lớn hơn: thêm vai trò "kế toán" chỉ-xem-báo-cáo, v.v.
 - **Chính sách dữ liệu** — nếu lưu thông tin nhân viên/đối tác, cần biết đang lưu gì, lưu bao lâu.
 - **Health check / uptime alert** — endpoint `/api/ping` đã có; gắn cảnh báo (vd UptimeRobot/Better Uptime) để được báo khi app sập.
 

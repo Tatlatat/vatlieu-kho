@@ -146,6 +146,12 @@ export default async function PrintPage({ params }: PageProps) {
                     {doc.toWarehouse ? `${doc.toWarehouse.name} (${doc.toWarehouse.code})` : "—"}
                   </span>
                 </div>
+                {doc.requestedApprover && (
+                  <div className="col-span-2">
+                    <span className="text-slate-500 block text-xs uppercase font-medium">Thủ kho đích duyệt</span>
+                    <span className="font-semibold text-slate-800">{doc.requestedApprover.name}</span>
+                  </div>
+                )}
               </>
             ) : (
               <div>
@@ -207,6 +213,38 @@ export default async function PrintPage({ params }: PageProps) {
               </tbody>
             </table>
           </div>
+
+          {doc.equipmentLines.length > 0 && (
+            <div className="mt-6">
+              <table className="w-full text-left border-collapse border border-slate-300 text-sm">
+                <thead>
+                  <tr className="bg-slate-100">
+                    <th className="border border-slate-300 p-2 text-center w-12 font-semibold">STT</th>
+                    <th className="border border-slate-300 p-2 font-semibold">Xe/máy</th>
+                    <th className="border border-slate-300 p-2 font-semibold w-24 text-right">Số giờ</th>
+                    <th className="border border-slate-300 p-2 font-semibold">Công trình</th>
+                    <th className="border border-slate-300 p-2 font-semibold">Ghi chú</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {doc.equipmentLines.map((line, index) => (
+                    <tr key={line.id}>
+                      <td className="border border-slate-300 p-2 text-center">{index + 1}</td>
+                      <td className="border border-slate-300 p-2">
+                        <div className="font-medium">{line.equipment.name}</div>
+                        <div className="text-xs text-slate-500">
+                          {line.equipment.code || "—"}{line.equipment.plateNo ? ` · ${line.equipment.plateNo}` : ""}
+                        </div>
+                      </td>
+                      <td className="border border-slate-300 p-2 text-right font-semibold">{line.hours}</td>
+                      <td className="border border-slate-300 p-2">{line.project ? `${line.project.name} (${line.project.code})` : "—"}</td>
+                      <td className="border border-slate-300 p-2 text-slate-600 text-xs">{line.note || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Overall note */}
           {doc.note && (

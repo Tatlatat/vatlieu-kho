@@ -37,7 +37,7 @@ const moreLinks = [
   { href: "/bao-cao", label: "Báo cáo", icon: BarChart3, minRole: "KEEPER" as Role },
   { href: "/quy", label: "Quỹ", icon: Wallet, minRole: "MANAGER" as Role },
   { href: "/cong-trinh", label: "Công trình", icon: Building2, minRole: "MANAGER" as Role },
-  { href: "/danh-muc", label: "Danh mục", icon: Boxes, minRole: "MANAGER" as Role },
+  { href: "/danh-muc", label: "Danh mục", icon: Boxes, minRole: "KEEPER" as Role },
   { href: "/nguoi-dung", label: "Người dùng", icon: Users, minRole: "ADMIN" as Role },
 ];
 

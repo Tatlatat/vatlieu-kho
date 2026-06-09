@@ -1,7 +1,18 @@
-# Quy trình cộng tác 2 AI (Reasonix coder + agy reviewer) — rút từ thí nghiệm 2026-06-06
+# Quy trình cộng tác nhiều model (`vatlieu-kho`)
 
-> Mục đích: lần sau giao agy + Reasonix tự phối hợp qua kênh file, dùng quy trình
-> này để CHỐNG các điểm mù đã phát hiện. Áp cho mọi task delegate 2 AI.
+> Mục đích: để nhiều model cùng làm việc trên `vatlieu-kho` mà không bị lệch
+> nghiệp vụ, lệch quyền, hoặc lệch hạ tầng. Tài liệu này áp cho mọi workflow
+> multi-model, không chỉ cặp `Reasonix + agy`.
+
+## Điểm vào bắt buộc
+
+Trước khi giao việc cho model khác, model điều phối PHẢI gửi/đính kèm ít nhất:
+
+- `docs/COLLAB-SOURCE-OF-TRUTH.md`
+- `AGENTS.md`
+- file code nguồn sự thật của task đang làm
+
+Không được chỉ đưa spec cũ hoặc plan cũ rồi để model tự suy.
 
 ## Kết quả thí nghiệm gốc (vì sao có guide này)
 2 AI tự làm 3 việc (xe/máy, minStock, NCC) đạt ~85%. Phối hợp giao thức TỐT.
@@ -10,7 +21,7 @@ QUERY ĐỌC (getSuppliers thiếu select) → cột mới luôn trống trên U
 self-report đều xanh; chỉ verify render thật mới bắt. agy không bắt vì chỉ soi
 git diff của commit → file query không bị commit đụng = ngoài tầm.
 
-## 3 GUARD BẮT BUỘC (thêm vào kênh AI-CHANNEL.md mỗi lần)
+## 5 guard bắt buộc
 
 ### GUARD 1 — Reviewer soi LUỒNG DỮ LIỆU end-to-end, KHÔNG chỉ git diff
 Khi thêm/sửa 1 trường dữ liệu, reviewer phải kiểm ĐỦ CHUỖI:
@@ -29,13 +40,55 @@ tsc 0 lỗi + build pass KHÔNG đủ (props optional che lỗi data-không-tớ
 Bắt buộc: seed 1 bản ghi có trường mới → render trang thật (curl/playwright authed)
 → xác nhận GIÁ TRỊ trường mới HIỆN trên HTML. "build pass ≠ chạy được."
 
-## MẪU KÊNH chuẩn (copy vào AI-CHANNEL.md phần RÀNG BUỘC + TIÊU CHÍ)
-- RÀNG BUỘC thêm: "Mỗi field mới: kiểm ĐỦ chuỗi schema→migration→validation→action
-  ghi→QUERY ĐỌC→UI. Coder ghi checklist-luồng. Reviewer grep field trong lib/queries/."
-- TIÊU CHÍ XONG thêm: "Verify RENDER THẬT: seed data có field mới → render trang
-  authed → field hiện trên HTML (KHÔNG chỉ tsc/build)."
+### GUARD 4 — Quyền và menu phải đọc từ code hiện tại, không đọc từ docs cũ
 
-## Phân vai vẫn giữ
-- Reasonix(flash) = coder: mạnh, code phần khó (migration/raw SQL) chuẩn ngay.
-- agy = reviewer: nghiêm về diff, nhưng PHẢI áp Guard 1 (soi ngoài diff).
-- Claude = setup kênh + thúc-nhịp + VERIFY CUỐI (lớp render-thật độc lập, không bỏ).
+Khi task chạm phân quyền hoặc điều hướng:
+
+- đọc `lib/auth-helpers.ts`
+- đọc `proxy.ts`
+- đọc `components/nav.tsx`
+- grep `requireAtLeast(` và `requireUser(`
+
+Không được dựa vào spec thời `OWNER/STAFF` để suy quyền hiện tại.
+
+### GUARD 5 — Phải phân biệt tài liệu hiện hành và snapshot lịch sử
+
+- `README.md`, `docs/huong-dan-khach-hang.md`, `docs/production-checklist.md`,
+  `docs/COLLAB-SOURCE-OF-TRUTH.md` là **hiện hành**
+- `docs/superpowers/specs/*`, `docs/superpowers/plans/*`, `docs/bugs-log.md`
+  là **lịch sử**
+
+Nếu trích từ tài liệu lịch sử, phải nói rõ đó là bối cảnh tại thời điểm viết, không
+phải hiện trạng.
+
+## Mẫu handoff tối thiểu
+
+Mỗi lần giao task cho model khác, nên có block mở đầu:
+
+```md
+Nguồn sự thật cần đọc trước:
+- docs/COLLAB-SOURCE-OF-TRUTH.md
+- AGENTS.md
+- <các file code trực tiếp liên quan>
+
+Task hiện tại:
+- ...
+
+Checklist luồng bắt buộc:
+- schema
+- migration
+- validation
+- action ghi
+- query đọc
+- UI render
+
+Tiêu chí xong:
+- typecheck/lint/build hoặc test phù hợp
+- verify render thật / hành vi thật
+```
+
+## Phân vai gợi ý
+
+- Model coder: mạnh ở implementation, migration, truy vấn, refactor tập trung.
+- Model reviewer: soi end-to-end ngoài diff, kiểm guard dữ liệu/quyền.
+- Model điều phối: giữ nguồn sự thật, cắt phạm vi, verify cuối độc lập.

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -29,18 +30,28 @@ interface Material {
   name: string;
   code: string;
   unit: string;
+  unitId?: string | null;
   minStock: number;
 }
 
-export function MaterialManager({ materials }: { materials: Material[] }) {
+interface UnitOption {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export function MaterialManager({ materials, units }: { materials: Material[]; units: UnitOption[] }) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [editingMaterial, setEditingMaterial] = React.useState<Material | null>(null);
+  const [createUnitId, setCreateUnitId] = React.useState(units[0]?.id || "");
+  const [editingUnitId, setEditingUnitId] = React.useState("");
 
   const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    formData.set("unitId", createUnitId);
 
     startTransition(async () => {
       try {
@@ -48,6 +59,7 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
         if (res.ok) {
           toast.success("Thêm vật liệu thành công");
           setIsCreateOpen(false);
+          setCreateUnitId(units[0]?.id || "");
           router.refresh();
         } else {
           toast.error(res.error || "Có lỗi xảy ra");
@@ -62,6 +74,7 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
     e.preventDefault();
     if (!editingMaterial) return;
     const formData = new FormData(e.currentTarget);
+    formData.set("unitId", editingUnitId);
 
     startTransition(async () => {
       try {
@@ -69,6 +82,7 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
         if (res.ok) {
           toast.success("Cập nhật vật liệu thành công");
           setEditingMaterial(null);
+          setEditingUnitId("");
           router.refresh();
         } else {
           toast.error(res.error || "Có lỗi xảy ra");
@@ -82,7 +96,13 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <Button onClick={() => setIsCreateOpen(true)} className="cursor-pointer">
+        <Button
+          onClick={() => {
+            setCreateUnitId(units[0]?.id || "");
+            setIsCreateOpen(true);
+          }}
+          className="cursor-pointer"
+        >
           Thêm vật liệu
         </Button>
       </div>
@@ -123,7 +143,10 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setEditingMaterial(m)}
+                          onClick={() => {
+                            setEditingUnitId(m.unitId || units.find((u) => u.name === m.unit)?.id || "");
+                            setEditingMaterial(m);
+                          }}
                           className="cursor-pointer"
                         >
                           Sửa
@@ -139,7 +162,13 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
       </Card>
 
       {/* Dialog them moi */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog
+        open={isCreateOpen}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) setCreateUnitId(units[0]?.id || "");
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Thêm vật liệu mới</DialogTitle>
@@ -156,20 +185,33 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
               <Label htmlFor="code">Mã vật liệu</Label>
               <Input id="code" name="code" required placeholder="Ví dụ: XM-PCB40" />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="unit">Đơn vị tính</Label>
-              <Input id="unit" name="unit" required placeholder="Ví dụ: bao, cây, m3..." />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="minStock">Định mức tồn kho tối thiểu (không bắt buộc)</Label>
-              <Input
-                id="minStock"
-                name="minStock"
-                type="number"
-                step="any"
-                placeholder="Ví dụ: 20"
-              />
-            </div>
+              <div className="space-y-1">
+                <Label htmlFor="unitId">Đơn vị tính</Label>
+                <Select value={createUnitId} onValueChange={(value) => setCreateUnitId(value ?? "")}>
+                  <SelectTrigger id="unitId" className="h-10 w-full">
+                    <SelectValue placeholder="Chọn đơn vị tính">
+                      {units.find((u) => u.id === createUnitId)?.name || "Chọn đơn vị tính"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.map((unit) => (
+                      <SelectItem key={unit.id} value={unit.id}>
+                        {unit.name} ({unit.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="minStock">Định mức tồn kho tối thiểu (không bắt buộc)</Label>
+                <Input
+                  id="minStock"
+                  name="minStock"
+                  type="number"
+                  step="any"
+                  placeholder="Ví dụ: 20"
+                />
+              </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button
                 type="button"
@@ -192,7 +234,10 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
       <Dialog
         open={editingMaterial !== null}
         onOpenChange={(open) => {
-          if (!open) setEditingMaterial(null);
+          if (!open) {
+            setEditingMaterial(null);
+            setEditingUnitId("");
+          }
         }}
       >
         <DialogContent className="sm:max-w-md">
@@ -223,13 +268,21 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="edit-unit">Đơn vị tính</Label>
-                <Input
-                  id="edit-unit"
-                  name="unit"
-                  defaultValue={editingMaterial.unit}
-                  required
-                />
+                <Label htmlFor="edit-unitId">Đơn vị tính</Label>
+                <Select value={editingUnitId} onValueChange={(value) => setEditingUnitId(value ?? "")}>
+                  <SelectTrigger id="edit-unitId" className="h-10 w-full">
+                    <SelectValue placeholder="Chọn đơn vị tính">
+                      {units.find((u) => u.id === editingUnitId)?.name || "Chọn đơn vị tính"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.map((unit) => (
+                      <SelectItem key={unit.id} value={unit.id}>
+                        {unit.name} ({unit.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="edit-minStock">Định mức tồn kho tối thiểu (không bắt buộc)</Label>

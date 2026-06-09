@@ -67,8 +67,14 @@ export const exportSchema = z.object({
 export const materialSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên vật liệu"),
   code: z.string().min(1, "Vui lòng nhập mã vật liệu"),
-  unit: z.string().min(1, "Vui lòng nhập đơn vị (bao, cây, m³...)"),
+  unitId: z.string().min(1, "Vui lòng chọn đơn vị tính"),
   minStock: z.coerce.number().min(0, "Mức tối thiểu không được âm").optional().default(0),
+});
+
+export const unitSchema = z.object({
+  code: z.string().trim().min(1, "Vui lòng nhập mã đơn vị tính"),
+  name: z.string().trim().min(1, "Vui lòng nhập tên đơn vị tính"),
+  isActive: z.boolean().optional(),
 });
 
 export const warehouseSchema = z.object({
@@ -100,20 +106,30 @@ export const docLineSchema = z.object({
   note: z.string().max(500).optional(),
 });
 
+export const docEquipmentLineSchema = z.object({
+  equipmentId: z.string().min(1, "Vui lòng chọn xe/máy"),
+  hours: z.coerce.number().positive("Số giờ phải lớn hơn 0"),
+  projectId: z.string().optional().nullable(),
+  note: z.string().max(500).optional(),
+});
+
 export const docHeaderSchema = z.object({
   type: z.enum(["IN", "OUT", "TRANSFER", "STOCKTAKE"]),
   warehouseId: z.string().optional(),
   fromWarehouseId: z.string().optional(),
   toWarehouseId: z.string().optional(),
   supplierId: z.string().optional(),
+  requestedApproverId: z.string().optional(),
   reason: z.string().optional(),
   // Ngày chứng từ (YYYY-MM-DD). Tùy chọn — backend mặc định hôm nay nếu trống.
   docDate: z.string().optional(),
   note: z.string().max(500).optional(),
-  lines: z.array(docLineSchema).min(1, "Phiếu phải có ít nhất 1 dòng"),
+  lines: z.array(docLineSchema).optional().default([]),
+  equipmentLines: z.array(docEquipmentLineSchema).optional().default([]),
 });
 
 export type DocLineInput = z.infer<typeof docLineSchema>;
+export type DocEquipmentLineInput = z.infer<typeof docEquipmentLineSchema>;
 export type DocHeaderInput = z.infer<typeof docHeaderSchema>;
 
 export const createUserSchema = z.object({
@@ -124,11 +140,12 @@ export const createUserSchema = z.object({
 });
 
 export const supplierSchema = z.object({
-  name: z.string().min(1, "Vui lòng nhập tên nhà cung cấp"),
-  taxCode: z.string().max(50).optional(),
-  address: z.string().max(500).optional(),
-  contact: z.string().max(200).optional(),
-  note: z.string().max(500).optional(),
+  code: z.string().trim().min(1, "Vui lòng nhập mã NCC").max(50),
+  name: z.string().trim().min(1, "Vui lòng nhập tên nhà cung cấp"),
+  taxCode: z.string().trim().max(50).optional(),
+  address: z.string().trim().max(500).optional(),
+  contact: z.string().trim().max(200).optional(),
+  note: z.string().trim().max(500).optional(),
 });
 
 export const equipmentSchema = z.object({
@@ -199,6 +216,7 @@ export type EquipmentLogInput = z.infer<typeof equipmentLogSchema>;
 export type ImportInput = z.infer<typeof importSchema>;
 export type ExportInput = z.infer<typeof exportSchema>;
 export type MaterialInput = z.infer<typeof materialSchema>;
+export type UnitInput = z.infer<typeof unitSchema>;
 export type WarehouseInput = z.infer<typeof warehouseSchema>;
 export type TransferInput = z.infer<typeof transferSchema>;
 export type FundInput = z.infer<typeof fundSchema>;

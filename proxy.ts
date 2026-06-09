@@ -13,7 +13,7 @@ const MIN_ROLE: { prefix: string; level: number }[] = [
   { prefix: "/vat-lieu", level: 2 },   // MANAGER
   { prefix: "/cong-trinh", level: 2 },
   { prefix: "/quy", level: 2 },
-  { prefix: "/nha-cung-cap", level: 2 },
+  { prefix: "/nha-cung-cap", level: 1 },
   { prefix: "/xe-may", level: 2 },
   { prefix: "/ton-dau-ky", level: 2 },
 ];

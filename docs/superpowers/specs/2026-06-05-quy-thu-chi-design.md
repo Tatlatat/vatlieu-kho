@@ -1,5 +1,10 @@
 # Thiết kế: Quỹ (Thu – Chi – Tồn) — Bổ sung 2 mục 6
 
+> **Ghi chú lịch sử:** spec này được viết trong quá trình thiết kế module Quỹ. Một
+> số câu có thể còn dùng thuật ngữ/quyền cũ tại thời điểm viết. Hiện trạng thật về
+> role/guard/menu phải đọc từ `docs/COLLAB-SOURCE-OF-TRUTH.md`, `lib/auth-helpers.ts`,
+> `proxy.ts`, và code route/action hiện tại.
+
 **Goal:** Thêm subsystem theo dõi tiền mặt theo công trường: lập phiếu Thu/Chi, xem tồn quỹ, báo cáo, đúng chuẩn kế toán (bất biến sổ cái, không tồn âm ngầm).
 
 **Kiến trúc:** Mô phỏng đúng kiến trúc kho đa-warehouse hiện có để nhất quán. Quỹ độc lập hoàn toàn với nghiệp vụ kho (không tự sinh từ phiếu nhập/xuất, không đụng đơn giá/giá trị).

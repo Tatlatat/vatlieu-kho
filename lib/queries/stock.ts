@@ -55,5 +55,8 @@ export async function getOnHand(materialId: string, warehouseId: string): Promis
 
 /** Danh sách vật liệu cho dropdown. */
 export async function getMaterials() {
-  return prisma.material.findMany({ orderBy: { name: "asc" } });
+  return prisma.material.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, code: true, unit: true, unitId: true, minStock: true },
+  });
 }

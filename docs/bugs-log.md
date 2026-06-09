@@ -2,6 +2,10 @@
 
 Ghi nhận các lỗi phát sinh trong quá trình xây dựng, đặc biệt lỗi đến từ harness/môi trường (HS) theo yêu cầu của chủ dự án.
 
+> Ghi chú: đây là **nhật ký lịch sử theo thời điểm phát sinh lỗi**. Một số đoạn cũ
+> có thể nhắc tới hệ vai trò `OWNER/STAFF` hoặc phạm vi cũ tại thời điểm ghi log,
+> không phải hiện trạng mới nhất của app.
+
 **Tổng kết:** 8 lỗi gặp phải, tất cả đã xử lý/giảm thiểu. Đánh giá trung thực (xem bảng phân loại cuối file): 2 lỗi do môi trường/cơ chế công cụ, 1 nửa-nửa, **4 lỗi do mình dùng công cụ chưa đúng hoặc setup ẩu**, 1 lỗi hạ tầng/kiến trúc (chậm vì free-tier region) — không có lỗi nào là "OSS hỏng". Không có lỗi logic nghiệp vụ (tính tồn kho / hao hụt đều đúng).
 
 **Kết quả kiểm thử (3 vòng):**

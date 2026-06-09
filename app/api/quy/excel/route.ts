@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
-import { requireUser } from "@/lib/auth-helpers";
+import { requireAtLeast } from "@/lib/auth-helpers";
 import { getFunds, listCashEntries, getCashReport, getFundBalances } from "@/lib/queries/cash";
 import { CASH_CATEGORY_LABELS } from "@/lib/validation";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 /** Xuất sổ quỹ (bút toán + tổng theo hạng mục) ra .xlsx. */
 export async function GET(req: NextRequest) {
-  await requireUser();
+  await requireAtLeast("MANAGER");
 
   const sp = req.nextUrl.searchParams;
   const funds = await getFunds();

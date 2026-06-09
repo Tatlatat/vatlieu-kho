@@ -10,6 +10,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test:regression": "tsx scripts/regression-checks.ts",
+    "stress:audit": "tsx scripts/stress-audit.ts",
     "db:seed": "prisma db seed",
     "db:setup": "prisma migrate deploy && npm run db:seed"
   },

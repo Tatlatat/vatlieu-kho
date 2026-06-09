@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { saveDraft, postDocument } from "@/lib/actions/documents";
 import { IN_REASONS } from "@/lib/validation";
+import { DocumentEquipmentLineEditor, type EquipmentLineItem } from "@/components/document-equipment-line-editor";
 
 interface Warehouse {
   id: string;
@@ -32,13 +33,29 @@ interface Supplier {
   name: string;
 }
 
+interface EquipmentOption {
+  id: string;
+  code?: string | null;
+  name: string;
+  type?: string | null;
+  plateNo?: string | null;
+}
+
+interface ProjectOption {
+  id: string;
+  code: string;
+  name: string;
+}
+
 interface ImportDocFormProps {
   materials: Material[];
   warehouses: Warehouse[];
   suppliers: Supplier[];
+  equipment: EquipmentOption[];
+  projects: ProjectOption[];
 }
 
-export function ImportDocForm({ materials, warehouses, suppliers }: ImportDocFormProps) {
+export function ImportDocForm({ materials, warehouses, suppliers, equipment, projects }: ImportDocFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
 
@@ -56,6 +73,7 @@ export function ImportDocForm({ materials, warehouses, suppliers }: ImportDocFor
   const [lines, setLines] = React.useState<LineItem[]>(() => [
     { materialId: "", quantity: "", note: "", _key: crypto.randomUUID() },
   ]);
+  const [equipmentLines, setEquipmentLines] = React.useState<EquipmentLineItem[]>([]);
 
   const handleSubmit = async (submitType: "DRAFT" | "POST") => {
     // Filter and validate lines
@@ -66,9 +84,17 @@ export function ImportDocForm({ materials, warehouses, suppliers }: ImportDocFor
         quantity: Number(l.quantity),
         note: l.note || undefined,
       }));
+    const validEquipmentLines = equipmentLines
+      .filter((l) => l.equipmentId && l.hours && Number(l.hours) > 0)
+      .map((l) => ({
+        equipmentId: l.equipmentId,
+        hours: Number(l.hours),
+        projectId: l.projectId || undefined,
+        note: l.note || undefined,
+      }));
 
-    if (validLines.length === 0) {
-      toast.error("Phiếu phải có ít nhất 1 dòng với số lượng lớn hơn 0");
+    if (validLines.length === 0 && validEquipmentLines.length === 0) {
+      toast.error("Phiếu phải có ít nhất 1 dòng vật tư hoặc xe/máy hợp lệ");
       return;
     }
 
@@ -87,6 +113,7 @@ export function ImportDocForm({ materials, warehouses, suppliers }: ImportDocFor
           reason,
           note: note.trim() || undefined,
           lines: validLines,
+          equipmentLines: validEquipmentLines,
         });
 
         if (!draftResult.ok) {
@@ -208,6 +235,14 @@ export function ImportDocForm({ materials, warehouses, suppliers }: ImportDocFor
             disabled={isPending}
           />
         </div>
+
+        <DocumentEquipmentLineEditor
+          equipment={equipment}
+          projects={projects}
+          lines={equipmentLines}
+          onChange={setEquipmentLines}
+          disabled={isPending}
+        />
 
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button

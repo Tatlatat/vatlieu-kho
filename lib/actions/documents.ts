@@ -7,6 +7,7 @@ import { docHeaderSchema, type DocHeaderInput } from "@/lib/validation";
 import { nextDocCode } from "@/lib/doc-codes";
 import type { ActionResult } from "@/lib/actions/movements";
 import type { MovementReason } from "@prisma/client";
+import { validateRequestedTransferApprover } from "@/lib/domain/transfer-approval";
 
 const LOSS_OUT: MovementReason[] = ["DAMAGED", "EXPIRED", "NATURAL_LOSS"];
 
@@ -39,6 +40,8 @@ export async function saveDraft(
   if (!parsed.success)
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
   const d = parsed.data;
+  const hasMaterialLines = d.lines.length > 0;
+  const hasEquipmentLines = d.equipmentLines.length > 0;
 
   // Kiểm tra kho theo loại phiếu.
   if (d.type === "TRANSFER") {
@@ -48,6 +51,15 @@ export async function saveDraft(
       return { ok: false, error: "Kho nguồn và kho đích phải khác nhau" };
   } else if (!d.warehouseId) {
     return { ok: false, error: "Vui lòng chọn kho" };
+  }
+  if (d.type !== "IN" && hasEquipmentLines) {
+    return { ok: false, error: "Chỉ phiếu nhập mới được có dòng xe/máy" };
+  }
+  if (d.type === "IN" && !hasMaterialLines && !hasEquipmentLines) {
+    return { ok: false, error: "Phiếu nhập phải có ít nhất 1 dòng vật tư hoặc xe/máy" };
+  }
+  if (d.type !== "IN" && !hasMaterialLines) {
+    return { ok: false, error: "Phiếu phải có ít nhất 1 dòng vật tư" };
   }
 
   let docDate: Date;
@@ -59,6 +71,17 @@ export async function saveDraft(
 
   try {
     const id = await prisma.$transaction(async (tx) => {
+      if (d.type === "TRANSFER" && d.requestedApproverId) {
+        const approver = await tx.user.findUnique({
+          where: { id: d.requestedApproverId },
+          select: { role: true },
+        });
+        validateRequestedTransferApprover({
+          currentUserId: user.id,
+          requestedApproverId: d.requestedApproverId,
+          requestedApproverRole: approver?.role,
+        });
+      }
       const code = await nextDocCode(tx, d.type);
       const doc = await tx.document.create({
         data: {
@@ -72,6 +95,7 @@ export async function saveDraft(
           fromWarehouseId: d.type === "TRANSFER" ? d.fromWarehouseId : null,
           toWarehouseId: d.type === "TRANSFER" ? d.toWarehouseId : null,
           supplierId: d.type === "IN" ? d.supplierId ?? null : null,
+          requestedApproverId: d.type === "TRANSFER" ? d.requestedApproverId ?? null : null,
           createdById: user.id,
           lines: {
             create: d.lines.map((l) => ({
@@ -80,6 +104,16 @@ export async function saveDraft(
               note: l.note,
             })),
           },
+          equipmentLines: d.type === "IN"
+            ? {
+                create: d.equipmentLines.map((l) => ({
+                  equipmentId: l.equipmentId,
+                  hours: l.hours,
+                  projectId: l.projectId ?? null,
+                  note: l.note,
+                })),
+              }
+            : undefined,
         },
       });
       return doc.id;
@@ -100,11 +134,16 @@ export async function postDocument(documentId: string): Promise<ActionResult> {
     await prisma.$transaction(async (tx) => {
       const doc = await tx.document.findUnique({
         where: { id: documentId },
-        include: { lines: true },
+        include: { lines: true, equipmentLines: true },
       });
       if (!doc) throw new Error("Không tìm thấy phiếu");
       if (doc.status !== "DRAFT") throw new Error("Chỉ lập được phiếu đang ở trạng thái Nháp");
-      if (doc.lines.length === 0) throw new Error("Phiếu không có dòng nào");
+      if (doc.type === "IN") {
+        if (doc.lines.length === 0 && doc.equipmentLines.length === 0)
+          throw new Error("Phiếu nhập không có dòng nào");
+      } else if (doc.lines.length === 0) {
+        throw new Error("Phiếu không có dòng nào");
+      }
       if (doc.type === "TRANSFER")
         throw new Error("Phiếu chuyển kho phải gửi duyệt, không lập trực tiếp");
       if (doc.type === "STOCKTAKE")
@@ -112,6 +151,7 @@ export async function postDocument(documentId: string): Promise<ActionResult> {
       const warehouseId = doc.warehouseId;
       if (!warehouseId) throw new Error("Phiếu thiếu kho");
       for (const l of doc.lines) if (l.quantity <= 0) throw new Error("Số lượng phải lớn hơn 0");
+      for (const l of doc.equipmentLines) if (l.hours <= 0) throw new Error("Số giờ phải lớn hơn 0");
 
       // Khóa các slot theo thứ tự xác định, dedup slot trùng (advisory lock re-entrant).
       const slots = [...new Set(doc.lines.map((l) => `${l.materialId}:${warehouseId}`))].sort();
@@ -144,6 +184,22 @@ export async function postDocument(documentId: string): Promise<ActionResult> {
           },
         });
       }
+      if (doc.type === "IN") {
+        for (const l of doc.equipmentLines) {
+          await tx.equipmentLog.create({
+            data: {
+              equipmentId: l.equipmentId,
+              logDate: doc.docDate,
+              hours: l.hours,
+              projectId: l.projectId,
+              note: l.note ?? doc.note,
+              documentId: doc.id,
+              documentEquipmentLineId: l.id,
+              createdById: user.id,
+            },
+          });
+        }
+      }
       await tx.document.update({
         where: { id: doc.id },
         data: { status: "POSTED", postedAt: new Date() },
@@ -167,7 +223,10 @@ export async function voidDocument(documentId: string, reason: string): Promise<
     await prisma.$transaction(async (tx) => {
       const doc = await tx.document.findUnique({
         where: { id: documentId },
-        include: { movements: { where: { voidedAt: null, reason: { not: "VOID" } } } },
+        include: {
+          movements: { where: { voidedAt: null, reason: { not: "VOID" } } },
+          equipmentLogs: { where: { voidedAt: null } },
+        },
       });
       if (!doc) throw new Error("Không tìm thấy phiếu");
       if (doc.status !== "POSTED") throw new Error("Chỉ hủy được phiếu đã lập");
@@ -213,6 +272,12 @@ export async function voidDocument(documentId: string, reason: string): Promise<
         await tx.stockMovement.update({
           where: { id: m.id },
           data: { voidedAt: new Date(), voidedById: user.id },
+        });
+      }
+      if (doc.type === "IN" && doc.equipmentLogs.length > 0) {
+        await tx.equipmentLog.updateMany({
+          where: { id: { in: doc.equipmentLogs.map((l) => l.id) } },
+          data: { voidedAt: new Date(), voidedById: user.id, voidReason: reason },
         });
       }
       await tx.document.update({

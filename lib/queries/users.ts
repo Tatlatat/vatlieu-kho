@@ -7,3 +7,11 @@ export async function getUsers() {
     select: { id: true, email: true, name: true, role: true, createdAt: true },
   });
 }
+
+export async function getTransferApprovers() {
+  return prisma.user.findMany({
+    where: { role: "KEEPER" },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true, role: true },
+  });
+}

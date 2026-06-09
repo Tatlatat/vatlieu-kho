@@ -5,15 +5,25 @@ import { randomUUID } from "crypto";
 const prisma = new PrismaClient();
 
 async function main() {
-  // 1. Delete old data
+  // 1. Delete old data. Keep this aligned with schema relations so reseeding works on non-empty DBs.
+  await prisma.cashEntry.deleteMany({});
   await prisma.stocktakeItem.deleteMany({});
   await prisma.stockMovement.deleteMany({});
+  await prisma.equipmentLog.deleteMany({});
+  await prisma.documentEquipmentLine.deleteMany({});
+  await prisma.documentLine.deleteMany({});
+  await prisma.document.deleteMany({});
   await prisma.stocktake.deleteMany({});
   await prisma.material.deleteMany({});
-  await prisma.user.deleteMany({});
+  await prisma.equipment.deleteMany({});
+  await prisma.supplier.deleteMany({});
+  await prisma.fund.deleteMany({});
   await prisma.warehouse.deleteMany({});
+  await prisma.project.deleteMany({});
+  await prisma.unit.deleteMany({});
+  await prisma.user.deleteMany({});
 
-  // 2. Create 2 users
+  // 2. Create demo users
   const passwordHash = await bcrypt.hash("123456", 10);
 
   await prisma.user.create({
@@ -21,6 +31,15 @@ async function main() {
       email: "owner@vatlieu.vn",
       name: "Anh Chu",
       role: "ADMIN",
+      passwordHash,
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      email: "manager@vatlieu.vn",
+      name: "Chị Lan",
+      role: "MANAGER",
       passwordHash,
     },
   });
@@ -34,22 +53,49 @@ async function main() {
     },
   });
 
-  // 3. Create 8 materials
+  // 3. Create fixed units
+  const units = await Promise.all([
+    prisma.unit.create({ data: { code: "KG", name: "kg" } }),
+    prisma.unit.create({ data: { code: "BAO", name: "bao" } }),
+    prisma.unit.create({ data: { code: "CAY", name: "cây" } }),
+    prisma.unit.create({ data: { code: "M3", name: "m³" } }),
+    prisma.unit.create({ data: { code: "MD", name: "md" } }),
+    prisma.unit.create({ data: { code: "VIEN", name: "viên" } }),
+    prisma.unit.create({ data: { code: "THUNG", name: "thùng" } }),
+  ]);
+  const unitByName = Object.fromEntries(units.map((u) => [u.name, u]));
+
+  // 4. Create 2 suppliers
+  await prisma.supplier.createMany({
+    data: [
+      { code: "NCC001", name: "Công ty TNHH Xi măng ABC", taxCode: "0101234567" },
+      { code: "NCC002", name: "Công ty CP Thép Đông Á", taxCode: "0207654321" },
+    ],
+  });
+
+  // 5. Create demo materials
   const materialData = [
-    { name: "Xi măng PCB40", code: "XM-PCB40", unit: "bao", minStock: 20 },
-    { name: "Thép phi 16", code: "TH-D16", unit: "cây", minStock: 50 },
-    { name: "Thép phi 18", code: "TH-D18", unit: "cây", minStock: 50 },
-    { name: "Cát vàng", code: "CAT-VANG", unit: "m³", minStock: 5 },
-    { name: "Đá 1x2", code: "DA-1X2", unit: "m³", minStock: 5 },
-    { name: "Gạch ống", code: "GACH-ONG", unit: "viên", minStock: 500 },
-    { name: "Gạch thẻ", code: "GACH-THE", unit: "viên", minStock: 500 },
-    { name: "Sơn nước", code: "SON-NUOC", unit: "thùng", minStock: 10 },
+    { name: "Xi măng PCB40", code: "XM-PCB40", unit: "bao", unitName: "bao", minStock: 20 },
+    { name: "Thép D10", code: "THEP-D10", unit: "cây", unitName: "cây", minStock: 50 },
+    { name: "Thép phi 16", code: "TH-D16", unit: "cây", unitName: "cây", minStock: 50 },
+    { name: "Thép phi 18", code: "TH-D18", unit: "cây", unitName: "cây", minStock: 50 },
+    { name: "Cát vàng", code: "CAT-VANG", unit: "m³", unitName: "m³", minStock: 5 },
+    { name: "Đá 1x2", code: "DA-1X2", unit: "m³", unitName: "m³", minStock: 5 },
+    { name: "Gạch ống", code: "GACH-ONG", unit: "viên", unitName: "viên", minStock: 500 },
+    { name: "Gạch thẻ", code: "GACH-THE", unit: "viên", unitName: "viên", minStock: 500 },
+    { name: "Sơn nước", code: "SON-NUOC", unit: "thùng", unitName: "thùng", minStock: 10 },
   ];
 
   const materials: { [code: string]: Material } = {};
   for (const item of materialData) {
     const created = await prisma.material.create({
-      data: item,
+      data: {
+        name: item.name,
+        code: item.code,
+        unit: item.unit,
+        unitId: unitByName[item.unitName].id,
+        minStock: item.minStock,
+      },
     });
     materials[item.code] = created;
   }
@@ -59,7 +105,7 @@ async function main() {
     return new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
   };
 
-  // 4. Create 2 warehouses
+  // 6. Create 2 warehouses
   const khoChinh = await prisma.warehouse.upsert({
     where: { code: "KHO-CHINH" },
     update: {},
@@ -71,7 +117,7 @@ async function main() {
     create: { name: "Kho công trình A", code: "KHO-CT-A", isDefault: false },
   });
 
-  // 5. Create ~30 StockMovements spread across last 3 months
+  // 7. Create ~30 StockMovements spread across last 3 months
   const movementDefinitions = [
     // XM-PCB40 (Xi măng PCB40) - 5 movements
     { code: "XM-PCB40", type: "IN", quantity: 100, reason: "PURCHASE", daysAgo: 85, note: "Nhập hàng đợt 1" },
@@ -166,7 +212,7 @@ async function main() {
     },
   });
 
-  // 6. Create 1 Stocktake in DRAFT state
+  // 8. Create 1 Stocktake in DRAFT state
   // Calculated stocks for the first 3 materials:
   // - XM-PCB40: IN(100+50) - OUT(60+5+10) = 150 - 75 = 75
   // - TH-D16: IN(200+100) - OUT(80+5) = 300 - 85 = 215

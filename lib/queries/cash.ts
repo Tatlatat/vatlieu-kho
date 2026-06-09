@@ -25,6 +25,16 @@ export interface CashReport {
   byCategory: { category: string; type: "THU" | "CHI"; total: number }[];
 }
 
+export interface ProjectCashSummaryRow {
+  project_id: string | null;
+  project_code: string | null;
+  project_name: string;
+  fund_count: number;
+  total_in: number;
+  total_out: number;
+  balance: number;
+}
+
 /** Danh sách quỹ đang dùng. */
 export async function getFunds() {
   return prisma.fund.findMany({
@@ -112,4 +122,46 @@ export async function getCashReport(
     return { category: g.category, type: g.type, total };
   });
   return { totalIn, totalOut, balance: totalIn - totalOut, byCategory };
+}
+
+export async function getProjectCashSummary(from: string, to: string): Promise<ProjectCashSummaryRow[]> {
+  const rows = await prisma.$queryRaw<ProjectCashSummaryRow[]>`
+    WITH fund_scope AS (
+      SELECT f.id AS fund_id, f."projectId", p.code AS project_code, p.name AS project_name
+      FROM "Fund" f
+      LEFT JOIN "Project" p ON p.id = f."projectId"
+      WHERE f."isActive" = true
+    ),
+    period AS (
+      SELECT ce."fundId", ce.type, SUM(ce.amount)::float8 AS total
+      FROM "CashEntry" ce
+      WHERE ce."voidedAt" IS NULL
+        AND ce."entryDate" >= ${new Date(`${from}T00:00:00.000Z`)}
+        AND ce."entryDate" <= ${new Date(`${to}T23:59:59.999Z`)}
+      GROUP BY ce."fundId", ce.type
+    )
+    SELECT
+      fs."projectId" AS project_id,
+      fs.project_code,
+      COALESCE(fs.project_name, 'Chưa gắn công trình') AS project_name,
+      COUNT(DISTINCT fs.fund_id)::int AS fund_count,
+      COALESCE(SUM(CASE WHEN p.type = 'THU' THEN p.total ELSE 0 END), 0)::float8 AS total_in,
+      COALESCE(SUM(CASE WHEN p.type = 'CHI' THEN p.total ELSE 0 END), 0)::float8 AS total_out,
+      (
+        COALESCE(SUM(CASE WHEN p.type = 'THU' THEN p.total ELSE 0 END), 0)
+        - COALESCE(SUM(CASE WHEN p.type = 'CHI' THEN p.total ELSE 0 END), 0)
+      )::float8 AS balance
+    FROM fund_scope fs
+    LEFT JOIN period p ON p."fundId" = fs.fund_id
+    GROUP BY fs."projectId", fs.project_code, fs.project_name
+    ORDER BY fs.project_name NULLS LAST
+  `;
+
+  return rows.map((r) => ({
+    ...r,
+    fund_count: Number(r.fund_count),
+    total_in: Number(r.total_in),
+    total_out: Number(r.total_out),
+    balance: Number(r.balance),
+  }));
 }

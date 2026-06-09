@@ -12,7 +12,8 @@ export async function listDocuments(type: DocType) {
       toWarehouse: { select: { name: true } },
       supplier: { select: { name: true } },
       createdBy: { select: { name: true } },
-      _count: { select: { lines: true } },
+      requestedApprover: { select: { id: true, name: true, email: true } },
+      _count: { select: { lines: true, equipmentLines: true } },
     },
   });
 }
@@ -28,8 +29,15 @@ export async function getDocument(id: string) {
       supplier: { select: { name: true, contact: true } },
       createdBy: { select: { name: true } },
       approvedBy: { select: { name: true } },
+      requestedApprover: { select: { id: true, name: true, email: true } },
       voidedBy: { select: { name: true } },
       lines: { include: { material: { select: { name: true, code: true, unit: true } } } },
+      equipmentLines: {
+        include: {
+          equipment: { select: { code: true, name: true, type: true, plateNo: true } },
+          project: { select: { code: true, name: true } },
+        },
+      },
     },
   });
 }
