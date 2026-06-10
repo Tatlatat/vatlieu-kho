@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { Plus, Trash2 } from "lucide-react";
 import { SearchableMaterialSelect } from "@/components/searchable-material-select";
 import { WarehouseSelect } from "@/components/warehouse-select";
 import { Button } from "@/components/ui/button";
@@ -33,9 +34,19 @@ interface Warehouse {
   isDefault: boolean;
 }
 
+interface DocumentLineState {
+  id: string;
+  materialId: string;
+  quantity: string;
+}
+
+function createLine(id = `line-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`): DocumentLineState {
+  return { id, materialId: "", quantity: "" };
+}
+
 export function ExportForm({ materials, warehouses }: { materials: Material[]; warehouses: Warehouse[] }) {
   const router = useRouter();
-  const [materialId, setMaterialId] = React.useState("");
+  const [lines, setLines] = React.useState<DocumentLineState[]>(() => [createLine("line-1")]);
   const [reason, setReason] = React.useState("");
   const [warehouseId, setWarehouseId] = React.useState(
     () => warehouses.find((w) => w.isDefault)?.id ?? warehouses[0]?.id ?? ""
@@ -43,7 +54,15 @@ export function ExportForm({ materials, warehouses }: { materials: Material[]; w
   const [isPending, startTransition] = React.useTransition();
   const formRef = React.useRef<HTMLFormElement>(null);
 
-  const selectedMaterial = materials.find((m) => m.id === materialId);
+  const updateLine = (id: string, patch: Partial<DocumentLineState>) => {
+    setLines((current) => current.map((line) => (line.id === id ? { ...line, ...patch } : line)));
+  };
+
+  const addLine = () => setLines((current) => [...current, createLine()]);
+
+  const removeLine = (id: string) => {
+    setLines((current) => (current.length === 1 ? current : current.filter((line) => line.id !== id)));
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -51,15 +70,20 @@ export function ExportForm({ materials, warehouses }: { materials: Material[]; w
       toast.error("Vui lòng chọn kho");
       return;
     }
-    if (!materialId) {
-      toast.error("Vui lòng chọn vật tư");
-      return;
-    }
     if (!reason) {
       toast.error("Vui lòng chọn lý do xuất");
       return;
     }
+    const invalidLine = lines.find((line) => !line.materialId || !line.quantity || Number(line.quantity) <= 0);
+    if (invalidLine) {
+      toast.error("Vui lòng nhập đủ vật tư và số lượng lớn hơn 0 cho từng dòng");
+      return;
+    }
     const formData = new FormData(e.currentTarget);
+    formData.set(
+      "lines",
+      JSON.stringify(lines.map((line) => ({ materialId: line.materialId, quantity: line.quantity })))
+    );
 
     startTransition(async () => {
       try {
@@ -67,7 +91,7 @@ export function ExportForm({ materials, warehouses }: { materials: Material[]; w
         if (res.ok) {
           toast.success("Đã xuất kho");
           formRef.current?.reset();
-          setMaterialId("");
+          setLines([createLine("line-1")]);
           setReason("");
           router.push("/");
         } else {
@@ -81,7 +105,7 @@ export function ExportForm({ materials, warehouses }: { materials: Material[]; w
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-lg border border-border bg-card/60 backdrop-blur-md">
+      <Card className="w-full max-w-3xl shadow-lg border border-border bg-card/60 backdrop-blur-md">
         <CardHeader>
           <CardTitle className="text-xl font-bold tracking-tight text-foreground text-center">
             Xuất Hàng
@@ -96,16 +120,6 @@ export function ExportForm({ materials, warehouses }: { materials: Material[]; w
                 name="warehouseId"
                 value={warehouseId}
                 onChange={setWarehouseId}
-              />
-            </div>
-
-            <div className="space-y-2 flex flex-col">
-              <Label htmlFor="materialId" className="text-sm font-medium">Vật tư</Label>
-              <SearchableMaterialSelect
-                materials={materials}
-                name="materialId"
-                value={materialId}
-                onChange={setMaterialId}
               />
             </div>
 
@@ -128,21 +142,67 @@ export function ExportForm({ materials, warehouses }: { materials: Material[]; w
               <input type="hidden" name="reason" value={reason} />
             </div>
 
-            <div className="space-y-2 flex flex-col">
-              <Label htmlFor="quantity" className="text-sm font-medium">Số lượng</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="quantity"
-                  name="quantity"
-                  type="number"
-                  step="any"
-                  required
-                  className="h-10 flex-1"
-                  placeholder="Nhập số lượng..."
-                />
-                <span className="text-sm text-muted-foreground w-12 shrink-0">
-                  {selectedMaterial?.unit ?? ""}
-                </span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <Label className="text-sm font-medium">Dòng vật tư</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addLine} disabled={isPending}>
+                  <Plus className="size-4" />
+                  Thêm dòng
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {lines.map((line, index) => {
+                  const selectedMaterial = materials.find((m) => m.id === line.materialId);
+                  return (
+                    <div
+                      key={line.id}
+                      className="grid gap-3 rounded-md border border-border bg-background/70 p-3 md:grid-cols-[minmax(0,1fr)_160px_36px] md:items-end"
+                    >
+                      <div className="space-y-2 flex flex-col">
+                        <Label className="text-xs text-muted-foreground">Vật tư {index + 1}</Label>
+                        <SearchableMaterialSelect
+                          materials={materials}
+                          name={`materialId-${line.id}`}
+                          value={line.materialId}
+                          onChange={(value) => updateLine(line.id, { materialId: value })}
+                        />
+                      </div>
+                      <div className="space-y-2 flex flex-col">
+                        <Label htmlFor={`quantity-${line.id}`} className="text-xs text-muted-foreground">
+                          Số lượng
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id={`quantity-${line.id}`}
+                            name={`quantity-${line.id}`}
+                            type="number"
+                            step="any"
+                            min="0"
+                            required
+                            value={line.quantity}
+                            onChange={(event) => updateLine(line.id, { quantity: event.target.value })}
+                            className="h-10 flex-1"
+                            placeholder="0"
+                          />
+                          <span className="w-12 shrink-0 text-sm text-muted-foreground">
+                            {selectedMaterial?.unit ?? ""}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeLine(line.id)}
+                        disabled={isPending || lines.length === 1}
+                        aria-label={`Xóa dòng ${index + 1}`}
+                        title="Xóa dòng"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
