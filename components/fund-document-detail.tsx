@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,17 +72,19 @@ export function FundDocumentDetail({ document, canEdit, canVoid }: Props) {
           <p className="text-sm text-muted-foreground">{document.fundName}</p>
         </div>
 
-        {canChange && (
-          <div className="flex flex-col gap-2 sm:flex-row">
-            {canEdit && (
-              <Link href={`/quy/${document.id}/sua`} className={buttonVariants({ variant: "outline" })}>
-                <Pencil className="size-4" />
-                Sửa phiếu
-              </Link>
-            )}
-            {canVoid && <FundVoidButton documentId={document.id} />}
-          </div>
-        )}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link href={`/quy/${document.id}/in`} className={buttonVariants({ variant: "outline" })}>
+            <Printer className="size-4" />
+            In phiếu
+          </Link>
+          {canChange && canEdit && (
+            <Link href={`/quy/${document.id}/sua`} className={buttonVariants({ variant: "outline" })}>
+              <Pencil className="size-4" />
+              Sửa phiếu
+            </Link>
+          )}
+          {canChange && canVoid && <FundVoidButton documentId={document.id} />}
+        </div>
       </div>
 
       <Card className="border border-border shadow-sm">

@@ -1,10 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 import { can, requireUser } from "@/lib/auth-helpers";
-import { InventoryDocumentDetail } from "@/components/inventory-document-detail";
 import { getInventoryDocumentDetail } from "@/lib/queries/documents";
 import { permissionForInventoryDocument } from "@/lib/permissions/inventory-permissions";
+import {
+  InventoryDocumentPrint,
+  inventoryPrintBackHref,
+} from "@/components/print/inventory-document-print";
+import { PrintToolbar } from "@/components/print/print-toolbar";
 
-export default async function PhieuDetailPage({
+export default async function InventoryDocumentPrintPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -14,9 +18,10 @@ export default async function PhieuDetailPage({
   if (!document) notFound();
   if (!(await can(user.id, permissionForInventoryDocument(document.kind, "view")))) redirect("/");
 
-  const [canEdit, canVoid] = await Promise.all([
-    can(user.id, permissionForInventoryDocument(document.kind, "edit_posted")),
-    can(user.id, permissionForInventoryDocument(document.kind, "void")),
-  ]);
-  return <InventoryDocumentDetail document={document} canEdit={canEdit} canVoid={canVoid} />;
+  return (
+    <div>
+      <PrintToolbar backHref={inventoryPrintBackHref(document.kind, document.id)} />
+      <InventoryDocumentPrint document={document} />
+    </div>
+  );
 }
