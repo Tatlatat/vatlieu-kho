@@ -9,7 +9,41 @@ import {
 
 const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+async function assertSnapshotReadDoesNotSeedPermissions() {
+  let seedAttemptCount = 0;
+  const readOnlyDb = {
+    permission: {
+      upsert: async () => {
+        seedAttemptCount += 1;
+        throw new Error("Snapshot read attempted to seed permissions");
+      },
+    },
+    user: {
+      findUnique: async ({ where }: { where: { id: string } }) => ({
+        id: where.id,
+        role: "STAFF",
+        positionAssignments: [
+          {
+            position: {
+              code: "THU_KHO",
+              permissions: [{ permission: { code: "inventory.import.create" } }],
+            },
+          },
+        ],
+        permissionOverrides: [],
+      }),
+    },
+  } as unknown as NonNullable<Parameters<typeof getUserPermissionSnapshot>[1]>;
+
+  const snapshot = await getUserPermissionSnapshot("read-only-user", readOnlyDb);
+
+  assert.equal(seedAttemptCount, 0);
+  assert.deepEqual(snapshot.effectivePermissionCodes, ["inventory.import.create"]);
+}
+
 async function main() {
+  await assertSnapshotReadDoesNotSeedPermissions();
+
   const owner = await prisma.user.create({
     data: {
       email: `perm-owner-${suffix}@example.com`,

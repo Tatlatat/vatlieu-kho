@@ -199,7 +199,6 @@ export async function getUserPermissionSnapshot(
   userId: string,
   db: PermissionDb = prisma
 ): Promise<UserPermissionSnapshot> {
-  await ensurePermissionSeeded(db);
   const snapshot = await getSnapshotFromUser(userId, db);
   if (!snapshot) throw new Error("Không tìm thấy người dùng");
   return snapshot;
