@@ -1,8 +1,10 @@
 import * as React from "react";
+import { requirePermission } from "@/lib/auth-helpers";
 import { getHistory } from "@/lib/queries/history";
 import { HistoryTable } from "@/components/history-table";
 
 export default async function LichSuPage() {
+  await requirePermission("inventory.history.view");
   const rows = await getHistory();
 
   return (

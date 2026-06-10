@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { requireUser } from "@/lib/auth-helpers";
+import { can, requirePermission } from "@/lib/auth-helpers";
 import { listStocktakes } from "@/lib/queries/stocktake";
 import { getWarehouses } from "@/lib/queries/warehouses";
 import { NewStocktakeButton } from "@/components/new-stocktake-button";
@@ -17,8 +17,12 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { HuongDanKiemKe } from "@/components/huong-dan-kiem-ke";
 
 export default async function KiemKePage() {
-  await requireUser();
-  const [takes, warehouses] = await Promise.all([listStocktakes(), getWarehouses()]);
+  const user = await requirePermission("inventory.stocktake.view");
+  const [takes, warehouses, canCreate] = await Promise.all([
+    listStocktakes(),
+    getWarehouses(),
+    can(user.id, "inventory.stocktake.create"),
+  ]);
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
@@ -31,7 +35,7 @@ export default async function KiemKePage() {
             Quản lý và lập phiếu kiểm kê hao hụt định kỳ
           </p>
         </div>
-        <NewStocktakeButton warehouses={warehouses} />
+        {canCreate && <NewStocktakeButton warehouses={warehouses} />}
       </div>
 
       <HuongDanKiemKe />

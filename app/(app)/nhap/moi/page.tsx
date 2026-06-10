@@ -1,9 +1,11 @@
+import { requirePermission } from "@/lib/auth-helpers";
 import { getMaterials } from "@/lib/queries/stock";
 import { getWarehouses } from "@/lib/queries/warehouses";
 import { getSupplierOptions } from "@/lib/queries/catalogs";
 import { ImportForm } from "@/components/import-form";
 
 export default async function NewNhapPage() {
+  await requirePermission("inventory.import.create");
   const [materials, warehouses, suppliers] = await Promise.all([
     getMaterials(),
     getWarehouses(),

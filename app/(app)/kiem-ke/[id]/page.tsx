@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth-helpers";
+import { can, requirePermission } from "@/lib/auth-helpers";
 import { getStocktake } from "@/lib/queries/stocktake";
 import { StocktakeDetail } from "@/components/stocktake-detail";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,18 @@ interface PageProps {
 
 export default async function KiemKeDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const user = await requireUser();
+  const user = await requirePermission("inventory.stocktake.view");
   const stocktake = await getStocktake(id);
 
   if (!stocktake) {
     notFound();
   }
+
+  const [canEdit, canApprove, canVoid] = await Promise.all([
+    can(user.id, "inventory.stocktake.edit"),
+    can(user.id, "inventory.stocktake.approve"),
+    can(user.id, "inventory.stocktake.void"),
+  ]);
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
@@ -95,7 +101,12 @@ export default async function KiemKeDetailPage({ params }: PageProps) {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <StocktakeDetail stocktake={stocktake} role={user.role} />
+          <StocktakeDetail
+            stocktake={stocktake}
+            canEdit={canEdit}
+            canApprove={canApprove}
+            canVoid={canVoid}
+          />
         </CardContent>
       </Card>
     </div>

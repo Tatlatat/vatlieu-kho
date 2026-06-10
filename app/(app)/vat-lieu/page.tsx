@@ -1,5 +1,5 @@
 import * as React from "react";
-import { requireRole } from "@/lib/auth-helpers";
+import { can, requirePermission } from "@/lib/auth-helpers";
 import { getSuppliers, getUnits } from "@/lib/queries/catalogs";
 import { getMaterials } from "@/lib/queries/stock";
 import { getWarehouses } from "@/lib/queries/warehouses";
@@ -9,12 +9,13 @@ import { UnitManager } from "@/components/unit-manager";
 import { WarehouseManager } from "@/components/warehouse-manager";
 
 export default async function VatLieuPage() {
-  await requireRole("OWNER");
-  const [materials, warehouses, units, suppliers] = await Promise.all([
+  const user = await requirePermission("catalog.view");
+  const [materials, warehouses, units, suppliers, canManage] = await Promise.all([
     getMaterials(),
     getWarehouses(),
     getUnits(),
     getSuppliers(),
+    can(user.id, "catalog.manage"),
   ]);
 
   return (
@@ -28,16 +29,16 @@ export default async function VatLieuPage() {
         </p>
       </div>
 
-      <UnitManager units={units} />
+      <UnitManager units={units} canManage={canManage} />
 
-      <MaterialManager materials={materials} units={units} />
+      <MaterialManager materials={materials} units={units} canManage={canManage} />
 
-      <SupplierManager suppliers={suppliers} />
+      <SupplierManager suppliers={suppliers} canManage={canManage} />
 
       <div className="pt-4">
         <h2 className="text-xl font-bold tracking-tight text-foreground mb-1">Quản Lý Kho</h2>
         <p className="text-sm text-muted-foreground mb-4">Thêm hoặc sửa các kho chứa vật tư</p>
-        <WarehouseManager warehouses={warehouses} />
+        <WarehouseManager warehouses={warehouses} canManage={canManage} />
       </div>
     </div>
   );

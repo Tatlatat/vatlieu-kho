@@ -19,6 +19,7 @@ interface Props {
   description: string;
   newHref: string;
   newLabel: string;
+  canCreate?: boolean;
   rows: InventoryDocumentListRow[];
 }
 
@@ -28,7 +29,14 @@ function statusClass(status: InventoryDocumentListRow["status"]) {
   return "bg-amber-500/10 text-amber-700 border-transparent";
 }
 
-export function InventoryDocumentList({ title, description, newHref, newLabel, rows }: Props) {
+export function InventoryDocumentList({
+  title,
+  description,
+  newHref,
+  newLabel,
+  canCreate = true,
+  rows,
+}: Props) {
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -36,10 +44,12 @@ export function InventoryDocumentList({ title, description, newHref, newLabel, r
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
-        <Link href={newHref} className={cn(buttonVariants(), "w-full sm:w-auto")}>
-          <Plus className="size-4" />
-          {newLabel}
-        </Link>
+        {canCreate && (
+          <Link href={newHref} className={cn(buttonVariants(), "w-full sm:w-auto")}>
+            <Plus className="size-4" />
+            {newLabel}
+          </Link>
+        )}
       </div>
 
       <Card className="border border-border shadow-sm">

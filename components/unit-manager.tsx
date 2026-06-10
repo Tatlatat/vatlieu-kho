@@ -56,7 +56,13 @@ function UnitFields({ unit }: { unit?: Unit }) {
   );
 }
 
-export function UnitManager({ units }: { units: Unit[] }) {
+export function UnitManager({
+  units,
+  canManage = true,
+}: {
+  units: Unit[];
+  canManage?: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
@@ -99,9 +105,11 @@ export function UnitManager({ units }: { units: Unit[] }) {
         <CardTitle className="text-lg font-semibold">
           Đơn vị tính <span className="text-sm font-normal text-muted-foreground">({units.length})</span>
         </CardTitle>
-        <Button size="sm" onClick={() => setIsCreateOpen(true)} className="cursor-pointer">
-          Thêm đơn vị
-        </Button>
+        {canManage && (
+          <Button size="sm" onClick={() => setIsCreateOpen(true)} className="cursor-pointer">
+            Thêm đơn vị
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <Table>
@@ -109,7 +117,7 @@ export function UnitManager({ units }: { units: Unit[] }) {
             <TableRow>
               <TableHead>Tên</TableHead>
               <TableHead>Ghi chú</TableHead>
-              <TableHead className="w-[100px] text-right">Hành động</TableHead>
+              {canManage && <TableHead className="w-[100px] text-right">Hành động</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -117,16 +125,18 @@ export function UnitManager({ units }: { units: Unit[] }) {
               <TableRow key={unit.id}>
                 <TableCell className="font-medium">{unit.name}</TableCell>
                 <TableCell>{unit.note ?? ""}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="outline" size="sm" onClick={() => setEditingUnit(unit)}>
-                    Sửa
-                  </Button>
-                </TableCell>
+                {canManage && (
+                  <TableCell className="text-right">
+                    <Button variant="outline" size="sm" onClick={() => setEditingUnit(unit)}>
+                      Sửa
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
             {units.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="py-8 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={canManage ? 3 : 2} className="py-8 text-center text-sm text-muted-foreground">
                   Chưa có đơn vị tính.
                 </TableCell>
               </TableRow>

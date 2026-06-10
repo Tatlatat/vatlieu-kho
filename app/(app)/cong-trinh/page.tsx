@@ -1,10 +1,10 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requirePermission } from "@/lib/auth-helpers";
 import { getProjectManagerData, getProjectNormReport } from "@/lib/queries/projects";
 import { ProjectManager } from "@/components/project-manager";
 import { ProjectNormReport } from "@/components/project-norm-report";
 
 export default async function CongTrinhPage() {
-  await requireRole("OWNER");
+  await requirePermission("project.view");
   const [data, reportRows] = await Promise.all([
     getProjectManagerData(),
     getProjectNormReport(),

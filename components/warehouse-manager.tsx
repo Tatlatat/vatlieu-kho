@@ -32,7 +32,13 @@ interface Warehouse {
   isDefault: boolean;
 }
 
-export function WarehouseManager({ warehouses }: { warehouses: Warehouse[] }) {
+export function WarehouseManager({
+  warehouses,
+  canManage = true,
+}: {
+  warehouses: Warehouse[];
+  canManage?: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
@@ -79,11 +85,13 @@ export function WarehouseManager({ warehouses }: { warehouses: Warehouse[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setIsCreateOpen(true)} className="cursor-pointer">
-          Thêm kho
-        </Button>
-      </div>
+      {canManage && (
+        <div className="flex justify-end">
+          <Button onClick={() => setIsCreateOpen(true)} className="cursor-pointer">
+            Thêm kho
+          </Button>
+        </div>
+      )}
 
       <Card className="shadow-md border border-border">
         <CardHeader>
@@ -102,7 +110,7 @@ export function WarehouseManager({ warehouses }: { warehouses: Warehouse[] }) {
                     <TableHead>Tên kho</TableHead>
                     <TableHead>Mã</TableHead>
                     <TableHead>Mặc định</TableHead>
-                    <TableHead className="w-[100px] text-right">Hành động</TableHead>
+                    {canManage && <TableHead className="w-[100px] text-right">Hành động</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -117,16 +125,18 @@ export function WarehouseManager({ warehouses }: { warehouses: Warehouse[] }) {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditing(w)}
-                          className="cursor-pointer"
-                        >
-                          Sửa
-                        </Button>
-                      </TableCell>
+                      {canManage && (
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditing(w)}
+                            className="cursor-pointer"
+                          >
+                            Sửa
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

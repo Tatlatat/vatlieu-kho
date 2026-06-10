@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth-helpers";
+import { can, requireUser } from "@/lib/auth-helpers";
 import { InventoryDocumentDetail } from "@/components/inventory-document-detail";
 import { getInventoryDocumentDetail } from "@/lib/queries/documents";
+import { permissionForInventoryDocument } from "@/lib/permissions/inventory-permissions";
 
 export default async function PhieuDetailPage({
   params,
@@ -12,6 +13,9 @@ export default async function PhieuDetailPage({
   const document = await getInventoryDocumentDetail(id);
   if (!document) notFound();
 
-  const canManage = user.role === "OWNER";
-  return <InventoryDocumentDetail document={document} canEdit={canManage} canVoid={canManage} />;
+  const [canEdit, canVoid] = await Promise.all([
+    can(user.id, permissionForInventoryDocument(document.kind, "edit_posted")),
+    can(user.id, permissionForInventoryDocument(document.kind, "void")),
+  ]);
+  return <InventoryDocumentDetail document={document} canEdit={canEdit} canVoid={canVoid} />;
 }

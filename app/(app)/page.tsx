@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth-helpers";
+import { canAccessPermission } from "@/lib/permissions/effective";
+import { getUserPermissionSnapshot } from "@/lib/permissions/service";
 import { getCurrentStock } from "@/lib/queries/stock";
 import { getDashboardSummary } from "@/lib/queries/reports";
 import { getWarehouses } from "@/lib/queries/warehouses";
@@ -23,10 +25,10 @@ import {
 } from "lucide-react";
 
 const actions = [
-  { href: "/nhap", label: "Nhập hàng", icon: ArrowDownToLine, color: "bg-blue-600" },
-  { href: "/xuat", label: "Xuất hàng", icon: ArrowUpFromLine, color: "bg-green-600" },
-  { href: "/kiem-ke", label: "Kiểm kê kho", icon: ClipboardCheck, color: "bg-amber-600" },
-  { href: "/lich-su", label: "Lịch sử", icon: Search, color: "bg-slate-500" },
+  { href: "/nhap", label: "Nhập hàng", icon: ArrowDownToLine, color: "bg-blue-600", permission: "inventory.import.view" },
+  { href: "/xuat", label: "Xuất hàng", icon: ArrowUpFromLine, color: "bg-green-600", permission: "inventory.export.view" },
+  { href: "/kiem-ke", label: "Kiểm kê kho", icon: ClipboardCheck, color: "bg-amber-600", permission: "inventory.stocktake.view" },
+  { href: "/lich-su", label: "Lịch sử", icon: Search, color: "bg-slate-500", permission: "inventory.history.view" },
 ];
 
 export default async function HomePage({
@@ -35,14 +37,16 @@ export default async function HomePage({
   searchParams: Promise<{ wh?: string }>;
 }) {
   const user = await requireUser();
-  const isOwner = user.role === "OWNER";
+  const permissions = await getUserPermissionSnapshot(user.id);
+  const canViewReports = canAccessPermission(permissions, "inventory.report.view");
   const sp = await searchParams;
   const wh = sp.wh ?? "";
   const [stock, summary, warehouses] = await Promise.all([
     getCurrentStock(wh || undefined),
-    isOwner ? getDashboardSummary() : Promise.resolve(null),
+    canViewReports ? getDashboardSummary() : Promise.resolve(null),
     getWarehouses(),
   ]);
+  const visibleActions = actions.filter((action) => canAccessPermission(permissions, action.permission));
 
   return (
     <div className="space-y-6">
@@ -51,7 +55,7 @@ export default async function HomePage({
         <p className="text-sm text-slate-500">Chọn thao tác hoặc xem tồn kho bên dưới.</p>
       </div>
 
-      {isOwner && summary && (
+      {canViewReports && summary && (
         <Link
           href="/bao-cao"
           className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4 transition hover:bg-red-100 dark:border-red-900 dark:bg-red-950/30"
@@ -77,7 +81,7 @@ export default async function HomePage({
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {actions.map((a) => {
+        {visibleActions.map((a) => {
           const Icon = a.icon;
           return (
             <Link

@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/auth-helpers";
+import { requirePermission, requireUser } from "@/lib/auth-helpers";
 import { ExportForm } from "@/components/export-form";
 import { ImportForm } from "@/components/import-form";
 import { TransferForm } from "@/components/transfer-form";
+import { permissionForInventoryDocument } from "@/lib/permissions/inventory-permissions";
 import { getSupplierOptions } from "@/lib/queries/catalogs";
 import { getInventoryDocumentDetail } from "@/lib/queries/documents";
 import { getProjectOptions } from "@/lib/queries/projects";
@@ -14,17 +15,19 @@ export default async function EditPhieuPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole("OWNER");
+  await requireUser();
   const { id } = await params;
-  const [document, materials, warehouses, projects, suppliers] = await Promise.all([
-    getInventoryDocumentDetail(id),
+  const document = await getInventoryDocumentDetail(id);
+
+  if (!document || document.status !== "POSTED") notFound();
+  await requirePermission(permissionForInventoryDocument(document.kind, "edit_posted"));
+
+  const [materials, warehouses, projects, suppliers] = await Promise.all([
     getMaterials(),
     getWarehouses(),
     getProjectOptions(),
     getSupplierOptions(),
   ]);
-
-  if (!document || document.status !== "POSTED") notFound();
 
   if (document.kind === "IMPORT") {
     return (

@@ -1,9 +1,11 @@
+import { requirePermission } from "@/lib/auth-helpers";
 import { getMaterials } from "@/lib/queries/stock";
 import { getWarehouses } from "@/lib/queries/warehouses";
 import { getProjectOptions } from "@/lib/queries/projects";
 import { ExportForm } from "@/components/export-form";
 
 export default async function NewXuatPage() {
+  await requirePermission("inventory.export.create");
   const [materials, warehouses, projects] = await Promise.all([
     getMaterials(),
     getWarehouses(),

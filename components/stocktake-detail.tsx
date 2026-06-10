@@ -47,10 +47,12 @@ interface Stocktake {
 
 interface StocktakeDetailProps {
   stocktake: Stocktake;
-  role: "OWNER" | "STAFF";
+  canEdit: boolean;
+  canApprove: boolean;
+  canVoid: boolean;
 }
 
-export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
+export function StocktakeDetail({ stocktake, canEdit, canApprove, canVoid }: StocktakeDetailProps) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [voidOpen, setVoidOpen] = React.useState(false);
@@ -163,7 +165,7 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
                     {item.systemQty.toLocaleString("vi-VN")} <span className="text-xs text-muted-foreground">{item.material.unit}</span>
                   </TableCell>
                   <TableCell>
-                    {isDraft ? (
+                    {isDraft && canEdit ? (
                       <Input
                         type="number"
                         step="any"
@@ -231,7 +233,7 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
         </div>
 
         <div className="flex gap-2">
-          {role === "OWNER" && isDraft && (
+          {canApprove && isDraft && (
             <Button
               onClick={handleApprove}
               disabled={isPending}
@@ -240,7 +242,7 @@ export function StocktakeDetail({ stocktake, role }: StocktakeDetailProps) {
               {isPending ? "Đang xử lý..." : "Duyệt phiếu"}
             </Button>
           )}
-          {role === "OWNER" && isApproved && (
+          {canVoid && isApproved && (
             <Button
               variant="outline"
               onClick={() => setVoidOpen(true)}

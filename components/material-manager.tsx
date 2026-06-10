@@ -52,6 +52,7 @@ interface Material {
 interface MaterialManagerProps {
   materials: Material[];
   units: Unit[];
+  canManage?: boolean;
 }
 
 function selectClassName() {
@@ -154,7 +155,7 @@ function MaterialFields({
   );
 }
 
-export function MaterialManager({ materials, units }: MaterialManagerProps) {
+export function MaterialManager({ materials, units, canManage = true }: MaterialManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
@@ -203,11 +204,13 @@ export function MaterialManager({ materials, units }: MaterialManagerProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button onClick={() => setIsCreateOpen(true)} className="cursor-pointer" disabled={units.length === 0}>
-          Thêm danh mục
-        </Button>
-      </div>
+      {canManage && (
+        <div className="flex justify-end">
+          <Button onClick={() => setIsCreateOpen(true)} className="cursor-pointer" disabled={units.length === 0}>
+            Thêm danh mục
+          </Button>
+        </div>
+      )}
 
       <Card className="shadow-md border border-border">
         <CardHeader>
@@ -232,7 +235,7 @@ export function MaterialManager({ materials, units }: MaterialManagerProps) {
                     <TableHead>Đơn vị</TableHead>
                     <TableHead>Theo dõi</TableHead>
                     <TableHead className="text-right">Tồn tối thiểu</TableHead>
-                    <TableHead className="w-[100px] text-right">Hành động</TableHead>
+                    {canManage && <TableHead className="w-[100px] text-right">Hành động</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -247,16 +250,18 @@ export function MaterialManager({ materials, units }: MaterialManagerProps) {
                       <TableCell>{material.unit}</TableCell>
                       <TableCell>{TRACKING_MODE_LABELS[material.trackingMode]}</TableCell>
                       <TableCell className="text-right font-medium">{material.minStock}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingMaterial(material)}
-                          className="cursor-pointer"
-                        >
-                          Sửa
-                        </Button>
-                      </TableCell>
+                      {canManage && (
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingMaterial(material)}
+                            className="cursor-pointer"
+                          >
+                            Sửa
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

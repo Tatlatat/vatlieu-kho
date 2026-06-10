@@ -87,7 +87,13 @@ function SupplierFields({ supplier }: { supplier?: Supplier }) {
   );
 }
 
-export function SupplierManager({ suppliers }: { suppliers: Supplier[] }) {
+export function SupplierManager({
+  suppliers,
+  canManage = true,
+}: {
+  suppliers: Supplier[];
+  canManage?: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
@@ -130,9 +136,11 @@ export function SupplierManager({ suppliers }: { suppliers: Supplier[] }) {
         <CardTitle className="text-lg font-semibold">
           Nhà cung cấp <span className="text-sm font-normal text-muted-foreground">({suppliers.length})</span>
         </CardTitle>
-        <Button size="sm" onClick={() => setIsCreateOpen(true)} className="cursor-pointer">
-          Thêm NCC
-        </Button>
+        {canManage && (
+          <Button size="sm" onClick={() => setIsCreateOpen(true)} className="cursor-pointer">
+            Thêm NCC
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -143,7 +151,7 @@ export function SupplierManager({ suppliers }: { suppliers: Supplier[] }) {
                 <TableHead>Mã số thuế</TableHead>
                 <TableHead>Tên công ty</TableHead>
                 <TableHead>Địa chỉ</TableHead>
-                <TableHead className="w-[100px] text-right">Hành động</TableHead>
+                {canManage && <TableHead className="w-[100px] text-right">Hành động</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -155,16 +163,18 @@ export function SupplierManager({ suppliers }: { suppliers: Supplier[] }) {
                   <TableCell className="max-w-[260px] truncate" title={supplier.address ?? ""}>
                     {supplier.address ?? ""}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm" onClick={() => setEditingSupplier(supplier)}>
-                      Sửa
-                    </Button>
-                  </TableCell>
+                  {canManage && (
+                    <TableCell className="text-right">
+                      <Button variant="outline" size="sm" onClick={() => setEditingSupplier(supplier)}>
+                        Sửa
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
               {suppliers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={canManage ? 5 : 4} className="py-8 text-center text-sm text-muted-foreground">
                     Chưa có nhà cung cấp.
                   </TableCell>
                 </TableRow>
