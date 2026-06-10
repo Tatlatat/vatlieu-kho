@@ -40,6 +40,7 @@ LEFT JOIN "StockMovement" sm
   ON sm."materialId" = m.id
   AND sm."warehouseId" = w.id
   AND sm."voidedAt" IS NULL
+  AND sm."supersededAt" IS NULL
   AND sm.reason <> 'VOID'
 GROUP BY m.id, m.name, m.code, m.unit, m."minStock", w.id, w.name;
 
@@ -104,6 +105,7 @@ SELECT
 FROM "StockMovement" sm
 WHERE sm.type = 'OUT'
   AND sm."voidedAt" IS NULL
+  AND sm."supersededAt" IS NULL
   AND sm.reason IN ('DAMAGED', 'EXPIRED', 'NATURAL_LOSS', 'STOCKTAKE_ADJUST')
 GROUP BY date_trunc('month', sm."createdAt"), sm."warehouseId", sm.reason
 ORDER BY month, reason;

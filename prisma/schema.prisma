@@ -35,64 +35,179 @@ enum StocktakeStatus {
   VOIDED
 }
 
+enum InventoryDocumentKind {
+  IMPORT
+  EXPORT
+  TRANSFER
+  OPENING
+  ADJUSTMENT
+}
+
+enum InventoryDocumentStatus {
+  DRAFT
+  POSTED
+  VOIDED
+}
+
+enum DocumentAuditAction {
+  CREATE
+  POST
+  EDIT_DRAFT
+  EDIT_POSTED
+  VOID
+  DELETE_DRAFT
+}
+
 model User {
-  id                 String          @id @default(cuid())
-  email              String          @unique
-  passwordHash       String
-  name               String
-  role               Role            @default(STAFF)
-  createdAt          DateTime        @default(now())
-  movements          StockMovement[]
-  stocktakesCreated  Stocktake[]     @relation("created")
-  stocktakesApproved Stocktake[]     @relation("approved")
+  id                String              @id @default(cuid())
+  email             String              @unique
+  passwordHash      String
+  name              String
+  role              Role                @default(STAFF)
+  createdAt         DateTime            @default(now())
+  movements         StockMovement[]
+  stocktakesCreated Stocktake[]         @relation("created")
+  stocktakesApproved Stocktake[]        @relation("approved")
+  documentsCreated  InventoryDocument[] @relation("DocumentCreatedBy")
+  documentsUpdated  InventoryDocument[] @relation("DocumentUpdatedBy")
+  documentsPosted   InventoryDocument[] @relation("DocumentPostedBy")
+  documentsVoided   InventoryDocument[] @relation("DocumentVoidedBy")
+  documentAuditLogs DocumentAuditLog[]
 }
 
 model Material {
-  id             String          @id @default(cuid())
+  id             String                  @id @default(cuid())
   name           String
-  code           String          @unique
+  code           String                  @unique
   unit           String
-  minStock       Float           @default(0)
-  createdAt      DateTime        @default(now())
+  minStock       Float                   @default(0)
+  createdAt      DateTime                @default(now())
   movements      StockMovement[]
   stocktakeItems StocktakeItem[]
+  documentLines  InventoryDocumentLine[]
 }
 
 model Warehouse {
-  id         String          @id @default(cuid())
-  name       String
-  code       String          @unique
-  isDefault  Boolean         @default(false)
-  createdAt  DateTime        @default(now())
-  movements  StockMovement[]
-  stocktakes Stocktake[]
+  id                    String              @id @default(cuid())
+  name                  String
+  code                  String              @unique
+  isDefault             Boolean             @default(false)
+  createdAt             DateTime            @default(now())
+  movements             StockMovement[]
+  stocktakes            Stocktake[]
+  inventoryDocuments    InventoryDocument[] @relation("DocumentWarehouse")
+  fromTransferDocuments InventoryDocument[] @relation("DocumentFromWarehouse")
+  toTransferDocuments   InventoryDocument[] @relation("DocumentToWarehouse")
 }
 
 model StockMovement {
-  id             String         @id @default(cuid())
-  materialId     String
-  material       Material       @relation(fields: [materialId], references: [id])
-  warehouseId    String
-  warehouse      Warehouse      @relation(fields: [warehouseId], references: [id])
-  type           MovementType
-  quantity       Float
-  reason         MovementReason
-  note           String?
-  transferId     String?
-  stocktakeId    String?
-  stocktake      Stocktake?     @relation("stocktakeAdjustments", fields: [stocktakeId], references: [id])
-  voidedAt       DateTime?
-  voidedById     String?
-  voidReversalOf String?
-  createdById    String
-  createdBy      User           @relation(fields: [createdById], references: [id])
-  createdAt      DateTime       @default(now())
+  id                    String                 @id @default(cuid())
+  materialId            String
+  material              Material               @relation(fields: [materialId], references: [id])
+  warehouseId           String
+  warehouse             Warehouse              @relation(fields: [warehouseId], references: [id])
+  type                  MovementType
+  quantity              Float
+  reason                MovementReason
+  note                  String?
+  transferId            String?
+  stocktakeId           String?
+  stocktake             Stocktake?             @relation("stocktakeAdjustments", fields: [stocktakeId], references: [id])
+  documentId            String?
+  document              InventoryDocument?     @relation(fields: [documentId], references: [id])
+  documentLineId        String?
+  documentLine          InventoryDocumentLine? @relation(fields: [documentLineId], references: [id])
+  documentRevisionNo    Int?
+  supersededAt          DateTime?
+  supersededByRevisionNo Int?
+  voidedAt              DateTime?
+  voidedById            String?
+  voidReversalOf        String?
+  createdById           String
+  createdBy             User                   @relation(fields: [createdById], references: [id])
+  createdAt             DateTime               @default(now())
 
   @@index([materialId])
   @@index([warehouseId])
   @@index([transferId])
   @@index([stocktakeId])
+  @@index([documentId])
+  @@index([documentLineId])
   @@index([createdAt])
+}
+
+model InventoryDocument {
+  id              String                  @id @default(cuid())
+  code            String                  @unique
+  kind            InventoryDocumentKind
+  status          InventoryDocumentStatus @default(DRAFT)
+  documentDate    DateTime
+  warehouseId     String?
+  warehouse       Warehouse?              @relation("DocumentWarehouse", fields: [warehouseId], references: [id])
+  fromWarehouseId String?
+  fromWarehouse   Warehouse?              @relation("DocumentFromWarehouse", fields: [fromWarehouseId], references: [id])
+  toWarehouseId   String?
+  toWarehouse     Warehouse?              @relation("DocumentToWarehouse", fields: [toWarehouseId], references: [id])
+  reason          MovementReason?
+  note            String?
+  revisionNo      Int                     @default(1)
+  createdById     String
+  createdBy       User                    @relation("DocumentCreatedBy", fields: [createdById], references: [id])
+  updatedById     String?
+  updatedBy       User?                   @relation("DocumentUpdatedBy", fields: [updatedById], references: [id])
+  postedById      String?
+  postedBy        User?                   @relation("DocumentPostedBy", fields: [postedById], references: [id])
+  voidedById      String?
+  voidedBy        User?                   @relation("DocumentVoidedBy", fields: [voidedById], references: [id])
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  postedAt        DateTime?
+  voidedAt        DateTime?
+  voidReason      String?
+  lines           InventoryDocumentLine[]
+  movements       StockMovement[]
+  auditLogs       DocumentAuditLog[]
+
+  @@index([kind, status])
+  @@index([documentDate])
+  @@index([warehouseId])
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
+  @@index([createdById])
+}
+
+model InventoryDocumentLine {
+  id         String            @id @default(cuid())
+  documentId String
+  document   InventoryDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  lineNo     Int
+  materialId String
+  material   Material          @relation(fields: [materialId], references: [id])
+  quantity   Float
+  note       String?
+  movements  StockMovement[]
+
+  @@unique([documentId, lineNo])
+  @@index([materialId])
+}
+
+model DocumentAuditLog {
+  id             String            @id @default(cuid())
+  documentId     String
+  document       InventoryDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  action         DocumentAuditAction
+  fromRevisionNo Int?
+  toRevisionNo   Int?
+  reason         String?
+  snapshotBefore Json?
+  snapshotAfter  Json?
+  changedById    String
+  changedBy      User              @relation(fields: [changedById], references: [id])
+  changedAt      DateTime          @default(now())
+
+  @@index([documentId])
+  @@index([changedById])
+  @@index([changedAt])
 }
 
 model Stocktake {
