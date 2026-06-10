@@ -12,6 +12,11 @@ enum Role {
   STAFF
 }
 
+enum UserPermissionEffect {
+  ALLOW
+  DENY
+}
+
 enum MovementType {
   IN
   OUT
@@ -91,6 +96,70 @@ model User {
   documentAuditLogs DocumentAuditLog[]
   materialNormsCreated MaterialNorm[]    @relation("MaterialNormCreatedBy")
   materialNormsUpdated MaterialNorm[]    @relation("MaterialNormUpdatedBy")
+  positionAssignments UserPositionAssignment[]
+  permissionOverrides UserPermissionOverride[]
+}
+
+model Permission {
+  id            String                   @id @default(cuid())
+  code          String                   @unique
+  name          String
+  category      String
+  description   String?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  positions     PositionPermission[]
+  userOverrides UserPermissionOverride[]
+}
+
+model UserPosition {
+  id          String                   @id @default(cuid())
+  code        String                   @unique
+  name        String
+  description String?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  permissions PositionPermission[]
+  users       UserPositionAssignment[]
+}
+
+model PositionPermission {
+  id           String       @id @default(cuid())
+  positionId   String
+  position     UserPosition @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission   @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+
+  @@unique([positionId, permissionId])
+  @@index([permissionId])
+}
+
+model UserPositionAssignment {
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  positionId String
+  position   UserPosition @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime     @default(now())
+
+  @@unique([userId, positionId])
+  @@index([positionId])
+}
+
+model UserPermissionOverride {
+  id           String               @id @default(cuid())
+  userId       String
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission           @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  effect       UserPermissionEffect
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@unique([userId, permissionId])
+  @@index([permissionId])
+  @@index([effect])
 }
 
 model Unit {

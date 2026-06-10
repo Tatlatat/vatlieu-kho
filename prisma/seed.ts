@@ -1,6 +1,7 @@
 import { PrismaClient, Material, MovementType, MovementReason } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
+import { ensurePermissionSeeded, updateUserPermissions } from "../lib/permissions/service";
 
 const prisma = new PrismaClient();
 
@@ -16,7 +17,7 @@ async function main() {
   // 2. Create 2 users
   const passwordHash = await bcrypt.hash("123456", 10);
 
-  await prisma.user.create({
+  const owner = await prisma.user.create({
     data: {
       email: "owner@vatlieu.vn",
       name: "Anh Chu",
@@ -32,6 +33,22 @@ async function main() {
       role: "STAFF",
       passwordHash,
     },
+  });
+
+  await ensurePermissionSeeded(prisma);
+  await updateUserPermissions({
+    targetUserId: owner.id,
+    positionCodes: ["ADMIN"],
+    allowCodes: [],
+    denyCodes: [],
+    actorUserId: owner.id,
+  });
+  await updateUserPermissions({
+    targetUserId: staff.id,
+    positionCodes: ["THU_KHO"],
+    allowCodes: [],
+    denyCodes: [],
+    actorUserId: owner.id,
   });
 
   // 3. Create 8 materials
