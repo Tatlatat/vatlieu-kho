@@ -2,13 +2,21 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { SearchableMaterialSelect } from "@/components/searchable-material-select";
 import { WarehouseSelect } from "@/components/warehouse-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectTrigger,
@@ -18,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { updateInventoryDocument } from "@/lib/actions/documents";
 import { createExport } from "@/lib/actions/movements";
+import { formatNormWarningQuantity } from "@/lib/projects/norm-warning-format";
+import type { ProjectNormWarning } from "@/lib/projects/norm-warnings";
 import type { ProjectOption } from "@/lib/queries/projects";
 import { OUT_REASONS } from "@/lib/validation";
 import { toast } from "sonner";
@@ -104,6 +114,9 @@ export function ExportForm({
   );
   const [isPending, startTransition] = React.useTransition();
   const formRef = React.useRef<HTMLFormElement>(null);
+  const pendingFormDataRef = React.useRef<FormData | null>(null);
+  const [warningOpen, setWarningOpen] = React.useState(false);
+  const [pendingWarnings, setPendingWarnings] = React.useState<ProjectNormWarning[]>([]);
   const isEdit = mode === "edit";
   const backHref = isEdit && initialDocument ? `/phieu/${initialDocument.id}` : "/xuat";
 
@@ -128,6 +141,55 @@ export function ExportForm({
     setLines((current) => (current.length === 1 ? current : current.filter((line) => line.id !== id)));
   };
 
+  const buildFormData = (form: HTMLFormElement) => {
+    const formData = new FormData(form);
+    if (isEdit && initialDocument) {
+      formData.set("documentId", initialDocument.id);
+    }
+    formData.set(
+      "lines",
+      JSON.stringify(
+        lines.map((line) => ({
+          materialId: line.materialId,
+          quantity: line.quantity,
+          projectId: line.projectId || undefined,
+          workItemId: line.workItemId || undefined,
+        }))
+      )
+    );
+    formData.delete("allowOverNorm");
+    return formData;
+  };
+
+  const submitFormData = (formData: FormData) => {
+    startTransition(async () => {
+      try {
+        const res = isEdit ? await updateInventoryDocument(formData) : await createExport(formData);
+        if (res.ok) {
+          pendingFormDataRef.current = null;
+          setPendingWarnings([]);
+          setWarningOpen(false);
+          toast.success(isEdit ? "Đã cập nhật phiếu xuất" : "Đã xuất kho");
+          if (!isEdit) {
+            formRef.current?.reset();
+            setLines([createLine("line-1")]);
+            setReason("");
+            setDocumentDate(dateInputValue());
+          }
+          router.push(isEdit && initialDocument ? `/phieu/${initialDocument.id}` : "/xuat");
+        } else if (res.code === "OVER_NORM_WARNING" && res.normWarnings?.length) {
+          pendingFormDataRef.current = formData;
+          setPendingWarnings(res.normWarnings);
+          setWarningOpen(true);
+        } else {
+          toast.error(res.error || "Có lỗi xảy ra");
+        }
+      } catch {
+        toast.error("Có lỗi kết nối xảy ra");
+      }
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!warehouseId) {
@@ -143,41 +205,28 @@ export function ExportForm({
       toast.error("Vui lòng nhập đủ vật tư và số lượng lớn hơn 0 cho từng dòng");
       return;
     }
-    const formData = new FormData(e.currentTarget);
-    if (isEdit && initialDocument) {
-      formData.set("documentId", initialDocument.id);
-    }
-    formData.set(
-      "lines",
-      JSON.stringify(
-        lines.map((line) => ({
-          materialId: line.materialId,
-          quantity: line.quantity,
-          projectId: line.projectId || undefined,
-          workItemId: line.workItemId || undefined,
-        }))
-      )
-    );
+    setPendingWarnings([]);
+    setWarningOpen(false);
+    pendingFormDataRef.current = null;
+    submitFormData(buildFormData(e.currentTarget));
+  };
 
-    startTransition(async () => {
-      try {
-        const res = isEdit ? await updateInventoryDocument(formData) : await createExport(formData);
-        if (res.ok) {
-          toast.success(isEdit ? "Đã cập nhật phiếu xuất" : "Đã xuất kho");
-          if (!isEdit) {
-            formRef.current?.reset();
-            setLines([createLine("line-1")]);
-            setReason("");
-            setDocumentDate(dateInputValue());
-          }
-          router.push(isEdit && initialDocument ? `/phieu/${initialDocument.id}` : "/xuat");
-        } else {
-          toast.error(res.error || "Có lỗi xảy ra");
-        }
-      } catch {
-        toast.error("Có lỗi kết nối xảy ra");
-      }
-    });
+  const confirmOverNorm = () => {
+    const pendingFormData = pendingFormDataRef.current;
+    if (!pendingFormData) return;
+    const confirmedFormData = new FormData();
+    for (const [key, value] of pendingFormData.entries()) {
+      confirmedFormData.append(key, value);
+    }
+    confirmedFormData.set("allowOverNorm", "true");
+    setWarningOpen(false);
+    submitFormData(confirmedFormData);
+  };
+
+  const cancelOverNorm = () => {
+    pendingFormDataRef.current = null;
+    setPendingWarnings([]);
+    setWarningOpen(false);
   };
 
   return (
@@ -379,6 +428,73 @@ export function ExportForm({
           </form>
         </CardContent>
       </Card>
+      <Dialog open={warningOpen} onOpenChange={setWarningOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-destructive" />
+              Vượt định mức công trình
+            </DialogTitle>
+            <DialogDescription>
+              Một số dòng xuất sẽ làm thực tế sử dụng vượt định mức đã nhập.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
+            {pendingWarnings.map((warning) => (
+              <div
+                key={`${warning.workItemId}-${warning.materialId}`}
+                className="rounded-md border border-destructive/30 bg-destructive/5 p-3"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <div className="font-medium text-foreground">{warning.materialName}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {warning.projectName} / {warning.workItemName}
+                    </div>
+                  </div>
+                  <div className="text-right text-sm font-semibold text-destructive">
+                    +{formatNormWarningQuantity(warning.overQty, warning.materialUnit)}
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-4">
+                  <div>
+                    <div>Định mức</div>
+                    <div className="font-medium text-foreground">
+                      {formatNormWarningQuantity(warning.normQty, warning.materialUnit)}
+                    </div>
+                  </div>
+                  <div>
+                    <div>Đã xuất</div>
+                    <div className="font-medium text-foreground">
+                      {formatNormWarningQuantity(warning.usedQty, warning.materialUnit)}
+                    </div>
+                  </div>
+                  <div>
+                    <div>Phiếu này</div>
+                    <div className="font-medium text-foreground">
+                      {formatNormWarningQuantity(warning.plannedQty, warning.materialUnit)}
+                    </div>
+                  </div>
+                  <div>
+                    <div>Sau ghi sổ</div>
+                    <div className="font-medium text-foreground">
+                      {formatNormWarningQuantity(warning.totalQty, warning.materialUnit)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={cancelOverNorm} disabled={isPending}>
+              Quay lại sửa
+            </Button>
+            <Button type="button" onClick={confirmOverNorm} disabled={isPending}>
+              Vẫn ghi sổ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { prisma } from "../lib/prisma";
+import { formatNormWarningQuantity } from "../lib/projects/norm-warning-format";
 import {
   aggregatePlannedNormUsage,
   calculateProjectNormWarnings,
@@ -135,6 +136,11 @@ import {
     ),
     false
   );
+}
+
+{
+  assert.equal(formatNormWarningQuantity(1234.5, "cây"), "1.234,5 cây");
+  assert.equal(formatNormWarningQuantity(3, ""), "3");
 }
 
 async function testDatabaseWarningQuery() {
