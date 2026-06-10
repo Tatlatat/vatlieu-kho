@@ -115,7 +115,11 @@ export function InventoryDocumentDetail({ document, canEdit, canVoid }: Props) {
           )}
           <div>
             <div className="text-xs text-muted-foreground">Lý do</div>
-            <div className="font-medium">{document.reasonLabel ?? "Không có"}</div>
+            <div className="font-medium">
+              {document.kind === "TRANSFER"
+                ? document.transferReasonLabel ?? "Không có"
+                : document.reasonLabel ?? "Không có"}
+            </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Người lập</div>

@@ -292,6 +292,7 @@ model InventoryDocument {
   supplierId      String?
   supplier        Supplier?               @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   reason          MovementReason?
+  transferReason  String?
   note            String?
   revisionNo      Int                     @default(1)
   createdById     String

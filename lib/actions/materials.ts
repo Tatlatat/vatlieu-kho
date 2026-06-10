@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/auth-helpers";
+import { trackingModeForMaterialKind } from "@/lib/catalogs/material-catalog";
 import { materialSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/actions/movements";
 
@@ -34,7 +35,7 @@ export async function createMaterial(formData: FormData): Promise<ActionResult> 
       unit: unit.name,
       minStock: parsed.data.minStock,
       kind: parsed.data.kind,
-      trackingMode: parsed.data.trackingMode,
+      trackingMode: trackingModeForMaterialKind(parsed.data.kind),
     },
   });
   revalidatePath("/vat-lieu");
@@ -74,7 +75,7 @@ export async function updateMaterial(id: string, formData: FormData): Promise<Ac
       unit: unit.name,
       minStock: parsed.data.minStock,
       kind: parsed.data.kind,
-      trackingMode: parsed.data.trackingMode,
+      trackingMode: trackingModeForMaterialKind(parsed.data.kind),
     },
   });
   revalidatePath("/vat-lieu");

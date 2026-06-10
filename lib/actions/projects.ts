@@ -74,6 +74,7 @@ export async function createProject(formData: FormData): Promise<ActionResult> {
   });
 
   revalidatePath("/cong-trinh");
+  revalidatePath("/vat-lieu");
   revalidatePath("/xuat/moi");
   return { ok: true };
 }
@@ -103,6 +104,7 @@ export async function updateProject(projectId: string, formData: FormData): Prom
   });
 
   revalidatePath("/cong-trinh");
+  revalidatePath("/vat-lieu");
   revalidatePath("/xuat/moi");
   revalidatePath(`/cong-trinh?project=${projectId}`);
   return { ok: true };
@@ -131,6 +133,7 @@ export async function createProjectWorkItem(formData: FormData): Promise<ActionR
   }
 
   revalidatePath("/cong-trinh");
+  revalidatePath("/vat-lieu");
   revalidatePath("/xuat/moi");
   return { ok: true };
 }
@@ -179,5 +182,6 @@ export async function upsertMaterialNorm(formData: FormData): Promise<ActionResu
   }
 
   revalidatePath("/cong-trinh");
+  revalidatePath("/vat-lieu");
   return { ok: true };
 }

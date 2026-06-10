@@ -133,7 +133,15 @@ function ProjectForm({
   );
 }
 
-export function ProjectManager({ data }: { data: ProjectManagerData }) {
+export function ProjectManager({
+  data,
+  canManageProjects = true,
+  canManageNorms = true,
+}: {
+  data: ProjectManagerData;
+  canManageProjects?: boolean;
+  canManageNorms?: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -193,12 +201,14 @@ export function ProjectManager({ data }: { data: ProjectManagerData }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex justify-end">
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" />
-          Thêm công trình
-        </Button>
-      </div>
+      {canManageProjects && (
+        <div className="flex justify-end">
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            Thêm công trình
+          </Button>
+        </div>
+      )}
 
       {data.projects.map((project) => (
         <Card key={project.id} className="border border-border shadow-sm">
@@ -215,16 +225,18 @@ export function ProjectManager({ data }: { data: ProjectManagerData }) {
                   {project.code} · {project.warehouseName ?? "Chưa chọn kho"}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => setEditingProject(project)}>
-                  <Pencil className="size-4" />
-                  Sửa
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setWorkItemProject(project)}>
-                  <Plus className="size-4" />
-                  Hạng mục
-                </Button>
-              </div>
+              {canManageProjects && (
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setEditingProject(project)}>
+                    <Pencil className="size-4" />
+                    Sửa
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setWorkItemProject(project)}>
+                    <Plus className="size-4" />
+                    Hạng mục
+                  </Button>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -240,14 +252,16 @@ export function ProjectManager({ data }: { data: ProjectManagerData }) {
                     </div>
                     {workItem.code && <div className="font-mono text-xs text-muted-foreground">{workItem.code}</div>}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setNormTarget({ projectId: project.id, workItemId: workItem.id, workItemName: workItem.name })}
-                  >
-                    <Ruler className="size-4" />
-                    Thêm định mức
-                  </Button>
+                  {canManageNorms && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNormTarget({ projectId: project.id, workItemId: workItem.id, workItemName: workItem.name })}
+                    >
+                      <Ruler className="size-4" />
+                      Thêm định mức
+                    </Button>
+                  )}
                 </div>
 
                 <Table>

@@ -47,7 +47,11 @@ export function InventoryDocumentPrint({ document }: Props) {
         </div>
         <div>
           <span className="text-slate-500">Lý do: </span>
-          <span className="font-medium">{document.reasonLabel ?? "Không có"}</span>
+          <span className="font-medium">
+            {document.kind === "TRANSFER"
+              ? document.transferReasonLabel ?? "Không có"
+              : document.reasonLabel ?? "Không có"}
+          </span>
         </div>
         <div>
           <span className="text-slate-500">Người lập: </span>

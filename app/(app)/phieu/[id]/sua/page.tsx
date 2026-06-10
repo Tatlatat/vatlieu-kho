@@ -78,6 +78,7 @@ export default async function EditPhieuPage({
           documentDate: document.documentDate,
           fromWarehouseId: document.fromWarehouseId,
           toWarehouseId: document.toWarehouseId,
+          transferReason: document.transferReason,
           note: document.note,
           lines: document.lines,
         }}

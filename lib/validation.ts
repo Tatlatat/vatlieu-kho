@@ -62,7 +62,7 @@ export const supplierSchema = z.object({
 
 export const warehouseSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên kho"),
-  code: z.string().min(1, "Vui lòng nhập mã kho").regex(/^[A-Za-z0-9-]+$/, "Mã kho chỉ gồm chữ, số, gạch ngang"),
+  code: z.string().trim().min(1, "Vui lòng nhập mã kho"),
 });
 
 export const transferSchema = z.object({

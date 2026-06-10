@@ -26,8 +26,6 @@ import { createMaterial, updateMaterial } from "@/lib/actions/materials";
 import {
   MATERIAL_KIND_LABELS,
   MATERIAL_KIND_VALUES,
-  TRACKING_MODE_LABELS,
-  TRACKING_MODE_VALUES,
   type MaterialKindValue,
   type TrackingModeValue,
 } from "@/lib/catalogs/material-catalog";
@@ -120,21 +118,6 @@ function MaterialFields({
           {MATERIAL_KIND_VALUES.map((kind) => (
             <option key={kind} value={kind}>
               {MATERIAL_KIND_LABELS[kind]}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor={material ? "edit-trackingMode" : "trackingMode"}>Theo dõi</Label>
-        <select
-          id={material ? "edit-trackingMode" : "trackingMode"}
-          name="trackingMode"
-          defaultValue={material?.trackingMode ?? "QUANTITY"}
-          className={selectClassName()}
-        >
-          {TRACKING_MODE_VALUES.map((mode) => (
-            <option key={mode} value={mode}>
-              {TRACKING_MODE_LABELS[mode]}
             </option>
           ))}
         </select>
@@ -233,7 +216,6 @@ export function MaterialManager({ materials, units, canManage = true }: Material
                     <TableHead>Mã</TableHead>
                     <TableHead>Loại</TableHead>
                     <TableHead>Đơn vị</TableHead>
-                    <TableHead>Theo dõi</TableHead>
                     <TableHead className="text-right">Tồn tối thiểu</TableHead>
                     {canManage && <TableHead className="w-[100px] text-right">Hành động</TableHead>}
                   </TableRow>
@@ -248,7 +230,6 @@ export function MaterialManager({ materials, units, canManage = true }: Material
                         <Badge variant="outline">{MATERIAL_KIND_LABELS[material.kind]}</Badge>
                       </TableCell>
                       <TableCell>{material.unit}</TableCell>
-                      <TableCell>{TRACKING_MODE_LABELS[material.trackingMode]}</TableCell>
                       <TableCell className="text-right font-medium">{material.minStock}</TableCell>
                       {canManage && (
                         <TableCell className="text-right">

@@ -15,6 +15,10 @@ export const TRACKING_MODE_LABELS: Record<TrackingModeValue, string> = {
   HOURS: "Theo giờ làm",
 };
 
+export function trackingModeForMaterialKind(kind: MaterialKindValue): TrackingModeValue {
+  return kind === "VEHICLE" || kind === "MACHINE" ? "HOURS" : "QUANTITY";
+}
+
 export function normalizeOptionalMinStock(value: FormDataEntryValue | null): number {
   if (value == null || value === "") return 0;
 

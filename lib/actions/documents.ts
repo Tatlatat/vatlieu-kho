@@ -12,6 +12,7 @@ import {
   type MovementReasonValue,
   type StockMovementInput,
 } from "@/lib/inventory/posting";
+import { normalizeTransferReason, transferReasonLabel } from "@/lib/inventory/transfer-reasons";
 import { buildRevisionSlotDeltas } from "@/lib/inventory/revision";
 import { resolveProjectLineAssignments } from "@/lib/projects/resolve-line-projects";
 import { stripLineProjectAssignment } from "@/lib/projects/line-projects";
@@ -51,6 +52,7 @@ function snapshotDocument(doc: {
   toWarehouseId: string | null;
   supplierId?: string | null;
   reason: MovementReasonValue | null;
+  transferReason?: string | null;
   note: string | null;
   revisionNo: number;
   lines: Array<{
@@ -73,6 +75,7 @@ function snapshotDocument(doc: {
       toWarehouseId: doc.toWarehouseId,
       supplierId: doc.supplierId ?? null,
       reason: doc.reason,
+      transferReason: doc.transferReason ?? null,
       note: doc.note,
     revisionNo: doc.revisionNo,
     lines: doc.lines.map((line) => ({
@@ -291,6 +294,7 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
   const fromWarehouseId = formString(formData, "fromWarehouseId") || null;
   const toWarehouseId = formString(formData, "toWarehouseId") || null;
   const supplierId = formString(formData, "supplierId") || null;
+  const transferReasonInput = formString(formData, "transferReason");
   const reason = (formString(formData, "reason") || null) as MovementReasonValue | null;
 
   try {
@@ -332,6 +336,7 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
       let nextToWarehouseId: string | null = existing.toWarehouseId;
       let nextSupplierId: string | null = null;
       let nextReason: MovementReasonValue | null = existing.reason as MovementReasonValue | null;
+      let nextTransferReason: string | null = null;
 
       if (existing.kind === "IMPORT") {
         if (!warehouseId) throw new Error("Vui lòng chọn kho");
@@ -344,6 +349,7 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
         nextToWarehouseId = null;
         nextSupplierId = supplierId;
         nextReason = "PURCHASE";
+        nextTransferReason = null;
       } else if (existing.kind === "EXPORT") {
         if (!warehouseId) throw new Error("Vui lòng chọn kho");
         if (!reason || !OUT_REASONS.some((item) => item.value === reason)) {
@@ -353,6 +359,7 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
         nextFromWarehouseId = null;
         nextToWarehouseId = null;
         nextReason = reason;
+        nextTransferReason = null;
       } else if (existing.kind === "TRANSFER") {
         if (!fromWarehouseId) throw new Error("Vui lòng chọn kho nguồn");
         if (!toWarehouseId) throw new Error("Vui lòng chọn kho đích");
@@ -361,6 +368,7 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
         nextFromWarehouseId = fromWarehouseId;
         nextToWarehouseId = toWarehouseId;
         nextReason = null;
+        nextTransferReason = normalizeTransferReason(transferReasonInput);
       } else {
         throw new Error("Loại phiếu này chưa hỗ trợ sửa ở màn này");
       }
@@ -415,6 +423,7 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
           toWarehouseId: nextToWarehouseId,
           supplierId: nextSupplierId,
           reason: nextReason,
+          transferReason: nextTransferReason,
           note,
           revisionNo: nextRevisionNo,
           updatedById: user.id,
@@ -456,7 +465,9 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
           fromRevisionNo: existing.revisionNo,
           toRevisionNo: nextRevisionNo,
           changedById: user.id,
-          reason: "Sửa phiếu đã ghi sổ",
+          reason: existing.kind === "TRANSFER" && nextTransferReason
+            ? `Sửa phiếu đã ghi sổ: ${transferReasonLabel(nextTransferReason)}`
+            : "Sửa phiếu đã ghi sổ",
           snapshotBefore: snapshotDocument(existing),
           snapshotAfter: snapshotDocument(updated),
         },

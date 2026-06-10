@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { updateInventoryDocument } from "@/lib/actions/documents";
 import { createTransfer } from "@/lib/actions/transfer";
+import { TRANSFER_REASONS } from "@/lib/inventory/transfer-reasons";
 import { toast } from "sonner";
 
 interface Material {
@@ -38,6 +39,7 @@ interface InitialDocument {
   documentDate: Date | string;
   fromWarehouseId: string | null;
   toWarehouseId: string | null;
+  transferReason: string | null;
   note: string | null;
   lines: Array<{
     id: string;
@@ -85,6 +87,9 @@ export function TransferForm({
     () => initialDocument?.fromWarehouseId ?? warehouses.find((w) => w.isDefault)?.id ?? warehouses[0]?.id ?? ""
   );
   const [toWarehouseId, setToWarehouseId] = React.useState(initialDocument?.toWarehouseId ?? "");
+  const [transferReason, setTransferReason] = React.useState(
+    () => initialDocument?.transferReason ?? "INTERNAL_MOVE"
+  );
   const [isPending, startTransition] = React.useTransition();
   const formRef = React.useRef<HTMLFormElement>(null);
   const isEdit = mode === "edit";
@@ -114,6 +119,10 @@ export function TransferForm({
       toast.error("Kho nguồn và kho đích phải khác nhau");
       return;
     }
+    if (!transferReason) {
+      toast.error("Vui lòng chọn lý do chuyển");
+      return;
+    }
     const invalidLine = lines.find((line) => !line.materialId || !line.quantity || Number(line.quantity) <= 0);
     if (invalidLine) {
       toast.error("Vui lòng nhập đủ vật tư và số lượng lớn hơn 0 cho từng dòng");
@@ -137,6 +146,7 @@ export function TransferForm({
             formRef.current?.reset();
             setLines([createLine("line-1")]);
             setToWarehouseId("");
+            setTransferReason("INTERNAL_MOVE");
             setDocumentDate(dateInputValue());
           }
           router.push(isEdit && initialDocument ? `/phieu/${initialDocument.id}` : "/chuyen-kho");
@@ -192,6 +202,24 @@ export function TransferForm({
                 onChange={setToWarehouseId}
                 placeholder="Kho đích..."
               />
+            </div>
+
+            <div className="space-y-2 flex flex-col">
+              <Label htmlFor="transferReason" className="text-sm font-medium">Lý do chuyển</Label>
+              <select
+                id="transferReason"
+                name="transferReason"
+                value={transferReason}
+                onChange={(event) => setTransferReason(event.target.value)}
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                required
+              >
+                {TRANSFER_REASONS.map((reason) => (
+                  <option key={reason.value} value={reason.value}>
+                    {reason.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-3">

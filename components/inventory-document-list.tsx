@@ -64,7 +64,7 @@ export function InventoryDocumentList({
                 <TableHead>Ngày chứng từ</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Kho</TableHead>
-                <TableHead>NCC</TableHead>
+                <TableHead>NCC / Lý do</TableHead>
                 <TableHead className="text-right">Dòng</TableHead>
                 <TableHead className="text-right">Tổng SL</TableHead>
                 <TableHead>Người lập</TableHead>
@@ -89,12 +89,14 @@ export function InventoryDocumentList({
                   <TableCell className="max-w-[260px] truncate" title={row.warehouseLabel}>
                     {row.warehouseLabel}
                   </TableCell>
-                  <TableCell className="max-w-[220px] truncate" title={row.supplierName ?? ""}>
+                  <TableCell className="max-w-[220px] truncate" title={row.supplierName ?? row.transferReasonLabel ?? ""}>
                     {row.supplierName ? (
                       <div>
                         <div className="font-medium">{row.supplierName}</div>
                         <div className="text-xs text-muted-foreground">{row.supplierCode}</div>
                       </div>
+                    ) : row.transferReasonLabel ? (
+                      <span>{row.transferReasonLabel}</span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}

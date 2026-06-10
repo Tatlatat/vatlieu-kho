@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/auth-helpers";
 import { parseDocumentDate, parseDocumentLines } from "@/lib/inventory/document-form";
 import { buildStockMovementInputs } from "@/lib/inventory/posting";
+import { normalizeTransferReason, transferReasonLabel } from "@/lib/inventory/transfer-reasons";
 import { assertAccountingPeriodUnlocked } from "@/lib/period-locks";
 import type { ActionResult } from "@/lib/actions/movements";
 
@@ -37,9 +38,11 @@ export async function createTransfer(formData: FormData): Promise<ActionResult> 
 
   let lines;
   let documentDate;
+  let transferReason: string;
   try {
     lines = parseDocumentLines(formData);
     documentDate = parseDocumentDate(formData);
+    transferReason = normalizeTransferReason(formString(formData, "transferReason"));
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }
@@ -70,6 +73,7 @@ export async function createTransfer(formData: FormData): Promise<ActionResult> 
           documentDate,
           fromWarehouseId,
           toWarehouseId,
+          transferReason,
           note,
           createdById: user.id,
           postedById: user.id,
@@ -87,7 +91,7 @@ export async function createTransfer(formData: FormData): Promise<ActionResult> 
               action: "POST",
               toRevisionNo: 1,
               changedById: user.id,
-              reason: "Ghi sổ phiếu chuyển kho",
+              reason: `Ghi sổ phiếu chuyển kho: ${transferReasonLabel(transferReason)}`,
             },
           },
         },

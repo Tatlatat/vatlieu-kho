@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { REASON_LABELS } from "@/lib/validation";
+import { transferReasonLabel } from "@/lib/inventory/transfer-reasons";
 import type { InventoryDocumentKind, MovementReasonValue } from "@/lib/inventory/posting";
 
 export type InventoryDocumentStatusValue = "DRAFT" | "POSTED" | "VOIDED";
@@ -39,6 +40,7 @@ export interface InventoryDocumentListRow {
   warehouseLabel: string;
   supplierName: string | null;
   supplierCode: string | null;
+  transferReasonLabel: string | null;
   createdByName: string;
   lineCount: number;
   totalQuantity: number;
@@ -71,6 +73,8 @@ export interface InventoryDocumentDetail {
   toWarehouseName: string | null;
   reason: MovementReasonValue | null;
   reasonLabel: string | null;
+  transferReason: string | null;
+  transferReasonLabel: string | null;
   note: string | null;
   revisionNo: number;
   createdByName: string;
@@ -169,6 +173,7 @@ export async function getInventoryDocuments(
       warehouseLabel: documentWarehouseLabel(doc),
       supplierName: doc.supplier?.name ?? null,
       supplierCode: doc.supplier?.code ?? null,
+      transferReasonLabel: transferReasonLabel(doc.transferReason),
       createdByName: doc.createdBy.name,
       lineCount: doc.lines.length,
       totalQuantity: doc.lines.reduce((sum, line) => sum + line.quantity, 0),
@@ -243,6 +248,8 @@ export async function getInventoryDocumentDetail(
     toWarehouseName: doc.toWarehouse?.name ?? null,
     reason: doc.reason,
     reasonLabel: reasonLabel(doc.reason),
+    transferReason: doc.transferReason,
+    transferReasonLabel: transferReasonLabel(doc.transferReason),
     note: doc.note,
     revisionNo: doc.revisionNo,
     createdByName: doc.createdBy.name,
