@@ -7,10 +7,17 @@ import { OUT_REASONS } from "@/lib/validation";
 import { parseDocumentDate, parseDocumentLines } from "@/lib/inventory/document-form";
 import { buildStockMovementInputs, type MovementReasonValue } from "@/lib/inventory/posting";
 import { resolveProjectLineAssignments } from "@/lib/projects/resolve-line-projects";
+import {
+  getProjectNormWarnings,
+  shouldRequireOverNormConfirmation,
+  type ProjectNormWarning,
+} from "@/lib/projects/norm-warnings";
 
 export interface ActionResult {
   ok: boolean;
   error?: string;
+  code?: "OVER_NORM_WARNING";
+  normWarnings?: ProjectNormWarning[];
 }
 
 function formString(formData: FormData, key: string): string {
@@ -28,6 +35,10 @@ function aggregateLineQuantities(lines: Array<{ materialId: string; quantity: nu
     totals.set(line.materialId, (totals.get(line.materialId) ?? 0) + line.quantity);
   }
   return totals;
+}
+
+function isOverNormConfirmed(formData: FormData): boolean {
+  return formString(formData, "allowOverNorm") === "true";
 }
 
 /** Nhập kho: tạo phiếu nhập POSTED nhiều dòng, rồi sinh movement IN/PURCHASE. */
@@ -126,6 +137,16 @@ export async function createExport(formData: FormData): Promise<ActionResult> {
     return { ok: false, error: (err as Error).message };
   }
 
+  const normWarnings = await getProjectNormWarnings({ lines });
+  if (shouldRequireOverNormConfirmation(normWarnings, isOverNormConfirmed(formData))) {
+    return {
+      ok: false,
+      code: "OVER_NORM_WARNING",
+      error: "Phiếu xuất vượt định mức",
+      normWarnings,
+    };
+  }
+
   // Bug D fix: advisory lock + in-transaction re-check chống race condition tồn âm.
   try {
     await prisma.$transaction(async (tx) => {
@@ -196,5 +217,6 @@ export async function createExport(formData: FormData): Promise<ActionResult> {
   revalidatePath("/");
   revalidatePath("/xuat");
   revalidatePath("/lich-su");
+  revalidatePath("/cong-trinh");
   return { ok: true };
 }

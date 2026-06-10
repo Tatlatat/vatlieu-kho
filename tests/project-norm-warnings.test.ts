@@ -4,6 +4,7 @@ import {
   aggregatePlannedNormUsage,
   calculateProjectNormWarnings,
   getProjectNormWarnings,
+  shouldRequireOverNormConfirmation,
 } from "../lib/projects/norm-warnings";
 
 {
@@ -82,6 +83,58 @@ import {
       overQty: 5,
     },
   ]);
+}
+
+{
+  assert.equal(shouldRequireOverNormConfirmation([], false), false);
+  assert.equal(
+    shouldRequireOverNormConfirmation(
+      [
+        {
+          projectId: "project-1",
+          projectCode: "CTA",
+          projectName: "Công trình A",
+          workItemId: "work-1",
+          workItemName: "Móng",
+          materialId: "mat-1",
+          materialCode: "D18",
+          materialName: "Sắt D18",
+          materialUnit: "cây",
+          normQty: 50,
+          usedQty: 45,
+          plannedQty: 10,
+          totalQty: 55,
+          overQty: 5,
+        },
+      ],
+      false
+    ),
+    true
+  );
+  assert.equal(
+    shouldRequireOverNormConfirmation(
+      [
+        {
+          projectId: "project-1",
+          projectCode: "CTA",
+          projectName: "Công trình A",
+          workItemId: "work-1",
+          workItemName: "Móng",
+          materialId: "mat-1",
+          materialCode: "D18",
+          materialName: "Sắt D18",
+          materialUnit: "cây",
+          normQty: 50,
+          usedQty: 45,
+          plannedQty: 10,
+          totalQty: 55,
+          overQty: 5,
+        },
+      ],
+      true
+    ),
+    false
+  );
 }
 
 async function testDatabaseWarningQuery() {

@@ -94,6 +94,13 @@ export function calculateProjectNormWarnings(
   return warnings;
 }
 
+export function shouldRequireOverNormConfirmation(
+  warnings: ProjectNormWarning[],
+  confirmed: boolean
+): boolean {
+  return warnings.length > 0 && !confirmed;
+}
+
 export async function getProjectNormWarnings({
   lines,
   excludeDocumentId,

@@ -15,6 +15,7 @@ import {
 import { buildRevisionSlotDeltas } from "@/lib/inventory/revision";
 import { resolveProjectLineAssignments } from "@/lib/projects/resolve-line-projects";
 import { stripLineProjectAssignment } from "@/lib/projects/line-projects";
+import { getProjectNormWarnings, shouldRequireOverNormConfirmation } from "@/lib/projects/norm-warnings";
 import type { ActionResult } from "@/lib/actions/movements";
 
 function formString(formData: FormData, key: string): string {
@@ -90,8 +91,13 @@ function revalidateDocumentPaths(documentId: string) {
   revalidatePath("/chuyen-kho");
   revalidatePath("/lich-su");
   revalidatePath("/bao-cao");
+  revalidatePath("/cong-trinh");
   revalidatePath(`/phieu/${documentId}`);
   revalidatePath(`/phieu/${documentId}/sua`);
+}
+
+function isOverNormConfirmed(formData: FormData): boolean {
+  return formString(formData, "allowOverNorm") === "true";
 }
 
 async function assertStockAfterDelta(
@@ -285,6 +291,15 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
 
     if (existingKind.kind === "EXPORT") {
       lines = await resolveProjectLineAssignments(lines);
+      const normWarnings = await getProjectNormWarnings({ lines, excludeDocumentId: documentId });
+      if (shouldRequireOverNormConfirmation(normWarnings, isOverNormConfirmed(formData))) {
+        return {
+          ok: false,
+          code: "OVER_NORM_WARNING",
+          error: "Phiếu xuất vượt định mức",
+          normWarnings,
+        };
+      }
     } else {
       lines = lines.map(stripLineProjectAssignment);
     }
