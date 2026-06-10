@@ -1,5 +1,5 @@
 import * as React from "react";
-import { requirePermission } from "@/lib/auth-helpers";
+import { can, requirePermission } from "@/lib/auth-helpers";
 import {
   getDashboardSummary,
   getLossByMonth,
@@ -8,6 +8,7 @@ import {
   getAlerts,
 } from "@/lib/queries/reports";
 import { getBalanceReport } from "@/lib/queries/balance";
+import { getFundReport } from "@/lib/queries/funds";
 import { getWarehouses } from "@/lib/queries/warehouses";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
@@ -21,13 +22,14 @@ import {
 import { StockStatusBadge } from "@/components/stock-status-badge";
 import { LossCharts } from "@/components/loss-charts-client";
 import { BalanceReport } from "@/components/balance-report";
+import { FundReport } from "@/components/fund-report";
 
 export default async function BaoCaoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; wh?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; wh?: string; projectId?: string }>;
 }) {
-  await requirePermission("inventory.report.view");
+  const user = await requirePermission("inventory.report.view");
 
   const sp = await searchParams;
 
@@ -37,8 +39,10 @@ export default async function BaoCaoPage({
   const from = sp.from ?? firstOfMonth;
   const to = sp.to ?? todayStr;
   const wh = sp.wh ?? "";
+  const projectId = sp.projectId ?? "";
+  const canViewFund = await can(user.id, "fund.view");
 
-  const [summary, monthData, reasonData, topLoss, alerts, balanceRows, warehouses] =
+  const [summary, monthData, reasonData, topLoss, alerts, balanceRows, warehouses, fundReport] =
     await Promise.all([
       getDashboardSummary(),
       getLossByMonth(),
@@ -47,6 +51,7 @@ export default async function BaoCaoPage({
       getAlerts(),
       getBalanceReport(from, to, wh || undefined),
       getWarehouses(),
+      canViewFund ? getFundReport({ from, to, projectId: projectId || undefined }) : Promise.resolve(null),
     ]);
 
   return (
@@ -68,6 +73,8 @@ export default async function BaoCaoPage({
         to={to}
         warehouseId={wh}
       />
+
+      {fundReport && <FundReport report={fundReport} compact />}
 
       {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-4">

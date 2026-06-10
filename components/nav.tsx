@@ -15,6 +15,7 @@ import {
   ArrowLeftRight,
   Building2,
   Users,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ const links: { href: string; label: string; icon: typeof Home; permission?: stri
   { href: "/chuyen-kho", label: "Chuyển kho", icon: ArrowLeftRight, permission: "inventory.transfer.view" },
   { href: "/lich-su", label: "Lịch sử", icon: History, permission: "inventory.history.view" },
   { href: "/cong-trinh", label: "Công trình", icon: Building2, permission: "project.view" },
+  { href: "/quy", label: "Quỹ", icon: Wallet, permission: "fund.view" },
   { href: "/bao-cao", label: "Báo cáo", icon: BarChart3, permission: "inventory.report.view" },
   { href: "/vat-lieu", label: "Danh mục", icon: Boxes, permission: "catalog.view" },
   { href: "/nguoi-dung", label: "Người dùng", icon: Users, permission: "permission.manage" },

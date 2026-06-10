@@ -22,11 +22,13 @@ import {
   Search,
   TrendingDown,
   ChevronRight,
+  Wallet,
 } from "lucide-react";
 
 const actions = [
   { href: "/nhap", label: "Nhập hàng", icon: ArrowDownToLine, color: "bg-blue-600", permission: "inventory.import.view" },
   { href: "/xuat", label: "Xuất hàng", icon: ArrowUpFromLine, color: "bg-green-600", permission: "inventory.export.view" },
+  { href: "/quy", label: "Quỹ", icon: Wallet, color: "bg-cyan-700", permission: "fund.view" },
   { href: "/kiem-ke", label: "Kiểm kê kho", icon: ClipboardCheck, color: "bg-amber-600", permission: "inventory.stocktake.view" },
   { href: "/lich-su", label: "Lịch sử", icon: Search, color: "bg-slate-500", permission: "inventory.history.view" },
 ];
