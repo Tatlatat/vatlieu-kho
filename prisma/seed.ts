@@ -10,7 +10,18 @@ async function main() {
   await prisma.stocktakeItem.deleteMany({});
   await prisma.stockMovement.deleteMany({});
   await prisma.stocktake.deleteMany({});
+  await prisma.documentAuditLog.deleteMany({});
+  await prisma.inventoryDocumentLine.deleteMany({});
+  await prisma.inventoryDocument.deleteMany({});
+  await prisma.fundDocumentLine.deleteMany({});
+  await prisma.fundDocument.deleteMany({});
+  await prisma.materialNorm.deleteMany({});
+  await prisma.projectWorkItem.deleteMany({});
+  await prisma.fund.deleteMany({});
+  await prisma.project.deleteMany({});
   await prisma.material.deleteMany({});
+  await prisma.supplier.deleteMany({});
+  await prisma.unit.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.warehouse.deleteMany({});
 
@@ -86,6 +97,29 @@ async function main() {
     where: { code: "KHO-CT-A" },
     update: {},
     create: { name: "Kho công trình A", code: "KHO-CT-A", isDefault: false },
+  });
+
+  const projectA = await prisma.project.create({
+    data: {
+      code: "CT-A",
+      name: "Công trình A",
+      warehouseId: khoCongTrinh.id,
+      workItems: {
+        create: {
+          code: "CHUNG",
+          name: "Chung",
+          isDefault: true,
+        },
+      },
+    },
+  });
+
+  const fundA = await prisma.fund.create({
+    data: {
+      code: "QUY-CT-A",
+      name: "Quỹ Công trình A",
+      projectId: projectA.id,
+    },
   });
 
   // 5. Create ~30 StockMovements spread across last 3 months
@@ -214,6 +248,66 @@ async function main() {
             systemQty: 110,
             countedQty: 108,
             diff: -2,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.fundDocument.create({
+    data: {
+      code: "PT-DEMO-001",
+      fundId: fundA.id,
+      kind: "RECEIPT",
+      status: "POSTED",
+      documentDate: getPastDate(20),
+      note: "Nhận tiền tạm ứng công trình",
+      createdById: owner.id,
+      postedById: owner.id,
+      postedAt: getPastDate(20),
+      lines: {
+        create: [
+          {
+            lineNo: 1,
+            amount: 50_000_000,
+            category: "Tạm ứng",
+            description: "Nhận tạm ứng đợt 1",
+          },
+          {
+            lineNo: 2,
+            amount: 10_000_000,
+            category: "Bổ sung quỹ",
+            description: "Bổ sung tiền mặt tại công trường",
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.fundDocument.create({
+    data: {
+      code: "PC-DEMO-001",
+      fundId: fundA.id,
+      kind: "PAYMENT",
+      status: "POSTED",
+      documentDate: getPastDate(7),
+      note: "Chi phí vận hành công trường",
+      createdById: staff.id,
+      postedById: staff.id,
+      postedAt: getPastDate(7),
+      lines: {
+        create: [
+          {
+            lineNo: 1,
+            amount: 12_500_000,
+            category: "Nhân công",
+            description: "Chi trả tổ đội phụ",
+          },
+          {
+            lineNo: 2,
+            amount: 3_250_000,
+            category: "Chi phí công trường",
+            description: "Mua vật tư phụ và nước uống",
           },
         ],
       },
