@@ -4,40 +4,105 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth-helpers";
-import { transferSchema } from "@/lib/validation";
+import { parseDocumentLines } from "@/lib/inventory/document-form";
+import { buildStockMovementInputs } from "@/lib/inventory/posting";
 import type { ActionResult } from "@/lib/actions/movements";
+
+function formString(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function documentCode(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36).toUpperCase()}`;
+}
+
+function aggregateLineQuantities(lines: Array<{ materialId: string; quantity: number }>) {
+  const totals = new Map<string, number>();
+  for (const line of lines) {
+    totals.set(line.materialId, (totals.get(line.materialId) ?? 0) + line.quantity);
+  }
+  return totals;
+}
 
 export async function createTransfer(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const parsed = transferSchema.safeParse({
-    materialId: formData.get("materialId"),
-    fromWarehouseId: formData.get("fromWarehouseId"),
-    toWarehouseId: formData.get("toWarehouseId"),
-    quantity: formData.get("quantity"),
-    note: formData.get("note") || undefined,
-  });
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
+  const fromWarehouseId = formString(formData, "fromWarehouseId");
+  const toWarehouseId = formString(formData, "toWarehouseId");
+  const note = formString(formData, "note") || undefined;
+  if (!fromWarehouseId) return { ok: false, error: "Vui lòng chọn kho nguồn" };
+  if (!toWarehouseId) return { ok: false, error: "Vui lòng chọn kho đích" };
+  if (fromWarehouseId === toWarehouseId) return { ok: false, error: "Kho nguồn và kho đích phải khác nhau" };
+
+  let lines;
+  try {
+    lines = parseDocumentLines(formData);
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
 
   // Bug D fix: advisory lock trên kho nguồn + re-check tồn trong transaction chống race condition.
   const transferId = randomUUID();
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${parsed.data.materialId + ":" + parsed.data.fromWarehouseId}))`;
-      const rows = await tx.$queryRaw<{ on_hand: number }[]>`SELECT on_hand FROM current_stock WHERE material_id = ${parsed.data.materialId} AND warehouse_id = ${parsed.data.fromWarehouseId}`;
-      const onHand = rows.length ? Number(rows[0].on_hand) : 0;
-      if (parsed.data.quantity > onHand) {
-        throw new Error(`Kho nguồn không đủ tồn (còn ${onHand})`);
+      for (const [materialId, quantity] of aggregateLineQuantities(lines)) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${materialId + ":" + fromWarehouseId}))`;
+        const rows = await tx.$queryRaw<{ on_hand: number }[]>`
+          SELECT on_hand FROM current_stock
+          WHERE material_id = ${materialId} AND warehouse_id = ${fromWarehouseId}`;
+        const onHand = rows.length ? Number(rows[0].on_hand) : 0;
+        if (quantity > onHand) {
+          throw new Error(`Kho nguồn không đủ tồn (còn ${onHand})`);
+        }
       }
-      await tx.stockMovement.create({ data: {
-        materialId: parsed.data.materialId, warehouseId: parsed.data.fromWarehouseId,
-        type: "OUT", quantity: parsed.data.quantity, reason: "TRANSFER_OUT",
-        note: parsed.data.note, transferId, createdById: user.id,
-      }});
-      await tx.stockMovement.create({ data: {
-        materialId: parsed.data.materialId, warehouseId: parsed.data.toWarehouseId,
-        type: "IN", quantity: parsed.data.quantity, reason: "TRANSFER_IN",
-        note: parsed.data.note, transferId, createdById: user.id,
-      }});
+
+      const postedAt = new Date();
+      const doc = await tx.inventoryDocument.create({
+        data: {
+          code: documentCode("CK"),
+          kind: "TRANSFER",
+          status: "POSTED",
+          documentDate: postedAt,
+          fromWarehouseId,
+          toWarehouseId,
+          note,
+          createdById: user.id,
+          postedById: user.id,
+          postedAt,
+          lines: {
+            create: lines.map((line, index) => ({
+              lineNo: index + 1,
+              materialId: line.materialId,
+              quantity: line.quantity,
+              note: line.note,
+            })),
+          },
+          auditLogs: {
+            create: {
+              action: "POST",
+              toRevisionNo: 1,
+              changedById: user.id,
+              reason: "Ghi sổ phiếu chuyển kho",
+            },
+          },
+        },
+        include: { lines: true },
+      });
+
+      const movements = buildStockMovementInputs(
+        {
+          id: doc.id,
+          kind: "TRANSFER",
+          revisionNo: doc.revisionNo,
+          fromWarehouseId: doc.fromWarehouseId,
+          toWarehouseId: doc.toWarehouseId,
+          transferId,
+          note: doc.note,
+          lines: doc.lines,
+        },
+        user.id
+      );
+      await tx.stockMovement.createMany({ data: movements });
     });
   } catch (e) {
     return { ok: false, error: (e as Error).message };
