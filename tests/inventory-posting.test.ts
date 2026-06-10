@@ -82,6 +82,7 @@ const userId = "user-1";
       id: "doc-transfer",
       kind: "TRANSFER",
       revisionNo: 2,
+      transferId: "transfer-1",
       fromWarehouseId: "wh-a",
       toWarehouseId: "wh-b",
       lines: [{ id: "line-1", materialId: "mat-da", quantity: 7 }],
@@ -95,10 +96,11 @@ const userId = "user-1";
       reason: m.reason,
       warehouseId: m.warehouseId,
       quantity: m.quantity,
+      transferId: m.transferId,
     })),
     [
-      { type: "OUT", reason: "TRANSFER_OUT", warehouseId: "wh-a", quantity: 7 },
-      { type: "IN", reason: "TRANSFER_IN", warehouseId: "wh-b", quantity: 7 },
+      { type: "OUT", reason: "TRANSFER_OUT", warehouseId: "wh-a", quantity: 7, transferId: "transfer-1" },
+      { type: "IN", reason: "TRANSFER_IN", warehouseId: "wh-b", quantity: 7, transferId: "transfer-1" },
     ]
   );
 }

@@ -32,6 +32,7 @@ export interface PostingDocument {
   warehouseId?: string | null;
   fromWarehouseId?: string | null;
   toWarehouseId?: string | null;
+  transferId?: string | null;
   reason?: MovementReasonValue | null;
   note?: string | null;
   lines: PostingLine[];
@@ -47,6 +48,7 @@ export interface StockMovementInput {
   documentId: string;
   documentLineId: string;
   documentRevisionNo: number;
+  transferId?: string | null;
   createdById: string;
 }
 
@@ -64,6 +66,7 @@ export function buildStockMovementInputs(
   if (doc.kind === "TRANSFER") {
     const fromWarehouseId = requireWarehouse(doc.fromWarehouseId, "kho nguồn");
     const toWarehouseId = requireWarehouse(doc.toWarehouseId, "kho nhận");
+    const transferId = doc.transferId ?? doc.id;
 
     return doc.lines.flatMap((line) => [
       {
@@ -76,6 +79,7 @@ export function buildStockMovementInputs(
         documentId: doc.id,
         documentLineId: line.id,
         documentRevisionNo: doc.revisionNo,
+        transferId,
         createdById,
       },
       {
@@ -88,6 +92,7 @@ export function buildStockMovementInputs(
         documentId: doc.id,
         documentLineId: line.id,
         documentRevisionNo: doc.revisionNo,
+        transferId,
         createdById,
       },
     ]);
