@@ -34,6 +34,10 @@ async function main() {
     assert.equal(await userHasPermission(owner.id, "permission.manage"), true);
     assert.equal(await userHasPermission(owner.id, "unknown.permission"), false);
 
+    const fallbackSnapshot = await getUserPermissionSnapshot(staff.id);
+    assert.deepEqual(fallbackSnapshot.positionCodes, ["THU_KHO"]);
+    assert.equal(fallbackSnapshot.effectivePermissionCodes.includes("inventory.import.create"), true);
+
     await updateUserPermissions({
       targetUserId: staff.id,
       positionCodes: ["THU_KHO"],

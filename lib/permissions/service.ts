@@ -111,6 +111,32 @@ export async function ensurePermissionSeeded(db: PermissionDb = prisma): Promise
       });
     }
   }
+
+  const defaultPositions = await db.userPosition.findMany({
+    where: { code: { in: ["ADMIN", "THU_KHO"] } },
+    select: { id: true, code: true },
+  });
+  const adminPositionId = defaultPositions.find((position) => position.code === "ADMIN")?.id;
+  const keeperPositionId = defaultPositions.find((position) => position.code === "THU_KHO")?.id;
+  if (!adminPositionId || !keeperPositionId) return;
+
+  const unconfiguredUsers = await db.user.findMany({
+    select: {
+      id: true,
+      role: true,
+      positionAssignments: { select: { id: true }, take: 1 },
+      permissionOverrides: { select: { id: true }, take: 1 },
+    },
+  });
+  for (const user of unconfiguredUsers) {
+    if (user.positionAssignments.length > 0 || user.permissionOverrides.length > 0) continue;
+    await db.userPositionAssignment.create({
+      data: {
+        userId: user.id,
+        positionId: hasOwnerAccess(user.role) ? adminPositionId : keeperPositionId,
+      },
+    });
+  }
 }
 
 async function getSnapshotFromUser(userId: string, db: PermissionDb): Promise<UserPermissionSnapshot | null> {
