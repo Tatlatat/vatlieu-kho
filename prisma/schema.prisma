@@ -58,6 +58,11 @@ enum DocumentAuditAction {
   DELETE_DRAFT
 }
 
+enum ProjectStatus {
+  ACTIVE
+  CLOSED
+}
+
 model User {
   id                String              @id @default(cuid())
   email             String              @unique
@@ -73,6 +78,8 @@ model User {
   documentsPosted   InventoryDocument[] @relation("DocumentPostedBy")
   documentsVoided   InventoryDocument[] @relation("DocumentVoidedBy")
   documentAuditLogs DocumentAuditLog[]
+  materialNormsCreated MaterialNorm[]    @relation("MaterialNormCreatedBy")
+  materialNormsUpdated MaterialNorm[]    @relation("MaterialNormUpdatedBy")
 }
 
 model Material {
@@ -85,6 +92,7 @@ model Material {
   movements      StockMovement[]
   stocktakeItems StocktakeItem[]
   documentLines  InventoryDocumentLine[]
+  materialNorms  MaterialNorm[]
 }
 
 model Warehouse {
@@ -98,6 +106,7 @@ model Warehouse {
   inventoryDocuments    InventoryDocument[] @relation("DocumentWarehouse")
   fromTransferDocuments InventoryDocument[] @relation("DocumentFromWarehouse")
   toTransferDocuments   InventoryDocument[] @relation("DocumentToWarehouse")
+  projects              Project[]
 }
 
 model StockMovement {
@@ -183,12 +192,87 @@ model InventoryDocumentLine {
   lineNo     Int
   materialId String
   material   Material          @relation(fields: [materialId], references: [id])
+  projectId  String?
+  project    Project?          @relation(fields: [projectId], references: [id])
+  workItemId String?
+  workItem   ProjectWorkItem?  @relation(fields: [workItemId], references: [id])
   quantity   Float
   note       String?
   movements  StockMovement[]
 
   @@unique([documentId, lineNo])
   @@index([materialId])
+  @@index([projectId])
+  @@index([workItemId])
+}
+
+model Project {
+  id          String                  @id @default(cuid())
+  code        String                  @unique
+  name        String
+  status      ProjectStatus           @default(ACTIVE)
+  warehouseId String?
+  warehouse   Warehouse?              @relation(fields: [warehouseId], references: [id])
+  note        String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  workItems   ProjectWorkItem[]
+  norms       MaterialNorm[]
+  funds       Fund[]
+  documentLines InventoryDocumentLine[]
+
+  @@index([warehouseId])
+  @@index([status])
+}
+
+model ProjectWorkItem {
+  id            String                  @id @default(cuid())
+  projectId     String
+  project       Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  code          String?
+  name          String
+  isDefault     Boolean                 @default(false)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  norms         MaterialNorm[]
+  documentLines InventoryDocumentLine[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+model MaterialNorm {
+  id          String          @id @default(cuid())
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workItemId  String
+  workItem    ProjectWorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  materialId  String
+  material    Material        @relation(fields: [materialId], references: [id])
+  normQty     Float
+  note        String?
+  createdById String
+  createdBy   User            @relation("MaterialNormCreatedBy", fields: [createdById], references: [id])
+  updatedById String?
+  updatedBy   User?           @relation("MaterialNormUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([workItemId, materialId])
+  @@index([projectId])
+  @@index([materialId])
+}
+
+model Fund {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([projectId])
 }
 
 model DocumentAuditLog {
