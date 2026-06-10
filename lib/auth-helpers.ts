@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { hasOwnerAccess, normalizeAppRole, type AppRole } from "@/lib/roles";
 import { getUserPermissionSnapshot, userHasPermission } from "@/lib/permissions/service";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 export type Role = AppRole;
 
@@ -13,7 +14,7 @@ export interface SessionUser {
 }
 
 /** Lấy user hiện tại, nếu chưa đăng nhập thì đẩy về /login. */
-export async function requireUser(): Promise<SessionUser> {
+export const requireUser = cache(async (): Promise<SessionUser> => {
   const session = await auth();
   if (!session?.user) redirect("/login");
   return {
@@ -22,7 +23,7 @@ export async function requireUser(): Promise<SessionUser> {
     email: session.user.email,
     role: normalizeAppRole(session.user.role),
   };
-}
+});
 
 /** Yêu cầu đúng vai trò, sai thì đẩy về trang chính. */
 export async function requireRole(role: Role): Promise<SessionUser> {
@@ -43,7 +44,7 @@ export async function can(userId: string, permissionCode: string): Promise<boole
   return userHasPermission(userId, permissionCode);
 }
 
-export async function getCurrentUserPermissionSnapshot() {
+export const getCurrentUserPermissionSnapshot = cache(async () => {
   const user = await requireUser();
   return getUserPermissionSnapshot(user.id);
-}
+});

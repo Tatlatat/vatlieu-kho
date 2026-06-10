@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { REASON_LABELS } from "@/lib/validation";
-import { getCurrentStock } from "@/lib/queries/stock";
+import { getCurrentStock, type StockStatus } from "@/lib/queries/stock";
 
 export interface LossByMonthRow {
   month: string;
@@ -9,24 +9,64 @@ export interface LossByMonthRow {
   movement_count: number;
 }
 
+export interface DashboardSummary {
+  totalMaterials: number;
+  lowCount: number;
+  outCount: number;
+  lossThisMonth: number;
+}
+
+export function buildDashboardSummary({
+  stockRows,
+  lossRows,
+  monthKey,
+}: {
+  stockRows: Array<{ status: StockStatus }>;
+  lossRows: Array<{ month: string; total_qty: number }>;
+  monthKey: string;
+}): DashboardSummary {
+  return {
+    totalMaterials: stockRows.length,
+    lowCount: stockRows.filter((s) => s.status === "LOW").length,
+    outCount: stockRows.filter((s) => s.status === "OUT").length,
+    lossThisMonth: lossRows
+      .filter((r) => r.month === monthKey)
+      .reduce((sum, row) => sum + Number(row.total_qty), 0),
+  };
+}
+
+function numberFromDb(value: unknown): number {
+  return value == null ? 0 : Number(value);
+}
+
 /** Tổng quan dashboard: số liệu cho các card. */
-export async function getDashboardSummary() {
-  const stock = await getCurrentStock(undefined, { includeZero: true });
-  const totalMaterials = stock.length;
-  const lowCount = stock.filter((s) => s.status === "LOW").length;
-  const outCount = stock.filter((s) => s.status === "OUT").length;
-
-  // Hao hụt tháng hiện tại (tổng số lượng OUT lý do hao hụt)
+export async function getDashboardSummary(): Promise<DashboardSummary> {
   const monthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
-  const rows = await prisma.$queryRaw<LossByMonthRow[]>`
-    SELECT month, reason, total_qty, movement_count FROM loss_by_month
+  const [row] = await prisma.$queryRaw<
+    {
+      total_materials: number;
+      low_count: number;
+      out_count: number;
+      loss_this_month: number;
+    }[]
+  >`
+    SELECT
+      COUNT(*)::int AS total_materials,
+      COUNT(*) FILTER (WHERE total_on_hand > 0 AND total_on_hand <= min_stock)::int AS low_count,
+      COUNT(*) FILTER (WHERE total_on_hand <= 0)::int AS out_count,
+      COALESCE(
+        (SELECT SUM(total_qty) FROM loss_by_month WHERE month = ${monthKey}),
+        0
+      ) AS loss_this_month
+    FROM stock_by_material
   `;
-  const data = rows.map((r) => ({ ...r, total_qty: Number(r.total_qty), movement_count: Number(r.movement_count) }));
-  const lossThisMonth = data
-    .filter((r) => r.month === monthKey)
-    .reduce((s, r) => s + r.total_qty, 0);
 
-  return { totalMaterials, lowCount, outCount, lossThisMonth };
+  return {
+    totalMaterials: numberFromDb(row?.total_materials),
+    lowCount: numberFromDb(row?.low_count),
+    outCount: numberFromDb(row?.out_count),
+    lossThisMonth: numberFromDb(row?.loss_this_month),
+  };
 }
 
 /** Hao hụt theo tháng (gộp tất cả nguyên nhân) — cho BarChart. */

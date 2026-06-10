@@ -1,6 +1,5 @@
-import { requireUser } from "@/lib/auth-helpers";
+import { getCurrentUserPermissionSnapshot, requireUser } from "@/lib/auth-helpers";
 import { Nav } from "@/components/nav";
-import { getUserPermissionSnapshot } from "@/lib/permissions/service";
 
 export default async function AppLayout({
   children,
@@ -8,7 +7,7 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  const permissions = await getUserPermissionSnapshot(user.id);
+  const permissions = await getCurrentUserPermissionSnapshot();
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">

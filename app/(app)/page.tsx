@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth-helpers";
+import { getCurrentUserPermissionSnapshot, requireUser } from "@/lib/auth-helpers";
 import { canAccessPermission } from "@/lib/permissions/effective";
-import { getUserPermissionSnapshot } from "@/lib/permissions/service";
 import { getCurrentStock } from "@/lib/queries/stock";
 import { getDashboardSummary } from "@/lib/queries/reports";
 import { getWarehouses } from "@/lib/queries/warehouses";
@@ -39,7 +38,7 @@ export default async function HomePage({
   searchParams: Promise<{ wh?: string }>;
 }) {
   const user = await requireUser();
-  const permissions = await getUserPermissionSnapshot(user.id);
+  const permissions = await getCurrentUserPermissionSnapshot();
   const canViewReports = canAccessPermission(permissions, "inventory.report.view");
   const sp = await searchParams;
   const wh = sp.wh ?? "";
