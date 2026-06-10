@@ -34,6 +34,7 @@ function aggregateLineQuantities(lines: Array<{ materialId: string; quantity: nu
 export async function createImport(formData: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const warehouseId = formString(formData, "warehouseId");
+  const supplierId = formString(formData, "supplierId") || null;
   const note = formString(formData, "note") || undefined;
   if (!warehouseId) return { ok: false, error: "Vui lòng chọn kho" };
 
@@ -46,6 +47,11 @@ export async function createImport(formData: FormData): Promise<ActionResult> {
     return { ok: false, error: (err as Error).message };
   }
 
+  if (supplierId) {
+    const supplier = await prisma.supplier.findUnique({ where: { id: supplierId }, select: { id: true } });
+    if (!supplier) return { ok: false, error: "Nhà cung cấp không tồn tại" };
+  }
+
   await prisma.$transaction(async (tx) => {
     const postedAt = new Date();
     const doc = await tx.inventoryDocument.create({
@@ -55,6 +61,7 @@ export async function createImport(formData: FormData): Promise<ActionResult> {
         status: "POSTED",
         documentDate,
         warehouseId,
+        supplierId,
         reason: "PURCHASE",
         note,
         createdById: user.id,

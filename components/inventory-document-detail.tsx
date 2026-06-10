@@ -100,6 +100,14 @@ export function InventoryDocumentDetail({ document, canEdit, canVoid }: Props) {
             <div className="text-xs text-muted-foreground">Kho</div>
             <div className="font-medium">{document.warehouseLabel}</div>
           </div>
+          {document.kind === "IMPORT" && (
+            <div>
+              <div className="text-xs text-muted-foreground">Nhà cung cấp</div>
+              <div className="font-medium">
+                {document.supplierName ? `${document.supplierName} (${document.supplierCode})` : "Không có"}
+              </div>
+            </div>
+          )}
           <div>
             <div className="text-xs text-muted-foreground">Lý do</div>
             <div className="font-medium">{document.reasonLabel ?? "Không có"}</div>

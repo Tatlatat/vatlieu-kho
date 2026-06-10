@@ -27,6 +27,13 @@ interface Warehouse {
   isDefault: boolean;
 }
 
+interface Supplier {
+  id: string;
+  name: string;
+  code: string;
+  taxCode: string | null;
+}
+
 interface DocumentLineState {
   id: string;
   materialId: string;
@@ -37,6 +44,7 @@ interface InitialDocument {
   id: string;
   documentDate: Date | string;
   warehouseId: string | null;
+  supplierId: string | null;
   note: string | null;
   lines: Array<{
     id: string;
@@ -48,6 +56,7 @@ interface InitialDocument {
 interface ImportFormProps {
   materials: Material[];
   warehouses: Warehouse[];
+  suppliers?: Supplier[];
   mode?: "create" | "edit";
   initialDocument?: InitialDocument;
 }
@@ -66,6 +75,7 @@ function dateInputValue(value?: Date | string | null): string {
 export function ImportForm({
   materials,
   warehouses,
+  suppliers = [],
   mode = "create",
   initialDocument,
 }: ImportFormProps) {
@@ -83,6 +93,7 @@ export function ImportForm({
   const [warehouseId, setWarehouseId] = React.useState(
     () => initialDocument?.warehouseId ?? warehouses.find((w) => w.isDefault)?.id ?? warehouses[0]?.id ?? ""
   );
+  const [supplierId, setSupplierId] = React.useState(() => initialDocument?.supplierId ?? "");
   const [isPending, startTransition] = React.useTransition();
   const formRef = React.useRef<HTMLFormElement>(null);
   const isEdit = mode === "edit";
@@ -127,6 +138,7 @@ export function ImportForm({
             formRef.current?.reset();
             setLines([createLine("line-1")]);
             setDocumentDate(dateInputValue());
+            setSupplierId("");
           }
           router.push(isEdit && initialDocument ? `/phieu/${initialDocument.id}` : "/nhap");
         } else {
@@ -169,6 +181,25 @@ export function ImportForm({
                 value={warehouseId}
                 onChange={setWarehouseId}
               />
+            </div>
+
+            <div className="space-y-2 flex flex-col">
+              <Label htmlFor="supplierId" className="text-sm font-medium">Nhà cung cấp</Label>
+              <select
+                id="supplierId"
+                name="supplierId"
+                value={supplierId}
+                onChange={(event) => setSupplierId(event.target.value)}
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              >
+                <option value="">Không chọn</option>
+                {suppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.name} ({supplier.code})
+                    {supplier.taxCode ? ` - MST ${supplier.taxCode}` : ""}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-3">

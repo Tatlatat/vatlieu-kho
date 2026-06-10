@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { ExportForm } from "@/components/export-form";
 import { ImportForm } from "@/components/import-form";
 import { TransferForm } from "@/components/transfer-form";
+import { getSupplierOptions } from "@/lib/queries/catalogs";
 import { getInventoryDocumentDetail } from "@/lib/queries/documents";
 import { getProjectOptions } from "@/lib/queries/projects";
 import { getMaterials } from "@/lib/queries/stock";
@@ -15,11 +16,12 @@ export default async function EditPhieuPage({
 }) {
   await requireRole("OWNER");
   const { id } = await params;
-  const [document, materials, warehouses, projects] = await Promise.all([
+  const [document, materials, warehouses, projects, suppliers] = await Promise.all([
     getInventoryDocumentDetail(id),
     getMaterials(),
     getWarehouses(),
     getProjectOptions(),
+    getSupplierOptions(),
   ]);
 
   if (!document || document.status !== "POSTED") notFound();
@@ -29,11 +31,13 @@ export default async function EditPhieuPage({
       <ImportForm
         materials={materials}
         warehouses={warehouses}
+        suppliers={suppliers}
         mode="edit"
         initialDocument={{
           id: document.id,
           documentDate: document.documentDate,
           warehouseId: document.warehouseId,
+          supplierId: document.supplierId,
           note: document.note,
           lines: document.lines,
         }}

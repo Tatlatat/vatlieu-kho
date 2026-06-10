@@ -46,6 +46,7 @@ function snapshotDocument(doc: {
   warehouseId: string | null;
   fromWarehouseId: string | null;
   toWarehouseId: string | null;
+  supplierId?: string | null;
   reason: MovementReasonValue | null;
   note: string | null;
   revisionNo: number;
@@ -64,11 +65,12 @@ function snapshotDocument(doc: {
     kind: doc.kind,
     status: doc.status,
     documentDate: doc.documentDate.toISOString(),
-    warehouseId: doc.warehouseId,
-    fromWarehouseId: doc.fromWarehouseId,
-    toWarehouseId: doc.toWarehouseId,
-    reason: doc.reason,
-    note: doc.note,
+      warehouseId: doc.warehouseId,
+      fromWarehouseId: doc.fromWarehouseId,
+      toWarehouseId: doc.toWarehouseId,
+      supplierId: doc.supplierId ?? null,
+      reason: doc.reason,
+      note: doc.note,
     revisionNo: doc.revisionNo,
     lines: doc.lines.map((line) => ({
       lineNo: line.lineNo,
@@ -271,6 +273,7 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
   const warehouseId = formString(formData, "warehouseId") || null;
   const fromWarehouseId = formString(formData, "fromWarehouseId") || null;
   const toWarehouseId = formString(formData, "toWarehouseId") || null;
+  const supplierId = formString(formData, "supplierId") || null;
   const reason = (formString(formData, "reason") || null) as MovementReasonValue | null;
 
   try {
@@ -298,13 +301,19 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
       let nextWarehouseId: string | null = existing.warehouseId;
       let nextFromWarehouseId: string | null = existing.fromWarehouseId;
       let nextToWarehouseId: string | null = existing.toWarehouseId;
+      let nextSupplierId: string | null = null;
       let nextReason: MovementReasonValue | null = existing.reason as MovementReasonValue | null;
 
       if (existing.kind === "IMPORT") {
         if (!warehouseId) throw new Error("Vui lòng chọn kho");
+        if (supplierId) {
+          const supplier = await tx.supplier.findUnique({ where: { id: supplierId }, select: { id: true } });
+          if (!supplier) throw new Error("Nhà cung cấp không tồn tại");
+        }
         nextWarehouseId = warehouseId;
         nextFromWarehouseId = null;
         nextToWarehouseId = null;
+        nextSupplierId = supplierId;
         nextReason = "PURCHASE";
       } else if (existing.kind === "EXPORT") {
         if (!warehouseId) throw new Error("Vui lòng chọn kho");
@@ -375,6 +384,7 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
           warehouseId: nextWarehouseId,
           fromWarehouseId: nextFromWarehouseId,
           toWarehouseId: nextToWarehouseId,
+          supplierId: nextSupplierId,
           reason: nextReason,
           note,
           revisionNo: nextRevisionNo,

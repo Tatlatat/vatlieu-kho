@@ -54,6 +54,7 @@ export function InventoryDocumentList({ title, description, newHref, newLabel, r
                 <TableHead>Ngày chứng từ</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Kho</TableHead>
+                <TableHead>NCC</TableHead>
                 <TableHead className="text-right">Dòng</TableHead>
                 <TableHead className="text-right">Tổng SL</TableHead>
                 <TableHead>Người lập</TableHead>
@@ -78,6 +79,16 @@ export function InventoryDocumentList({ title, description, newHref, newLabel, r
                   <TableCell className="max-w-[260px] truncate" title={row.warehouseLabel}>
                     {row.warehouseLabel}
                   </TableCell>
+                  <TableCell className="max-w-[220px] truncate" title={row.supplierName ?? ""}>
+                    {row.supplierName ? (
+                      <div>
+                        <div className="font-medium">{row.supplierName}</div>
+                        <div className="text-xs text-muted-foreground">{row.supplierCode}</div>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{row.lineCount}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {row.totalQuantity.toLocaleString("vi-VN")}
@@ -97,7 +108,7 @@ export function InventoryDocumentList({ title, description, newHref, newLabel, r
               ))}
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
                     Chưa có phiếu nào.
                   </TableCell>
                 </TableRow>

@@ -37,6 +37,8 @@ export interface InventoryDocumentListRow {
   documentDate: Date;
   createdAt: Date;
   warehouseLabel: string;
+  supplierName: string | null;
+  supplierCode: string | null;
   createdByName: string;
   lineCount: number;
   totalQuantity: number;
@@ -60,6 +62,9 @@ export interface InventoryDocumentDetail {
   warehouseId: string | null;
   fromWarehouseId: string | null;
   toWarehouseId: string | null;
+  supplierId: string | null;
+  supplierName: string | null;
+  supplierCode: string | null;
   warehouseLabel: string;
   warehouseName: string | null;
   fromWarehouseName: string | null;
@@ -144,6 +149,7 @@ export async function getInventoryDocuments(
       warehouse: { select: { name: true, code: true } },
       fromWarehouse: { select: { name: true, code: true } },
       toWarehouse: { select: { name: true, code: true } },
+      supplier: { select: { name: true, code: true } },
       createdBy: { select: { name: true } },
       lines: { select: { quantity: true } },
     },
@@ -161,6 +167,8 @@ export async function getInventoryDocuments(
       documentDate: doc.documentDate,
       createdAt: doc.createdAt,
       warehouseLabel: documentWarehouseLabel(doc),
+      supplierName: doc.supplier?.name ?? null,
+      supplierCode: doc.supplier?.code ?? null,
       createdByName: doc.createdBy.name,
       lineCount: doc.lines.length,
       totalQuantity: doc.lines.reduce((sum, line) => sum + line.quantity, 0),
@@ -179,6 +187,7 @@ export async function getInventoryDocumentDetail(
       warehouse: { select: { name: true, code: true } },
       fromWarehouse: { select: { name: true, code: true } },
       toWarehouse: { select: { name: true, code: true } },
+      supplier: { select: { name: true, code: true } },
       createdBy: { select: { name: true } },
       postedBy: { select: { name: true } },
       voidedBy: { select: { name: true } },
@@ -225,6 +234,9 @@ export async function getInventoryDocumentDetail(
     warehouseId: doc.warehouseId,
     fromWarehouseId: doc.fromWarehouseId,
     toWarehouseId: doc.toWarehouseId,
+    supplierId: doc.supplierId,
+    supplierName: doc.supplier?.name ?? null,
+    supplierCode: doc.supplier?.code ?? null,
     warehouseLabel: documentWarehouseLabel(doc),
     warehouseName: doc.warehouse?.name ?? null,
     fromWarehouseName: doc.fromWarehouse?.name ?? null,
