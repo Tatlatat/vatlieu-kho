@@ -274,6 +274,7 @@ model StockMovement {
   @@index([stocktakeId])
   @@index([documentId])
   @@index([documentLineId])
+  @@index([createdById])
   @@index([createdAt])
 }
 
@@ -319,6 +320,9 @@ model InventoryDocument {
   @@index([toWarehouseId])
   @@index([supplierId])
   @@index([createdById])
+  @@index([updatedById])
+  @@index([postedById])
+  @@index([voidedById])
 }
 
 model InventoryDocumentLine {
@@ -397,6 +401,8 @@ model MaterialNorm {
   @@unique([workItemId, materialId])
   @@index([projectId])
   @@index([materialId])
+  @@index([createdById])
+  @@index([updatedById])
 }
 
 model Fund {
@@ -439,6 +445,8 @@ model FundDocument {
   @@index([fundId, documentDate])
   @@index([kind, status])
   @@index([createdById])
+  @@index([postedById])
+  @@index([voidedById])
 }
 
 model FundDocumentLine {
@@ -522,6 +530,10 @@ model Stocktake {
   approvedAt   DateTime?
   items        StocktakeItem[]
   adjustments  StockMovement[] @relation("stocktakeAdjustments")
+
+  @@index([warehouseId])
+  @@index([createdById])
+  @@index([approvedById])
 }
 
 model StocktakeItem {
@@ -533,4 +545,7 @@ model StocktakeItem {
   countedQty  Float
   systemQty   Float
   diff        Float
+
+  @@index([stocktakeId])
+  @@index([materialId])
 }
