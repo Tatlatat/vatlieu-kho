@@ -1,3 +1,5 @@
+import { prisma } from "@/lib/prisma";
+
 export interface NormWarningLine {
   materialId: string;
   quantity: number;
@@ -30,6 +32,11 @@ export interface ProjectNormWarning extends NormWarningUsageSnapshot {
   plannedQty: number;
   totalQty: number;
   overQty: number;
+}
+
+export interface GetProjectNormWarningsInput {
+  lines: NormWarningLine[];
+  excludeDocumentId?: string | null;
 }
 
 function usageKey(workItemId: string, materialId: string): string {
@@ -85,4 +92,73 @@ export function calculateProjectNormWarnings(
   }
 
   return warnings;
+}
+
+export async function getProjectNormWarnings({
+  lines,
+  excludeDocumentId,
+}: GetProjectNormWarningsInput): Promise<ProjectNormWarning[]> {
+  const plannedUsage = aggregatePlannedNormUsage(lines);
+  if (plannedUsage.length === 0) return [];
+
+  const projectIds = Array.from(new Set(plannedUsage.map((usage) => usage.projectId)));
+  const workItemIds = Array.from(new Set(plannedUsage.map((usage) => usage.workItemId)));
+  const materialIds = Array.from(new Set(plannedUsage.map((usage) => usage.materialId)));
+
+  const [norms, actualGroups] = await Promise.all([
+    prisma.materialNorm.findMany({
+      where: {
+        projectId: { in: projectIds },
+        workItemId: { in: workItemIds },
+        materialId: { in: materialIds },
+      },
+      include: {
+        project: { select: { code: true, name: true } },
+        workItem: { select: { name: true } },
+        material: { select: { code: true, name: true, unit: true } },
+      },
+    }),
+    prisma.inventoryDocumentLine.groupBy({
+      by: ["workItemId", "materialId"],
+      where: {
+        projectId: { in: projectIds },
+        workItemId: { in: workItemIds },
+        materialId: { in: materialIds },
+        documentId: excludeDocumentId ? { not: excludeDocumentId } : undefined,
+        document: {
+          kind: "EXPORT",
+          status: "POSTED",
+        },
+      },
+      _sum: { quantity: true },
+    }),
+  ]);
+
+  const actualByKey = new Map(
+    actualGroups
+      .filter((group) => group.workItemId)
+      .map((group) => [usageKey(group.workItemId as string, group.materialId), Number(group._sum.quantity ?? 0)])
+  );
+
+  const snapshots: NormWarningUsageSnapshot[] = norms.map((norm) => ({
+    projectId: norm.projectId,
+    projectCode: norm.project.code,
+    projectName: norm.project.name,
+    workItemId: norm.workItemId,
+    workItemName: norm.workItem.name,
+    materialId: norm.materialId,
+    materialCode: norm.material.code,
+    materialName: norm.material.name,
+    materialUnit: norm.material.unit,
+    normQty: norm.normQty,
+    usedQty: actualByKey.get(usageKey(norm.workItemId, norm.materialId)) ?? 0,
+  }));
+
+  return calculateProjectNormWarnings(plannedUsage, snapshots).sort((a, b) => {
+    const projectCompare = a.projectName.localeCompare(b.projectName);
+    if (projectCompare !== 0) return projectCompare;
+    const workItemCompare = a.workItemName.localeCompare(b.workItemName);
+    if (workItemCompare !== 0) return workItemCompare;
+    return a.materialName.localeCompare(b.materialName);
+  });
 }
