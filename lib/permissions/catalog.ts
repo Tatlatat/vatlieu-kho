@@ -139,6 +139,12 @@ export const PERMISSION_DEFINITIONS = [
     description: "Xem báo cáo tồn kho và định mức.",
   },
   {
+    code: "inventory.opening.import",
+    name: "Import tồn đầu kỳ",
+    category: "Báo cáo",
+    description: "Nhập tồn đầu kỳ từ file Excel và ghi sổ phiếu đầu kỳ.",
+  },
+  {
     code: "catalog.view",
     name: "Xem danh mục",
     category: "Danh mục",
@@ -243,6 +249,7 @@ export const POSITION_PRESETS = {
       "fund.void",
       "inventory.history.view",
       "inventory.report.view",
+      "inventory.opening.import",
       "inventory.import.view",
       "inventory.import.create",
       "inventory.import.void",

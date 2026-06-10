@@ -8,7 +8,9 @@ import {
 import { permissionForInventoryDocument } from "../lib/permissions/inventory-permissions";
 
 assert.ok(PERMISSION_DEFINITIONS.some((permission) => permission.code === "permission.manage"));
+assert.ok(PERMISSION_DEFINITIONS.some((permission) => permission.code === "inventory.opening.import"));
 assert.ok(POSITION_PRESETS.THU_KHO.permissionCodes.includes("inventory.import.create"));
+assert.equal(POSITION_PRESETS.THU_KHO.permissionCodes.includes("inventory.opening.import"), false);
 assert.equal(POSITION_PRESETS.THU_KHO.permissionCodes.includes("permission.manage"), false);
 
 assert.deepEqual(
@@ -40,6 +42,7 @@ assert.equal(
 assert.equal(permissionForInventoryDocument("IMPORT", "create"), "inventory.import.create");
 assert.equal(permissionForInventoryDocument("EXPORT", "edit_posted"), "inventory.export.edit_posted");
 assert.equal(permissionForInventoryDocument("TRANSFER", "void"), "inventory.transfer.void");
-assert.equal(permissionForInventoryDocument("OPENING", "void"), "catalog.manage");
+assert.equal(permissionForInventoryDocument("OPENING", "view"), "inventory.report.view");
+assert.equal(permissionForInventoryDocument("OPENING", "void"), "inventory.opening.import");
 
 console.log("permissions tests passed");

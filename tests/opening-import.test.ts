@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { parseOpeningBalanceRows } from "../lib/opening/import";
+import { groupOpeningRowsByWarehouse, parseOpeningBalanceRows } from "../lib/opening/import";
 
 {
   const rows = parseOpeningBalanceRows([
@@ -58,6 +58,25 @@ import { parseOpeningBalanceRows } from "../lib/opening/import";
 
 {
   assert.throws(() => parseOpeningBalanceRows([]), /File tồn đầu kỳ không có dòng dữ liệu/);
+}
+
+{
+  const grouped = groupOpeningRowsByWarehouse([
+    { rowNumber: 2, warehouseCode: "KHO-A", materialCode: "XM-PC40", quantity: 12.5 },
+    { rowNumber: 3, warehouseCode: "KHO-B", materialCode: "THEP-D18", quantity: 20 },
+    { rowNumber: 4, warehouseCode: "KHO-A", materialCode: "CAT-VANG", quantity: 7 },
+  ]);
+
+  assert.deepEqual(
+    grouped.map((group) => ({
+      warehouseCode: group.warehouseCode,
+      materialCodes: group.rows.map((row) => row.materialCode),
+    })),
+    [
+      { warehouseCode: "KHO-A", materialCodes: ["XM-PC40", "CAT-VANG"] },
+      { warehouseCode: "KHO-B", materialCodes: ["THEP-D18"] },
+    ]
+  );
 }
 
 console.log("opening-import tests passed");

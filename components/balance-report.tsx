@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Download, Upload } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -11,9 +13,10 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { REASON_LABELS } from "@/lib/validation";
 import type { BalanceRow } from "@/lib/queries/balance";
+import { cn } from "@/lib/utils";
 
 interface Warehouse {
   id: string;
@@ -37,6 +40,7 @@ interface Props {
   from: string;
   to: string;
   warehouseId: string;
+  canImportOpening?: boolean;
 }
 
 function typeLabel(type: string, reason: string): string {
@@ -45,7 +49,7 @@ function typeLabel(type: string, reason: string): string {
   return `${dir} – ${label}`;
 }
 
-export function BalanceReport({ rows, warehouses, from, to, warehouseId }: Props) {
+export function BalanceReport({ rows, warehouses, from, to, warehouseId, canImportOpening = false }: Props) {
   const router = useRouter();
 
   const [localFrom, setLocalFrom] = React.useState(from);
@@ -60,6 +64,12 @@ export function BalanceReport({ rows, warehouses, from, to, warehouseId }: Props
     const params = new URLSearchParams({ from: localFrom, to: localTo });
     if (localWh) params.set("wh", localWh);
     router.push(`/bao-cao?${params.toString()}`);
+  }
+
+  function exportHref() {
+    const params = new URLSearchParams({ from: localFrom, to: localTo });
+    if (localWh) params.set("wh", localWh);
+    return `/api/reports/balance/export?${params.toString()}`;
   }
 
   async function toggleRow(materialId: string) {
@@ -94,13 +104,25 @@ export function BalanceReport({ rows, warehouses, from, to, warehouseId }: Props
           <CardTitle className="text-lg font-semibold">
             Báo cáo Nhập – Xuất – Tồn
           </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTransfer((v) => !v)}
-          >
-            {showTransfer ? "Ẩn chuyển kho" : "Hiện chuyển kho"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {canImportOpening && (
+              <Link href="/ton-dau-ky" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+                <Upload className="size-3.5" />
+                Tồn đầu kỳ
+              </Link>
+            )}
+            <Link href={exportHref()} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              <Download className="size-3.5" />
+              Excel
+            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTransfer((v) => !v)}
+            >
+              {showTransfer ? "Ẩn chuyển kho" : "Hiện chuyển kho"}
+            </Button>
+          </div>
         </div>
 
         {/* Filter bar */}

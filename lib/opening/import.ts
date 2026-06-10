@@ -6,6 +6,11 @@ export interface ParsedOpeningBalanceRow {
   note?: string;
 }
 
+export interface OpeningRowsByWarehouse {
+  warehouseCode: string;
+  rows: ParsedOpeningBalanceRow[];
+}
+
 const WAREHOUSE_KEYS = ["warehouseCode", "Mã kho", "Ma kho", "Kho"];
 const MATERIAL_KEYS = ["materialCode", "Mã vật tư", "Ma vat tu", "Mã hàng", "Ma hang"];
 const QUANTITY_KEYS = ["quantity", "Số lượng", "So luong", "SL"];
@@ -82,4 +87,18 @@ export function parseOpeningBalanceRows(inputRows: unknown[]): ParsedOpeningBala
   }
 
   return parsedRows;
+}
+
+export function groupOpeningRowsByWarehouse(rows: ParsedOpeningBalanceRow[]): OpeningRowsByWarehouse[] {
+  const grouped = new Map<string, ParsedOpeningBalanceRow[]>();
+  for (const row of rows) {
+    const currentRows = grouped.get(row.warehouseCode) ?? [];
+    currentRows.push(row);
+    grouped.set(row.warehouseCode, currentRows);
+  }
+
+  return Array.from(grouped.entries()).map(([warehouseCode, groupRows]) => ({
+    warehouseCode,
+    rows: groupRows,
+  }));
 }

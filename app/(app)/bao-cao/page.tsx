@@ -40,7 +40,10 @@ export default async function BaoCaoPage({
   const to = sp.to ?? todayStr;
   const wh = sp.wh ?? "";
   const projectId = sp.projectId ?? "";
-  const canViewFund = await can(user.id, "fund.view");
+  const [canViewFund, canImportOpening] = await Promise.all([
+    can(user.id, "fund.view"),
+    can(user.id, "inventory.opening.import"),
+  ]);
 
   const [summary, monthData, reasonData, topLoss, alerts, balanceRows, warehouses, fundReport] =
     await Promise.all([
@@ -72,6 +75,7 @@ export default async function BaoCaoPage({
         from={from}
         to={to}
         warehouseId={wh}
+        canImportOpening={canImportOpening}
       />
 
       {fundReport && <FundReport report={fundReport} compact />}

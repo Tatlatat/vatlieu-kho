@@ -1,4 +1,7 @@
+import Link from "next/link";
+import { Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -21,7 +24,13 @@ export function ProjectNormReport({ rows }: { rows: ProjectNormReportRow[] }) {
   return (
     <Card className="border border-border shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">Báo cáo chênh lệch định mức</CardTitle>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-lg font-semibold">Báo cáo chênh lệch định mức</CardTitle>
+          <Link href="/api/reports/norms/export" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Download className="size-3.5" />
+            Excel
+          </Link>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>
