@@ -1,7 +1,8 @@
 import { auth } from "@/auth";
+import { hasOwnerAccess, normalizeAppRole, type AppRole } from "@/lib/roles";
 import { redirect } from "next/navigation";
 
-export type Role = "OWNER" | "STAFF";
+export type Role = AppRole;
 
 export interface SessionUser {
   id: string;
@@ -14,12 +15,18 @@ export interface SessionUser {
 export async function requireUser(): Promise<SessionUser> {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  return session.user as unknown as SessionUser;
+  return {
+    id: session.user.id,
+    name: session.user.name,
+    email: session.user.email,
+    role: normalizeAppRole(session.user.role),
+  };
 }
 
 /** Yêu cầu đúng vai trò, sai thì đẩy về trang chính. */
 export async function requireRole(role: Role): Promise<SessionUser> {
   const user = await requireUser();
-  if (user.role !== role) redirect("/");
+  if (role === "OWNER" && !hasOwnerAccess(user.role)) redirect("/");
+  if (role === "STAFF" && user.role !== "STAFF") redirect("/");
   return user;
 }

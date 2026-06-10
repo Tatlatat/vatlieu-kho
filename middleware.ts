@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import authConfig from "./auth.config";
+import { hasOwnerAccess } from "./lib/roles";
 
 const { auth } = NextAuth(authConfig);
 
@@ -17,7 +18,7 @@ export default auth((req) => {
   if (!isLoggedIn) return Response.redirect(new URL("/login", nextUrl));
 
   const ownerOnly = ["/bao-cao", "/vat-lieu"];
-  if (role !== "OWNER" && ownerOnly.some((p) => nextUrl.pathname.startsWith(p))) {
+  if (!hasOwnerAccess(role) && ownerOnly.some((p) => nextUrl.pathname.startsWith(p))) {
     return Response.redirect(new URL("/", nextUrl));
   }
 });
