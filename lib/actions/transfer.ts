@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth-helpers";
-import { parseDocumentLines } from "@/lib/inventory/document-form";
+import { parseDocumentDate, parseDocumentLines } from "@/lib/inventory/document-form";
 import { buildStockMovementInputs } from "@/lib/inventory/posting";
 import type { ActionResult } from "@/lib/actions/movements";
 
@@ -35,8 +35,10 @@ export async function createTransfer(formData: FormData): Promise<ActionResult> 
   if (fromWarehouseId === toWarehouseId) return { ok: false, error: "Kho nguồn và kho đích phải khác nhau" };
 
   let lines;
+  let documentDate;
   try {
     lines = parseDocumentLines(formData);
+    documentDate = parseDocumentDate(formData);
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }
@@ -62,7 +64,7 @@ export async function createTransfer(formData: FormData): Promise<ActionResult> 
           code: documentCode("CK"),
           kind: "TRANSFER",
           status: "POSTED",
-          documentDate: postedAt,
+          documentDate,
           fromWarehouseId,
           toWarehouseId,
           note,

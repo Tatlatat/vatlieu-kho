@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth-helpers";
 import { OUT_REASONS } from "@/lib/validation";
-import { parseDocumentLines } from "@/lib/inventory/document-form";
+import { parseDocumentDate, parseDocumentLines } from "@/lib/inventory/document-form";
 import { buildStockMovementInputs, type MovementReasonValue } from "@/lib/inventory/posting";
 
 export interface ActionResult {
@@ -37,8 +37,10 @@ export async function createImport(formData: FormData): Promise<ActionResult> {
   if (!warehouseId) return { ok: false, error: "Vui lòng chọn kho" };
 
   let lines;
+  let documentDate;
   try {
     lines = parseDocumentLines(formData);
+    documentDate = parseDocumentDate(formData);
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }
@@ -50,7 +52,7 @@ export async function createImport(formData: FormData): Promise<ActionResult> {
         code: documentCode("PN"),
         kind: "IMPORT",
         status: "POSTED",
-        documentDate: postedAt,
+        documentDate,
         warehouseId,
         reason: "PURCHASE",
         note,
@@ -107,8 +109,10 @@ export async function createExport(formData: FormData): Promise<ActionResult> {
   if (!OUT_REASONS.some((r) => r.value === reason)) return { ok: false, error: "Vui lòng chọn lý do xuất" };
 
   let lines;
+  let documentDate;
   try {
     lines = parseDocumentLines(formData);
+    documentDate = parseDocumentDate(formData);
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }
@@ -133,7 +137,7 @@ export async function createExport(formData: FormData): Promise<ActionResult> {
           code: documentCode("PX"),
           kind: "EXPORT",
           status: "POSTED",
-          documentDate: postedAt,
+          documentDate,
           warehouseId,
           reason,
           note,
