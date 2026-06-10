@@ -1,10 +1,16 @@
-import { requireUser } from "@/lib/auth-helpers";
-import { getMaterials } from "@/lib/queries/stock";
-import { getWarehouses } from "@/lib/queries/warehouses";
-import { TransferForm } from "@/components/transfer-form";
+import { InventoryDocumentList } from "@/components/inventory-document-list";
+import { getInventoryDocuments } from "@/lib/queries/documents";
 
 export default async function ChuyenKhoPage() {
-  await requireUser();
-  const [materials, warehouses] = await Promise.all([getMaterials(), getWarehouses()]);
-  return <TransferForm materials={materials} warehouses={warehouses} />;
+  const rows = await getInventoryDocuments("TRANSFER");
+
+  return (
+    <InventoryDocumentList
+      title="Phiếu chuyển kho"
+      description="Danh sách phiếu chuyển kho đã lập và ghi nhận phát sinh ngay."
+      newHref="/chuyen-kho/moi"
+      newLabel="Chuyển kho"
+      rows={rows}
+    />
+  );
 }

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { updateInventoryDocument } from "@/lib/actions/documents";
 import { createTransfer } from "@/lib/actions/transfer";
 import { toast } from "sonner";
 
@@ -32,19 +33,62 @@ interface DocumentLineState {
   quantity: string;
 }
 
+interface InitialDocument {
+  id: string;
+  documentDate: Date | string;
+  fromWarehouseId: string | null;
+  toWarehouseId: string | null;
+  note: string | null;
+  lines: Array<{
+    id: string;
+    materialId: string;
+    quantity: number;
+  }>;
+}
+
+interface TransferFormProps {
+  materials: Material[];
+  warehouses: Warehouse[];
+  mode?: "create" | "edit";
+  initialDocument?: InitialDocument;
+}
+
 function createLine(id = `line-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`): DocumentLineState {
   return { id, materialId: "", quantity: "" };
 }
 
-export function TransferForm({ materials, warehouses }: { materials: Material[]; warehouses: Warehouse[] }) {
+function dateInputValue(value?: Date | string | null): string {
+  if (!value) return new Date().toISOString().slice(0, 10);
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
+  return new Date(date.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+export function TransferForm({
+  materials,
+  warehouses,
+  mode = "create",
+  initialDocument,
+}: TransferFormProps) {
   const router = useRouter();
-  const [lines, setLines] = React.useState<DocumentLineState[]>(() => [createLine("line-1")]);
-  const [fromWarehouseId, setFromWarehouseId] = React.useState(
-    () => warehouses.find((w) => w.isDefault)?.id ?? warehouses[0]?.id ?? ""
+  const [lines, setLines] = React.useState<DocumentLineState[]>(() =>
+    initialDocument?.lines.length
+      ? initialDocument.lines.map((line) => ({
+          id: line.id,
+          materialId: line.materialId,
+          quantity: String(line.quantity),
+        }))
+      : [createLine("line-1")]
   );
-  const [toWarehouseId, setToWarehouseId] = React.useState("");
+  const [documentDate, setDocumentDate] = React.useState(() => dateInputValue(initialDocument?.documentDate));
+  const [fromWarehouseId, setFromWarehouseId] = React.useState(
+    () => initialDocument?.fromWarehouseId ?? warehouses.find((w) => w.isDefault)?.id ?? warehouses[0]?.id ?? ""
+  );
+  const [toWarehouseId, setToWarehouseId] = React.useState(initialDocument?.toWarehouseId ?? "");
   const [isPending, startTransition] = React.useTransition();
   const formRef = React.useRef<HTMLFormElement>(null);
+  const isEdit = mode === "edit";
+  const backHref = isEdit && initialDocument ? `/phieu/${initialDocument.id}` : "/chuyen-kho";
 
   const updateLine = (id: string, patch: Partial<DocumentLineState>) => {
     setLines((current) => current.map((line) => (line.id === id ? { ...line, ...patch } : line)));
@@ -76,6 +120,9 @@ export function TransferForm({ materials, warehouses }: { materials: Material[];
       return;
     }
     const formData = new FormData(e.currentTarget);
+    if (isEdit && initialDocument) {
+      formData.set("documentId", initialDocument.id);
+    }
     formData.set(
       "lines",
       JSON.stringify(lines.map((line) => ({ materialId: line.materialId, quantity: line.quantity })))
@@ -83,13 +130,16 @@ export function TransferForm({ materials, warehouses }: { materials: Material[];
 
     startTransition(async () => {
       try {
-        const res = await createTransfer(formData);
+        const res = isEdit ? await updateInventoryDocument(formData) : await createTransfer(formData);
         if (res.ok) {
-          toast.success("Đã chuyển kho");
-          formRef.current?.reset();
-          setLines([createLine("line-1")]);
-          setToWarehouseId("");
-          router.push("/");
+          toast.success(isEdit ? "Đã cập nhật phiếu chuyển" : "Đã chuyển kho");
+          if (!isEdit) {
+            formRef.current?.reset();
+            setLines([createLine("line-1")]);
+            setToWarehouseId("");
+            setDocumentDate(dateInputValue());
+          }
+          router.push(isEdit && initialDocument ? `/phieu/${initialDocument.id}` : "/chuyen-kho");
         } else {
           toast.error(res.error || "Có lỗi xảy ra");
         }
@@ -104,11 +154,24 @@ export function TransferForm({ materials, warehouses }: { materials: Material[];
       <Card className="w-full max-w-3xl shadow-lg border border-border bg-card/60 backdrop-blur-md">
         <CardHeader>
           <CardTitle className="text-xl font-bold tracking-tight text-foreground text-center">
-            Chuyển Kho
+            {isEdit ? "Sửa Phiếu Chuyển Kho" : "Chuyển Kho"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2 flex flex-col">
+              <Label htmlFor="documentDate" className="text-sm font-medium">Ngày chuyển</Label>
+              <Input
+                id="documentDate"
+                name="documentDate"
+                type="date"
+                required
+                value={documentDate}
+                onChange={(event) => setDocumentDate(event.target.value)}
+                className="h-10"
+              />
+            </div>
+
             <div className="space-y-2 flex flex-col">
               <Label className="text-sm font-medium">Kho nguồn</Label>
               <WarehouseSelect
@@ -203,6 +266,7 @@ export function TransferForm({ materials, warehouses }: { materials: Material[];
                 type="text"
                 className="h-10"
                 placeholder="Nhập ghi chú..."
+                defaultValue={initialDocument?.note ?? ""}
               />
             </div>
 
@@ -210,7 +274,7 @@ export function TransferForm({ materials, warehouses }: { materials: Material[];
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.push("/")}
+                onClick={() => router.push(backHref)}
                 disabled={isPending}
                 className="flex-1 h-10 cursor-pointer"
               >
@@ -221,7 +285,7 @@ export function TransferForm({ materials, warehouses }: { materials: Material[];
                 disabled={isPending}
                 className="flex-1 h-10 cursor-pointer"
               >
-                {isPending ? "Đang xử lý..." : "Lưu phiếu chuyển"}
+                {isPending ? "Đang xử lý..." : isEdit ? "Lưu thay đổi" : "Lưu phiếu chuyển"}
               </Button>
             </div>
           </form>

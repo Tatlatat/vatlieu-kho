@@ -1,8 +1,16 @@
-import { getMaterials } from "@/lib/queries/stock";
-import { getWarehouses } from "@/lib/queries/warehouses";
-import { ImportForm } from "@/components/import-form";
+import { InventoryDocumentList } from "@/components/inventory-document-list";
+import { getInventoryDocuments } from "@/lib/queries/documents";
 
 export default async function NhapPage() {
-  const [materials, warehouses] = await Promise.all([getMaterials(), getWarehouses()]);
-  return <ImportForm materials={materials} warehouses={warehouses} />;
+  const rows = await getInventoryDocuments("IMPORT");
+
+  return (
+    <InventoryDocumentList
+      title="Phiếu nhập hàng"
+      description="Danh sách phiếu nhập đã lập, mới nhất trước."
+      newHref="/nhap/moi"
+      newLabel="Thêm mới nhập hàng"
+      rows={rows}
+    />
+  );
 }

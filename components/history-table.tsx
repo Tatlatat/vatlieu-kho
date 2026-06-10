@@ -23,18 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { REASON_LABELS } from "@/lib/validation";
-import { voidMovement } from "@/lib/actions/void";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useTransition } from "react";
 
 interface HistoryRow {
   id: string;
@@ -50,35 +39,11 @@ interface HistoryRow {
   voided: boolean;
 }
 
-export function HistoryTable({ rows, isOwner }: { rows: HistoryRow[]; isOwner: boolean }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+export function HistoryTable({ rows }: { rows: HistoryRow[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "createdAt", desc: true },
   ]);
   const [globalFilter, setGlobalFilter] = React.useState("");
-  const [voidingId, setVoidingId] = React.useState<string | null>(null);
-  const [voidReason, setVoidReason] = React.useState("");
-
-  const handleVoid = React.useCallback(
-    (movementId: string, reason: string) => {
-      startTransition(async () => {
-        const fd = new FormData();
-        fd.append("movementId", movementId);
-        fd.append("reason", reason);
-        const res = await voidMovement(fd);
-        if (res.ok) {
-          toast.success("Đã hủy chứng từ");
-          setVoidingId(null);
-          setVoidReason("");
-          router.refresh();
-        } else {
-          toast.error(res.error);
-        }
-      });
-    },
-    [router]
-  );
 
   const columns = React.useMemo<ColumnDef<HistoryRow>[]>(
     () => [
@@ -146,30 +111,8 @@ export function HistoryTable({ rows, isOwner }: { rows: HistoryRow[]; isOwner: b
         accessorKey: "createdByName",
         header: "Người tạo",
       },
-      {
-        id: "actions",
-        header: "",
-        cell: ({ row }) => {
-          if (!isOwner || row.original.voided || row.original.reason === "VOID" || row.original.reason === "STOCKTAKE_ADJUST") {
-            return null;
-          }
-          return (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 text-xs text-destructive border-destructive/50 hover:bg-destructive/10 cursor-pointer"
-              onClick={() => {
-                setVoidingId(row.original.id);
-                setVoidReason("");
-              }}
-            >
-              Hủy
-            </Button>
-          );
-        },
-      },
     ],
-    [isOwner]
+    []
   );
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table không tương thích memoize của React Compiler; an toàn ở đây.
@@ -199,8 +142,7 @@ export function HistoryTable({ rows, isOwner }: { rows: HistoryRow[]; isOwner: b
   };
 
   return (
-    <>
-      <Card className="shadow-md border border-border">
+    <Card className="shadow-md border border-border">
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 gap-4">
           <CardTitle className="text-lg font-semibold">Lịch sử giao dịch</CardTitle>
           <div className="flex w-full sm:w-auto items-center gap-3">
@@ -295,56 +237,6 @@ export function HistoryTable({ rows, isOwner }: { rows: HistoryRow[]; isOwner: b
             </div>
           )}
         </CardContent>
-      </Card>
-
-      <Dialog
-        open={voidingId != null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setVoidingId(null);
-            setVoidReason("");
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Hủy chứng từ</DialogTitle>
-            <DialogDescription>
-              Thao tác này sẽ tạo bút toán đảo và không thể hoàn tác. Vui lòng nhập lý do hủy.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <Input
-              placeholder="Lý do hủy..."
-              value={voidReason}
-              onChange={(e) => setVoidReason(e.target.value)}
-              autoFocus
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setVoidingId(null);
-                  setVoidReason("");
-                }}
-              >
-                Bỏ qua
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={!voidReason.trim() || isPending}
-                onClick={() => {
-                  if (voidingId && voidReason.trim()) {
-                    handleVoid(voidingId, voidReason.trim());
-                  }
-                }}
-              >
-                {isPending ? "Đang hủy..." : "Xác nhận hủy"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+    </Card>
   );
 }

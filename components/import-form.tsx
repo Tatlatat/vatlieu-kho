@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { updateInventoryDocument } from "@/lib/actions/documents";
 import { createImport } from "@/lib/actions/movements";
 import { toast } from "sonner";
 
@@ -32,18 +33,60 @@ interface DocumentLineState {
   quantity: string;
 }
 
+interface InitialDocument {
+  id: string;
+  documentDate: Date | string;
+  warehouseId: string | null;
+  note: string | null;
+  lines: Array<{
+    id: string;
+    materialId: string;
+    quantity: number;
+  }>;
+}
+
+interface ImportFormProps {
+  materials: Material[];
+  warehouses: Warehouse[];
+  mode?: "create" | "edit";
+  initialDocument?: InitialDocument;
+}
+
 function createLine(id = `line-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`): DocumentLineState {
   return { id, materialId: "", quantity: "" };
 }
 
-export function ImportForm({ materials, warehouses }: { materials: Material[]; warehouses: Warehouse[] }) {
+function dateInputValue(value?: Date | string | null): string {
+  if (!value) return new Date().toISOString().slice(0, 10);
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
+  return new Date(date.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+export function ImportForm({
+  materials,
+  warehouses,
+  mode = "create",
+  initialDocument,
+}: ImportFormProps) {
   const router = useRouter();
-  const [lines, setLines] = React.useState<DocumentLineState[]>(() => [createLine("line-1")]);
+  const [lines, setLines] = React.useState<DocumentLineState[]>(() =>
+    initialDocument?.lines.length
+      ? initialDocument.lines.map((line) => ({
+          id: line.id,
+          materialId: line.materialId,
+          quantity: String(line.quantity),
+        }))
+      : [createLine("line-1")]
+  );
+  const [documentDate, setDocumentDate] = React.useState(() => dateInputValue(initialDocument?.documentDate));
   const [warehouseId, setWarehouseId] = React.useState(
-    () => warehouses.find((w) => w.isDefault)?.id ?? warehouses[0]?.id ?? ""
+    () => initialDocument?.warehouseId ?? warehouses.find((w) => w.isDefault)?.id ?? warehouses[0]?.id ?? ""
   );
   const [isPending, startTransition] = React.useTransition();
   const formRef = React.useRef<HTMLFormElement>(null);
+  const isEdit = mode === "edit";
+  const backHref = isEdit && initialDocument ? `/phieu/${initialDocument.id}` : "/nhap";
 
   const updateLine = (id: string, patch: Partial<DocumentLineState>) => {
     setLines((current) => current.map((line) => (line.id === id ? { ...line, ...patch } : line)));
@@ -67,6 +110,9 @@ export function ImportForm({ materials, warehouses }: { materials: Material[]; w
       return;
     }
     const formData = new FormData(e.currentTarget);
+    if (isEdit && initialDocument) {
+      formData.set("documentId", initialDocument.id);
+    }
     formData.set(
       "lines",
       JSON.stringify(lines.map((line) => ({ materialId: line.materialId, quantity: line.quantity })))
@@ -74,12 +120,15 @@ export function ImportForm({ materials, warehouses }: { materials: Material[]; w
 
     startTransition(async () => {
       try {
-        const res = await createImport(formData);
+        const res = isEdit ? await updateInventoryDocument(formData) : await createImport(formData);
         if (res.ok) {
-          toast.success("Đã nhập kho");
-          formRef.current?.reset();
-          setLines([createLine("line-1")]);
-          router.push("/");
+          toast.success(isEdit ? "Đã cập nhật phiếu nhập" : "Đã nhập kho");
+          if (!isEdit) {
+            formRef.current?.reset();
+            setLines([createLine("line-1")]);
+            setDocumentDate(dateInputValue());
+          }
+          router.push(isEdit && initialDocument ? `/phieu/${initialDocument.id}` : "/nhap");
         } else {
           toast.error(res.error || "Có lỗi xảy ra");
         }
@@ -94,11 +143,24 @@ export function ImportForm({ materials, warehouses }: { materials: Material[]; w
       <Card className="w-full max-w-3xl shadow-lg border border-border bg-card/60 backdrop-blur-md">
         <CardHeader>
           <CardTitle className="text-xl font-bold tracking-tight text-foreground text-center">
-            Nhập Kho Vật Tư
+            {isEdit ? "Sửa Phiếu Nhập" : "Nhập Kho Vật Tư"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2 flex flex-col">
+              <Label htmlFor="documentDate" className="text-sm font-medium">Ngày nhập</Label>
+              <Input
+                id="documentDate"
+                name="documentDate"
+                type="date"
+                required
+                value={documentDate}
+                onChange={(event) => setDocumentDate(event.target.value)}
+                className="h-10"
+              />
+            </div>
+
             <div className="space-y-2 flex flex-col">
               <Label className="text-sm font-medium">Kho</Label>
               <WarehouseSelect
@@ -181,6 +243,7 @@ export function ImportForm({ materials, warehouses }: { materials: Material[]; w
                 type="text"
                 className="h-10"
                 placeholder="Nhập ghi chú..."
+                defaultValue={initialDocument?.note ?? ""}
               />
             </div>
 
@@ -188,7 +251,7 @@ export function ImportForm({ materials, warehouses }: { materials: Material[]; w
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.push("/")}
+                onClick={() => router.push(backHref)}
                 disabled={isPending}
                 className="flex-1 h-10 cursor-pointer"
               >
@@ -199,7 +262,7 @@ export function ImportForm({ materials, warehouses }: { materials: Material[]; w
                 disabled={isPending}
                 className="flex-1 h-10 cursor-pointer"
               >
-                {isPending ? "Đang xử lý..." : "Lưu phiếu nhập"}
+                {isPending ? "Đang xử lý..." : isEdit ? "Lưu thay đổi" : "Lưu phiếu nhập"}
               </Button>
             </div>
           </form>
