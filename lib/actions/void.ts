@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requirePermission, requireUser } from "@/lib/auth-helpers";
 import { voidSchema } from "@/lib/validation";
+import { permissionForInventoryDocument } from "@/lib/permissions/inventory-permissions";
 import type { ActionResult } from "@/lib/actions/movements";
 
 /** Hủy 1 chứng từ (hoặc cả cặp chuyển kho) bằng bút toán đảo. */
 export async function voidMovement(formData: FormData): Promise<ActionResult> {
-  const user = await requireRole("OWNER");
+  await requireUser();
   const parsed = voidSchema.safeParse({ movementId: formData.get("movementId"), reason: formData.get("reason") });
   if (!parsed.success || !parsed.data.movementId) {
     return { ok: false, error: parsed.success ? "Thiếu chứng từ" : parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
@@ -20,6 +21,17 @@ export async function voidMovement(formData: FormData): Promise<ActionResult> {
   if (mv.voidedAt) return { ok: false, error: "Chứng từ này đã được hủy trước đó" };
   if (mv.reason === "VOID") return { ok: false, error: "Không thể hủy một bút toán hủy" };
   if (mv.reason === "STOCKTAKE_ADJUST") return { ok: false, error: "Không thể hủy riêng điều chỉnh kiểm kê. Hãy hủy cả phiếu kiểm kê." };
+
+  let requiredPermission = permissionForInventoryDocument(mv.type === "IN" ? "IMPORT" : "EXPORT", "void");
+  if (mv.transferId) requiredPermission = permissionForInventoryDocument("TRANSFER", "void");
+  if (mv.documentId) {
+    const doc = await prisma.inventoryDocument.findUnique({
+      where: { id: mv.documentId },
+      select: { kind: true },
+    });
+    if (doc) requiredPermission = permissionForInventoryDocument(doc.kind, "void");
+  }
+  const user = await requirePermission(requiredPermission);
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -84,7 +96,7 @@ export async function voidMovement(formData: FormData): Promise<ActionResult> {
 
 /** Hủy phiếu kiểm kê đã duyệt: đảo các STOCKTAKE_ADJUST nó sinh ra + đánh dấu phiếu VOIDED. */
 export async function voidStocktake(formData: FormData): Promise<ActionResult> {
-  const user = await requireRole("OWNER");
+  const user = await requirePermission("inventory.stocktake.void");
   const stocktakeId = formData.get("stocktakeId") as string;
   const reason = (formData.get("reason") as string)?.trim();
   if (!stocktakeId) return { ok: false, error: "Thiếu phiếu kiểm kê" };

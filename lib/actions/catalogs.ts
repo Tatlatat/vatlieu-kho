@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requirePermission } from "@/lib/auth-helpers";
 import { supplierSchema, unitSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/actions/movements";
 
@@ -20,7 +20,7 @@ function revalidateCatalogPaths() {
 }
 
 export async function createUnit(formData: FormData): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requirePermission("catalog.manage");
   const parsed = unitSchema.safeParse({
     name: formData.get("name"),
     note: formData.get("note"),
@@ -43,7 +43,7 @@ export async function createUnit(formData: FormData): Promise<ActionResult> {
 }
 
 export async function updateUnit(id: string, formData: FormData): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requirePermission("catalog.manage");
   const parsed = unitSchema.safeParse({
     name: formData.get("name"),
     note: formData.get("note"),
@@ -76,7 +76,7 @@ export async function updateUnit(id: string, formData: FormData): Promise<Action
 }
 
 export async function createSupplier(formData: FormData): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requirePermission("catalog.manage");
   const parsed = supplierSchema.safeParse({
     code: formData.get("code"),
     taxCode: formData.get("taxCode"),
@@ -105,7 +105,7 @@ export async function createSupplier(formData: FormData): Promise<ActionResult> 
 }
 
 export async function updateSupplier(id: string, formData: FormData): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requirePermission("catalog.manage");
   const parsed = supplierSchema.safeParse({
     code: formData.get("code"),
     taxCode: formData.get("taxCode"),

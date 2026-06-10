@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth-helpers";
+import { requirePermission } from "@/lib/auth-helpers";
 import { OUT_REASONS } from "@/lib/validation";
 import { parseDocumentDate, parseDocumentLines } from "@/lib/inventory/document-form";
 import { buildStockMovementInputs, type MovementReasonValue } from "@/lib/inventory/posting";
@@ -43,7 +43,7 @@ function isOverNormConfirmed(formData: FormData): boolean {
 
 /** Nhập kho: tạo phiếu nhập POSTED nhiều dòng, rồi sinh movement IN/PURCHASE. */
 export async function createImport(formData: FormData): Promise<ActionResult> {
-  const user = await requireUser();
+  const user = await requirePermission("inventory.import.create");
   const warehouseId = formString(formData, "warehouseId");
   const supplierId = formString(formData, "supplierId") || null;
   const note = formString(formData, "note") || undefined;
@@ -120,7 +120,7 @@ export async function createImport(formData: FormData): Promise<ActionResult> {
 
 /** Xuất kho: tạo phiếu xuất POSTED nhiều dòng, chặn xuất quá tồn, rồi sinh movement OUT/<reason>. */
 export async function createExport(formData: FormData): Promise<ActionResult> {
-  const user = await requireUser();
+  const user = await requirePermission("inventory.export.create");
   const warehouseId = formString(formData, "warehouseId");
   const reason = formString(formData, "reason") as MovementReasonValue;
   const note = formString(formData, "note") || undefined;

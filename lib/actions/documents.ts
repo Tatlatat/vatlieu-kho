@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requirePermission, requireUser } from "@/lib/auth-helpers";
 import { OUT_REASONS } from "@/lib/validation";
 import { parseDocumentDate, parseDocumentLines } from "@/lib/inventory/document-form";
 import {
@@ -16,6 +16,7 @@ import { buildRevisionSlotDeltas } from "@/lib/inventory/revision";
 import { resolveProjectLineAssignments } from "@/lib/projects/resolve-line-projects";
 import { stripLineProjectAssignment } from "@/lib/projects/line-projects";
 import { getProjectNormWarnings, shouldRequireOverNormConfirmation } from "@/lib/projects/norm-warnings";
+import { permissionForInventoryDocument } from "@/lib/permissions/inventory-permissions";
 import type { ActionResult } from "@/lib/actions/movements";
 
 function formString(formData: FormData, key: string): string {
@@ -183,7 +184,7 @@ function buildVoidReversals(args: {
 }
 
 export async function voidInventoryDocument(formData: FormData): Promise<ActionResult> {
-  const user = await requireRole("OWNER");
+  await requireUser();
 
   let documentId: string;
   try {
@@ -194,6 +195,14 @@ export async function voidInventoryDocument(formData: FormData): Promise<ActionR
 
   const reason = formString(formData, "reason");
   if (!reason) return { ok: false, error: "Vui lòng nhập lý do hủy" };
+
+  const existingKind = await prisma.inventoryDocument.findUnique({
+    where: { id: documentId },
+    select: { kind: true },
+  });
+  if (!existingKind) return { ok: false, error: "Không tìm thấy phiếu" };
+
+  const user = await requirePermission(permissionForInventoryDocument(existingKind.kind, "void"));
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -262,7 +271,7 @@ export async function voidInventoryDocument(formData: FormData): Promise<ActionR
 }
 
 export async function updateInventoryDocument(formData: FormData): Promise<ActionResult> {
-  const user = await requireRole("OWNER");
+  await requireUser();
 
   let documentId: string;
   let lines: ReturnType<typeof parseDocumentLines>;
@@ -288,6 +297,7 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
       select: { kind: true },
     });
     if (!existingKind) return { ok: false, error: "Không tìm thấy phiếu" };
+    const user = await requirePermission(permissionForInventoryDocument(existingKind.kind, "edit_posted"));
 
     if (existingKind.kind === "EXPORT") {
       lines = await resolveProjectLineAssignments(lines);

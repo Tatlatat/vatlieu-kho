@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requirePermission } from "@/lib/auth-helpers";
 import { warehouseSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/actions/movements";
 
 export async function createWarehouse(formData: FormData): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requirePermission("catalog.manage");
   const parsed = warehouseSchema.safeParse({ name: formData.get("name"), code: formData.get("code") });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
   const existing = await prisma.warehouse.findUnique({ where: { code: parsed.data.code } });
@@ -18,7 +18,7 @@ export async function createWarehouse(formData: FormData): Promise<ActionResult>
 }
 
 export async function updateWarehouse(id: string, formData: FormData): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requirePermission("catalog.manage");
   const parsed = warehouseSchema.safeParse({ name: formData.get("name"), code: formData.get("code") });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" };
   const dup = await prisma.warehouse.findFirst({ where: { code: parsed.data.code, NOT: { id } } });

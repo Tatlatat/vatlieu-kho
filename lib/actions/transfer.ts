@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth-helpers";
+import { requirePermission } from "@/lib/auth-helpers";
 import { parseDocumentDate, parseDocumentLines } from "@/lib/inventory/document-form";
 import { buildStockMovementInputs } from "@/lib/inventory/posting";
 import type { ActionResult } from "@/lib/actions/movements";
@@ -26,7 +26,7 @@ function aggregateLineQuantities(lines: Array<{ materialId: string; quantity: nu
 }
 
 export async function createTransfer(formData: FormData): Promise<ActionResult> {
-  const user = await requireUser();
+  const user = await requirePermission("inventory.transfer.create");
   const fromWarehouseId = formString(formData, "fromWarehouseId");
   const toWarehouseId = formString(formData, "toWarehouseId");
   const note = formString(formData, "note") || undefined;

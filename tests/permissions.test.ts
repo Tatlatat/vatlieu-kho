@@ -5,6 +5,7 @@ import {
   canAccessPermission,
   normalizePermissionCodes,
 } from "../lib/permissions/effective";
+import { permissionForInventoryDocument } from "../lib/permissions/inventory-permissions";
 
 assert.ok(PERMISSION_DEFINITIONS.some((permission) => permission.code === "permission.manage"));
 assert.ok(POSITION_PRESETS.THU_KHO.permissionCodes.includes("inventory.import.create"));
@@ -35,5 +36,10 @@ assert.equal(
   canAccessPermission({ isOwner: false, effectivePermissionCodes: ["catalog.view"] }, "catalog.manage"),
   false
 );
+
+assert.equal(permissionForInventoryDocument("IMPORT", "create"), "inventory.import.create");
+assert.equal(permissionForInventoryDocument("EXPORT", "edit_posted"), "inventory.export.edit_posted");
+assert.equal(permissionForInventoryDocument("TRANSFER", "void"), "inventory.transfer.void");
+assert.equal(permissionForInventoryDocument("OPENING", "void"), "catalog.manage");
 
 console.log("permissions tests passed");

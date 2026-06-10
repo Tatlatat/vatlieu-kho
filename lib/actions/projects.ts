@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requirePermission } from "@/lib/auth-helpers";
 import type { ActionResult } from "@/lib/actions/movements";
 
 function formString(formData: FormData, key: string): string {
@@ -31,7 +31,7 @@ async function uniqueFundCode(baseCode: string): Promise<string> {
 }
 
 export async function createProject(formData: FormData): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requirePermission("project.manage");
 
   const code = validateCode(formString(formData, "code"), "mã công trình");
   const name = formString(formData, "name");
@@ -79,7 +79,7 @@ export async function createProject(formData: FormData): Promise<ActionResult> {
 }
 
 export async function updateProject(projectId: string, formData: FormData): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requirePermission("project.manage");
 
   const code = validateCode(formString(formData, "code"), "mã công trình");
   const name = formString(formData, "name");
@@ -109,7 +109,7 @@ export async function updateProject(projectId: string, formData: FormData): Prom
 }
 
 export async function createProjectWorkItem(formData: FormData): Promise<ActionResult> {
-  await requireRole("OWNER");
+  await requirePermission("project.manage");
 
   const projectId = formString(formData, "projectId");
   const code = formString(formData, "code") || null;
@@ -136,7 +136,7 @@ export async function createProjectWorkItem(formData: FormData): Promise<ActionR
 }
 
 export async function upsertMaterialNorm(formData: FormData): Promise<ActionResult> {
-  const user = await requireRole("OWNER");
+  const user = await requirePermission("norm.manage");
 
   try {
     const projectId = formString(formData, "projectId");

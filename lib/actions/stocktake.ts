@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireRole } from "@/lib/auth-helpers";
+import { requirePermission } from "@/lib/auth-helpers";
 import { getCurrentStock } from "@/lib/queries/stock";
 import type { ActionResult } from "@/lib/actions/movements";
 
 /** Tạo phiếu kiểm kê mới: chốt systemQty hiện tại cho mọi vật liệu trong kho chỉ định. */
 export async function createStocktake(warehouseId: string): Promise<ActionResult & { id?: string }> {
   if (!warehouseId) return { ok: false, error: "Vui lòng chọn kho để kiểm kê." };
-  const user = await requireUser();
+  const user = await requirePermission("inventory.stocktake.create");
   const stock = await getCurrentStock(warehouseId, { includeZero: true });
   if (stock.length === 0) {
     return { ok: false, error: "Kho này chưa có vật tư nào để kiểm kê." };
@@ -45,7 +45,7 @@ export async function updateStocktakeItem(
   itemId: string,
   countedQty: number
 ): Promise<ActionResult> {
-  await requireUser();
+  await requirePermission("inventory.stocktake.edit");
   if (!Number.isFinite(countedQty) || countedQty < 0) {
     return { ok: false, error: "Số đếm không hợp lệ." };
   }
@@ -55,8 +55,8 @@ export async function updateStocktakeItem(
     include: { stocktake: true },
   });
   if (!item) return { ok: false, error: "Không tìm thấy dòng kiểm kê." };
-  if (item.stocktake.status === "APPROVED") {
-    return { ok: false, error: "Phiếu đã duyệt, không thể sửa." };
+  if (item.stocktake.status !== "DRAFT") {
+    return { ok: false, error: "Chỉ sửa được phiếu kiểm kê đang nháp." };
   }
 
   await prisma.stocktakeItem.update({
@@ -70,7 +70,7 @@ export async function updateStocktakeItem(
 
 /** Duyệt phiếu (chỉ OWNER): set APPROVED → trigger DB sinh STOCKTAKE_ADJUST. */
 export async function approveStocktake(stocktakeId: string): Promise<ActionResult> {
-  const user = await requireRole("OWNER");
+  const user = await requirePermission("inventory.stocktake.approve");
 
   const st = await prisma.stocktake.findUnique({ where: { id: stocktakeId } });
   if (!st) return { ok: false, error: "Không tìm thấy phiếu." };

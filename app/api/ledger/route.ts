@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth-helpers";
+import { requirePermission } from "@/lib/auth-helpers";
 import { getMaterialLedger } from "@/lib/queries/balance";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  await requireUser();
+  await requirePermission("inventory.history.view");
   const { searchParams } = new URL(req.url);
   const materialId = searchParams.get("materialId");
   const from = searchParams.get("from");
