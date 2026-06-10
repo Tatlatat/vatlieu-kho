@@ -14,6 +14,7 @@ import {
 } from "@/lib/inventory/posting";
 import { buildRevisionSlotDeltas } from "@/lib/inventory/revision";
 import { resolveProjectLineAssignments } from "@/lib/projects/resolve-line-projects";
+import { stripLineProjectAssignment } from "@/lib/projects/line-projects";
 import type { ActionResult } from "@/lib/actions/movements";
 
 function formString(formData: FormData, key: string): string {
@@ -282,10 +283,7 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
     if (existingKind.kind === "EXPORT") {
       lines = await resolveProjectLineAssignments(lines);
     } else {
-      lines = lines.map((line) => {
-        const { projectId: _projectId, workItemId: _workItemId, ...rest } = line;
-        return rest;
-      });
+      lines = lines.map(stripLineProjectAssignment);
     }
 
     await prisma.$transaction(async (tx) => {

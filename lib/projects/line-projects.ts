@@ -25,3 +25,10 @@ export function normalizeLineProjectAssignments<T extends ProjectAssignableLine>
     return normalized;
   });
 }
+
+export function stripLineProjectAssignment<T extends ProjectAssignableLine>(line: T): T {
+  const normalized = { ...line };
+  delete normalized.projectId;
+  delete normalized.workItemId;
+  return normalized;
+}

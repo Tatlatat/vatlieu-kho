@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { ParsedDocumentLine } from "@/lib/inventory/document-form";
-import { normalizeLineProjectAssignments } from "@/lib/projects/line-projects";
+import { normalizeLineProjectAssignments, stripLineProjectAssignment } from "@/lib/projects/line-projects";
 
 export async function resolveProjectLineAssignments(
   lines: ParsedDocumentLine[]
@@ -9,10 +9,7 @@ export async function resolveProjectLineAssignments(
     new Set(lines.map((line) => line.projectId).filter((value): value is string => Boolean(value)))
   );
   if (projectIds.length === 0) {
-    return lines.map((line) => {
-      const { projectId: _projectId, workItemId: _workItemId, ...rest } = line;
-      return rest;
-    });
+    return lines.map(stripLineProjectAssignment);
   }
 
   const defaults = await prisma.projectWorkItem.findMany({
