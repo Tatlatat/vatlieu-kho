@@ -146,6 +146,7 @@ export function InventoryDocumentDetail({ document, canEdit, canVoid }: Props) {
                 <TableHead className="w-16">STT</TableHead>
                 <TableHead>Mã</TableHead>
                 <TableHead>Vật tư</TableHead>
+                <TableHead>Công trình / hạng mục</TableHead>
                 <TableHead className="text-right">Số lượng</TableHead>
                 <TableHead>Ghi chú</TableHead>
               </TableRow>
@@ -156,6 +157,16 @@ export function InventoryDocumentDetail({ document, canEdit, canVoid }: Props) {
                   <TableCell>{line.lineNo}</TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">{line.materialCode}</TableCell>
                   <TableCell className="font-medium">{line.materialName}</TableCell>
+                  <TableCell>
+                    {line.projectName ? (
+                      <div>
+                        <div className="font-medium">{line.projectName}</div>
+                        <div className="text-xs text-muted-foreground">{line.workItemName ?? "Chung"}</div>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">Không gắn</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {line.quantity.toLocaleString("vi-VN")} {line.materialUnit}
                   </TableCell>

@@ -7,13 +7,13 @@ import { parseDocumentDate, parseDocumentLines } from "../lib/inventory/document
     "lines",
     JSON.stringify([
       { materialId: "mat-1", quantity: "2.5", note: "Dòng 1" },
-      { materialId: "mat-2", quantity: 3 },
+      { materialId: "mat-2", quantity: 3, projectId: "project-1", workItemId: "work-1" },
     ])
   );
 
   assert.deepEqual(parseDocumentLines(formData), [
     { materialId: "mat-1", quantity: 2.5, note: "Dòng 1" },
-    { materialId: "mat-2", quantity: 3, note: undefined },
+    { materialId: "mat-2", quantity: 3, note: undefined, projectId: "project-1", workItemId: "work-1" },
   ]);
 }
 

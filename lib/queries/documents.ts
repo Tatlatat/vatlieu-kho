@@ -78,6 +78,10 @@ export interface InventoryDocumentDetail {
     materialName: string;
     materialCode: string;
     materialUnit: string;
+    projectId: string | null;
+    projectName: string | null;
+    workItemId: string | null;
+    workItemName: string | null;
     quantity: number;
     note: string | null;
   }>;
@@ -182,6 +186,8 @@ export async function getInventoryDocumentDetail(
         orderBy: { lineNo: "asc" },
         include: {
           material: { select: { name: true, code: true, unit: true } },
+          project: { select: { name: true } },
+          workItem: { select: { name: true } },
         },
       },
       movements: {
@@ -237,6 +243,10 @@ export async function getInventoryDocumentDetail(
       materialName: line.material.name,
       materialCode: line.material.code,
       materialUnit: line.material.unit,
+      projectId: line.projectId,
+      projectName: line.project?.name ?? null,
+      workItemId: line.workItemId,
+      workItemName: line.workItem?.name ?? null,
       quantity: line.quantity,
       note: line.note,
     })),

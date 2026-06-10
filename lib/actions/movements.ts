@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth-helpers";
 import { OUT_REASONS } from "@/lib/validation";
 import { parseDocumentDate, parseDocumentLines } from "@/lib/inventory/document-form";
 import { buildStockMovementInputs, type MovementReasonValue } from "@/lib/inventory/posting";
+import { resolveProjectLineAssignments } from "@/lib/projects/resolve-line-projects";
 
 export interface ActionResult {
   ok: boolean;
@@ -113,6 +114,7 @@ export async function createExport(formData: FormData): Promise<ActionResult> {
   try {
     lines = parseDocumentLines(formData);
     documentDate = parseDocumentDate(formData);
+    lines = await resolveProjectLineAssignments(lines);
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }
@@ -149,6 +151,8 @@ export async function createExport(formData: FormData): Promise<ActionResult> {
               lineNo: index + 1,
               materialId: line.materialId,
               quantity: line.quantity,
+              projectId: line.projectId,
+              workItemId: line.workItemId,
               note: line.note,
             })),
           },

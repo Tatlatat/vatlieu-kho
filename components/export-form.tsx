@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { updateInventoryDocument } from "@/lib/actions/documents";
 import { createExport } from "@/lib/actions/movements";
+import type { ProjectOption } from "@/lib/queries/projects";
 import { OUT_REASONS } from "@/lib/validation";
 import { toast } from "sonner";
 
@@ -39,6 +40,8 @@ interface DocumentLineState {
   id: string;
   materialId: string;
   quantity: string;
+  projectId: string;
+  workItemId: string;
 }
 
 interface InitialDocument {
@@ -50,6 +53,8 @@ interface InitialDocument {
   lines: Array<{
     id: string;
     materialId: string;
+    projectId: string | null;
+    workItemId: string | null;
     quantity: number;
   }>;
 }
@@ -57,12 +62,13 @@ interface InitialDocument {
 interface ExportFormProps {
   materials: Material[];
   warehouses: Warehouse[];
+  projects?: ProjectOption[];
   mode?: "create" | "edit";
   initialDocument?: InitialDocument;
 }
 
 function createLine(id = `line-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`): DocumentLineState {
-  return { id, materialId: "", quantity: "" };
+  return { id, materialId: "", quantity: "", projectId: "", workItemId: "" };
 }
 
 function dateInputValue(value?: Date | string | null): string {
@@ -75,6 +81,7 @@ function dateInputValue(value?: Date | string | null): string {
 export function ExportForm({
   materials,
   warehouses,
+  projects = [],
   mode = "create",
   initialDocument,
 }: ExportFormProps) {
@@ -85,6 +92,8 @@ export function ExportForm({
           id: line.id,
           materialId: line.materialId,
           quantity: String(line.quantity),
+          projectId: line.projectId ?? "",
+          workItemId: line.workItemId ?? "",
         }))
       : [createLine("line-1")]
   );
@@ -100,6 +109,17 @@ export function ExportForm({
 
   const updateLine = (id: string, patch: Partial<DocumentLineState>) => {
     setLines((current) => current.map((line) => (line.id === id ? { ...line, ...patch } : line)));
+  };
+
+  const updateLineProject = (id: string, projectId: string) => {
+    const project = projects.find((item) => item.id === projectId);
+    const defaultWorkItemId = project?.workItems.find((item) => item.isDefault)?.id ?? project?.workItems[0]?.id ?? "";
+    setLines((current) =>
+      current.map((line) => (line.id === id ? { ...line, projectId, workItemId: defaultWorkItemId } : line))
+    );
+    if (project?.warehouseId) {
+      setWarehouseId(project.warehouseId);
+    }
   };
 
   const addLine = () => setLines((current) => [...current, createLine()]);
@@ -129,7 +149,14 @@ export function ExportForm({
     }
     formData.set(
       "lines",
-      JSON.stringify(lines.map((line) => ({ materialId: line.materialId, quantity: line.quantity })))
+      JSON.stringify(
+        lines.map((line) => ({
+          materialId: line.materialId,
+          quantity: line.quantity,
+          projectId: line.projectId || undefined,
+          workItemId: line.workItemId || undefined,
+        }))
+      )
     );
 
     startTransition(async () => {
@@ -216,10 +243,11 @@ export function ExportForm({
               <div className="space-y-3">
                 {lines.map((line, index) => {
                   const selectedMaterial = materials.find((m) => m.id === line.materialId);
+                  const selectedProject = projects.find((project) => project.id === line.projectId);
                   return (
                     <div
                       key={line.id}
-                      className="grid gap-3 rounded-md border border-border bg-background/70 p-3 md:grid-cols-[minmax(0,1fr)_160px_36px] md:items-end"
+                      className="grid gap-3 rounded-md border border-border bg-background/70 p-3 md:grid-cols-[minmax(0,1fr)_150px_180px_160px_36px] md:items-end"
                     >
                       <div className="space-y-2 flex flex-col">
                         <Label className="text-xs text-muted-foreground">Vật tư {index + 1}</Label>
@@ -229,6 +257,55 @@ export function ExportForm({
                           value={line.materialId}
                           onChange={(value) => updateLine(line.id, { materialId: value })}
                         />
+                      </div>
+                      <div className="space-y-2 flex flex-col">
+                        <Label className="text-xs text-muted-foreground">Công trình</Label>
+                        <Select
+                          value={line.projectId || "__none__"}
+                          onValueChange={(value) => {
+                            const nextValue = value ?? "__none__";
+                            updateLineProject(line.id, nextValue === "__none__" ? "" : nextValue);
+                          }}
+                        >
+                          <SelectTrigger className="w-full h-10">
+                            <SelectValue placeholder="Chọn CT...">
+                              {selectedProject?.name ?? "Không gắn"}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Không gắn</SelectItem>
+                            {projects.map((project) => (
+                              <SelectItem key={project.id} value={project.id}>
+                                {project.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2 flex flex-col">
+                        <Label className="text-xs text-muted-foreground">Hạng mục</Label>
+                        <Select
+                          value={line.workItemId || "__none__"}
+                          onValueChange={(value) => {
+                            const nextValue = value ?? "__none__";
+                            updateLine(line.id, { workItemId: nextValue === "__none__" ? "" : nextValue });
+                          }}
+                          disabled={!selectedProject}
+                        >
+                          <SelectTrigger className="w-full h-10">
+                            <SelectValue placeholder="Chọn HM...">
+                              {selectedProject?.workItems.find((item) => item.id === line.workItemId)?.name ?? "Chung"}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Chung</SelectItem>
+                            {selectedProject?.workItems.map((item) => (
+                              <SelectItem key={item.id} value={item.id}>
+                                {item.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2 flex flex-col">
                         <Label htmlFor={`quantity-${line.id}`} className="text-xs text-muted-foreground">

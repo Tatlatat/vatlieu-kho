@@ -13,6 +13,7 @@ import {
   type StockMovementInput,
 } from "@/lib/inventory/posting";
 import { buildRevisionSlotDeltas } from "@/lib/inventory/revision";
+import { resolveProjectLineAssignments } from "@/lib/projects/resolve-line-projects";
 import type { ActionResult } from "@/lib/actions/movements";
 
 function formString(formData: FormData, key: string): string {
@@ -50,6 +51,8 @@ function snapshotDocument(doc: {
   lines: Array<{
     lineNo: number;
     materialId: string;
+    projectId?: string | null;
+    workItemId?: string | null;
     quantity: number;
     note: string | null;
   }>;
@@ -69,6 +72,8 @@ function snapshotDocument(doc: {
     lines: doc.lines.map((line) => ({
       lineNo: line.lineNo,
       materialId: line.materialId,
+      projectId: line.projectId ?? null,
+      workItemId: line.workItemId ?? null,
       quantity: line.quantity,
       note: line.note,
     })),
@@ -268,6 +273,21 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
   const reason = (formString(formData, "reason") || null) as MovementReasonValue | null;
 
   try {
+    const existingKind = await prisma.inventoryDocument.findUnique({
+      where: { id: documentId },
+      select: { kind: true },
+    });
+    if (!existingKind) return { ok: false, error: "Không tìm thấy phiếu" };
+
+    if (existingKind.kind === "EXPORT") {
+      lines = await resolveProjectLineAssignments(lines);
+    } else {
+      lines = lines.map((line) => {
+        const { projectId: _projectId, workItemId: _workItemId, ...rest } = line;
+        return rest;
+      });
+    }
+
     await prisma.$transaction(async (tx) => {
       const existing = await tx.inventoryDocument.findUnique({
         where: { id: documentId },
@@ -366,6 +386,8 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
               lineNo: index + 1,
               materialId: line.materialId,
               quantity: line.quantity,
+              projectId: existing.kind === "EXPORT" ? line.projectId : null,
+              workItemId: existing.kind === "EXPORT" ? line.workItemId : null,
               note: line.note,
             })),
           },
