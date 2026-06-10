@@ -56,12 +56,17 @@ CREATE TABLE "DocumentAuditLog" (
   CONSTRAINT "DocumentAuditLog_pkey" PRIMARY KEY ("id")
 );
 
+-- Some local demo databases already had an experimental Document table that
+-- added StockMovement.documentId. It was unused by ledger rows, but its FK
+-- blocks this migration from repurposing the column for InventoryDocument.
+ALTER TABLE "StockMovement" DROP CONSTRAINT IF EXISTS "StockMovement_documentId_fkey";
+
 ALTER TABLE "StockMovement"
-  ADD COLUMN "documentId" TEXT,
-  ADD COLUMN "documentLineId" TEXT,
-  ADD COLUMN "documentRevisionNo" INTEGER,
-  ADD COLUMN "supersededAt" TIMESTAMP(3),
-  ADD COLUMN "supersededByRevisionNo" INTEGER;
+  ADD COLUMN IF NOT EXISTS "documentId" TEXT,
+  ADD COLUMN IF NOT EXISTS "documentLineId" TEXT,
+  ADD COLUMN IF NOT EXISTS "documentRevisionNo" INTEGER,
+  ADD COLUMN IF NOT EXISTS "supersededAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "supersededByRevisionNo" INTEGER;
 
 CREATE UNIQUE INDEX "InventoryDocument_code_key" ON "InventoryDocument"("code");
 CREATE INDEX "InventoryDocument_kind_status_idx" ON "InventoryDocument"("kind", "status");
@@ -75,8 +80,8 @@ CREATE INDEX "InventoryDocumentLine_materialId_idx" ON "InventoryDocumentLine"("
 CREATE INDEX "DocumentAuditLog_documentId_idx" ON "DocumentAuditLog"("documentId");
 CREATE INDEX "DocumentAuditLog_changedById_idx" ON "DocumentAuditLog"("changedById");
 CREATE INDEX "DocumentAuditLog_changedAt_idx" ON "DocumentAuditLog"("changedAt");
-CREATE INDEX "StockMovement_documentId_idx" ON "StockMovement"("documentId");
-CREATE INDEX "StockMovement_documentLineId_idx" ON "StockMovement"("documentLineId");
+CREATE INDEX IF NOT EXISTS "StockMovement_documentId_idx" ON "StockMovement"("documentId");
+CREATE INDEX IF NOT EXISTS "StockMovement_documentLineId_idx" ON "StockMovement"("documentLineId");
 
 ALTER TABLE "InventoryDocument" ADD CONSTRAINT "InventoryDocument_warehouseId_fkey" FOREIGN KEY ("warehouseId") REFERENCES "Warehouse"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "InventoryDocument" ADD CONSTRAINT "InventoryDocument_fromWarehouseId_fkey" FOREIGN KEY ("fromWarehouseId") REFERENCES "Warehouse"("id") ON DELETE SET NULL ON UPDATE CASCADE;
