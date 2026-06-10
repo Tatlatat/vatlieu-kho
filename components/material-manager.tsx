@@ -10,6 +10,7 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,17 +23,138 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { createMaterial, updateMaterial } from "@/lib/actions/materials";
+import {
+  MATERIAL_KIND_LABELS,
+  MATERIAL_KIND_VALUES,
+  TRACKING_MODE_LABELS,
+  TRACKING_MODE_VALUES,
+  type MaterialKindValue,
+  type TrackingModeValue,
+} from "@/lib/catalogs/material-catalog";
 import { toast } from "sonner";
+
+interface Unit {
+  id: string;
+  name: string;
+}
 
 interface Material {
   id: string;
   name: string;
   code: string;
   unit: string;
+  unitId: string | null;
+  kind: MaterialKindValue;
+  trackingMode: TrackingModeValue;
   minStock: number;
 }
 
-export function MaterialManager({ materials }: { materials: Material[] }) {
+interface MaterialManagerProps {
+  materials: Material[];
+  units: Unit[];
+}
+
+function selectClassName() {
+  return "h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground";
+}
+
+function MaterialFields({
+  material,
+  units,
+}: {
+  material?: Material;
+  units: Unit[];
+}) {
+  const fallbackUnitId = material?.unitId ?? units.find((unit) => unit.name === material?.unit)?.id ?? "";
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-1 sm:col-span-2">
+        <Label htmlFor={material ? "edit-name" : "name"}>Tên danh mục</Label>
+        <Input
+          id={material ? "edit-name" : "name"}
+          name="name"
+          defaultValue={material?.name ?? ""}
+          required
+          placeholder="Ví dụ: Xi măng PCB40"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={material ? "edit-code" : "code"}>Mã</Label>
+        <Input
+          id={material ? "edit-code" : "code"}
+          name="code"
+          defaultValue={material?.code ?? ""}
+          required
+          placeholder="Ví dụ: XM-PCB40"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={material ? "edit-unitId" : "unitId"}>Đơn vị tính</Label>
+        <select
+          id={material ? "edit-unitId" : "unitId"}
+          name="unitId"
+          defaultValue={fallbackUnitId}
+          required
+          className={selectClassName()}
+        >
+          <option value="" disabled>
+            Chọn đơn vị
+          </option>
+          {units.map((unit) => (
+            <option key={unit.id} value={unit.id}>
+              {unit.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={material ? "edit-kind" : "kind"}>Loại</Label>
+        <select
+          id={material ? "edit-kind" : "kind"}
+          name="kind"
+          defaultValue={material?.kind ?? "MATERIAL"}
+          className={selectClassName()}
+        >
+          {MATERIAL_KIND_VALUES.map((kind) => (
+            <option key={kind} value={kind}>
+              {MATERIAL_KIND_LABELS[kind]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={material ? "edit-trackingMode" : "trackingMode"}>Theo dõi</Label>
+        <select
+          id={material ? "edit-trackingMode" : "trackingMode"}
+          name="trackingMode"
+          defaultValue={material?.trackingMode ?? "QUANTITY"}
+          className={selectClassName()}
+        >
+          {TRACKING_MODE_VALUES.map((mode) => (
+            <option key={mode} value={mode}>
+              {TRACKING_MODE_LABELS[mode]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1 sm:col-span-2">
+        <Label htmlFor={material ? "edit-minStock" : "minStock"}>Tồn kho tối thiểu</Label>
+        <Input
+          id={material ? "edit-minStock" : "minStock"}
+          name="minStock"
+          type="number"
+          step="any"
+          min="0"
+          defaultValue={material ? material.minStock : ""}
+          placeholder="Không nhập thì mặc định 0"
+        />
+      </div>
+    </div>
+  );
+}
+
+export function MaterialManager({ materials, units }: MaterialManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
@@ -46,7 +168,7 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
       try {
         const res = await createMaterial(formData);
         if (res.ok) {
-          toast.success("Thêm vật liệu thành công");
+          toast.success("Thêm danh mục thành công");
           setIsCreateOpen(false);
           router.refresh();
         } else {
@@ -67,7 +189,7 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
       try {
         const res = await updateMaterial(editingMaterial.id, formData);
         if (res.ok) {
-          toast.success("Cập nhật vật liệu thành công");
+          toast.success("Cập nhật danh mục thành công");
           setEditingMaterial(null);
           router.refresh();
         } else {
@@ -82,46 +204,54 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <Button onClick={() => setIsCreateOpen(true)} className="cursor-pointer">
-          Thêm vật liệu
+        <Button onClick={() => setIsCreateOpen(true)} className="cursor-pointer" disabled={units.length === 0}>
+          Thêm danh mục
         </Button>
       </div>
 
       <Card className="shadow-md border border-border">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Danh sách vật tư <span className="text-sm font-normal text-muted-foreground">({materials.length} mã)</span></CardTitle>
+          <CardTitle className="text-lg font-semibold">
+            Danh mục vật tư <span className="text-sm font-normal text-muted-foreground">({materials.length} mã)</span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {materials.length === 0 ? (
             <div className="text-center py-8 text-sm text-muted-foreground">
-              Chưa có vật liệu nào được thêm vào hệ thống.
+              Chưa có danh mục vật tư nào.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tên vật liệu</TableHead>
+                    <TableHead className="w-16">STT</TableHead>
+                    <TableHead>Tên</TableHead>
                     <TableHead>Mã</TableHead>
+                    <TableHead>Loại</TableHead>
                     <TableHead>Đơn vị</TableHead>
-                    <TableHead className="text-right">Mức tối thiểu</TableHead>
+                    <TableHead>Theo dõi</TableHead>
+                    <TableHead className="text-right">Tồn tối thiểu</TableHead>
                     <TableHead className="w-[100px] text-right">Hành động</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {materials.map((m) => (
-                    <TableRow key={m.id}>
-                      <TableCell className="font-semibold text-foreground">
-                        {m.name}
+                  {materials.map((material, index) => (
+                    <TableRow key={material.id}>
+                      <TableCell className="text-muted-foreground">{index + 1}</TableCell>
+                      <TableCell className="font-semibold text-foreground">{material.name}</TableCell>
+                      <TableCell className="font-mono text-xs">{material.code}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{MATERIAL_KIND_LABELS[material.kind]}</Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{m.code}</TableCell>
-                      <TableCell>{m.unit}</TableCell>
-                      <TableCell className="text-right font-medium">{m.minStock}</TableCell>
+                      <TableCell>{material.unit}</TableCell>
+                      <TableCell>{TRACKING_MODE_LABELS[material.trackingMode]}</TableCell>
+                      <TableCell className="text-right font-medium">{material.minStock}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setEditingMaterial(m)}
+                          onClick={() => setEditingMaterial(material)}
                           className="cursor-pointer"
                         >
                           Sửa
@@ -136,39 +266,16 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
         </CardContent>
       </Card>
 
-      {/* Dialog them moi */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Thêm vật liệu mới</DialogTitle>
+            <DialogTitle>Thêm danh mục vật tư</DialogTitle>
             <DialogDescription>
-              Nhập các thông tin cần thiết để tạo mới vật tư.
+              Xe và máy cũng được tạo tại đây để theo dõi cùng hệ thống vật tư.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit} className="space-y-4 py-2">
-            <div className="space-y-1">
-              <Label htmlFor="name">Tên vật liệu</Label>
-              <Input id="name" name="name" required placeholder="Ví dụ: Xi măng PCB40" />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="code">Mã vật liệu</Label>
-              <Input id="code" name="code" required placeholder="Ví dụ: XM-PCB40" />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="unit">Đơn vị tính</Label>
-              <Input id="unit" name="unit" required placeholder="Ví dụ: bao, cây, m3..." />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="minStock">Định mức tồn kho tối thiểu</Label>
-              <Input
-                id="minStock"
-                name="minStock"
-                type="number"
-                step="any"
-                required
-                placeholder="Ví dụ: 20"
-              />
-            </div>
+            <MaterialFields units={units} />
             <div className="flex justify-end gap-3 pt-2">
               <Button
                 type="button"
@@ -179,68 +286,30 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
               >
                 Hủy
               </Button>
-              <Button type="submit" disabled={isPending} className="cursor-pointer">
-                {isPending ? "Đang lưu..." : "Lưu vật liệu"}
+              <Button type="submit" disabled={isPending || units.length === 0} className="cursor-pointer">
+                {isPending ? "Đang lưu..." : "Lưu danh mục"}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog chinh sua */}
       <Dialog
         open={editingMaterial !== null}
         onOpenChange={(open) => {
           if (!open) setEditingMaterial(null);
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Chỉnh sửa vật liệu</DialogTitle>
+            <DialogTitle>Chỉnh sửa danh mục vật tư</DialogTitle>
             <DialogDescription>
-              Cập nhật các thông tin của vật tư này trong hệ thống.
+              Cập nhật tên, đơn vị tính, loại và cách theo dõi của mã này.
             </DialogDescription>
           </DialogHeader>
           {editingMaterial && (
             <form onSubmit={handleEditSubmit} className="space-y-4 py-2">
-              <div className="space-y-1">
-                <Label htmlFor="edit-name">Tên vật liệu</Label>
-                <Input
-                  id="edit-name"
-                  name="name"
-                  defaultValue={editingMaterial.name}
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="edit-code">Mã vật liệu</Label>
-                <Input
-                  id="edit-code"
-                  name="code"
-                  defaultValue={editingMaterial.code}
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="edit-unit">Đơn vị tính</Label>
-                <Input
-                  id="edit-unit"
-                  name="unit"
-                  defaultValue={editingMaterial.unit}
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="edit-minStock">Định mức tồn kho tối thiểu</Label>
-                <Input
-                  id="edit-minStock"
-                  name="minStock"
-                  type="number"
-                  step="any"
-                  defaultValue={editingMaterial.minStock}
-                  required
-                />
-              </div>
+              <MaterialFields material={editingMaterial} units={units} />
               <div className="flex justify-end gap-3 pt-2">
                 <Button
                   type="button"
@@ -251,7 +320,7 @@ export function MaterialManager({ materials }: { materials: Material[] }) {
                 >
                   Hủy
                 </Button>
-                <Button type="submit" disabled={isPending} className="cursor-pointer">
+                <Button type="submit" disabled={isPending || units.length === 0} className="cursor-pointer">
                   {isPending ? "Đang lưu..." : "Lưu thay đổi"}
                 </Button>
               </div>
