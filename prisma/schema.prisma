@@ -63,6 +63,17 @@ enum ProjectStatus {
   CLOSED
 }
 
+enum MaterialKind {
+  MATERIAL
+  VEHICLE
+  MACHINE
+}
+
+enum TrackingMode {
+  QUANTITY
+  HOURS
+}
+
 model User {
   id                String              @id @default(cuid())
   email             String              @unique
@@ -82,17 +93,46 @@ model User {
   materialNormsUpdated MaterialNorm[]    @relation("MaterialNormUpdatedBy")
 }
 
+model Unit {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  note      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  materials Material[]
+}
+
+model Supplier {
+  id        String              @id @default(cuid())
+  code      String              @unique
+  taxCode   String?
+  name      String
+  address   String?
+  note      String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  documents InventoryDocument[]
+}
+
 model Material {
   id             String                  @id @default(cuid())
   name           String
   code           String                  @unique
   unit           String
+  unitId         String?
+  unitRef        Unit?                   @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  kind           MaterialKind            @default(MATERIAL)
+  trackingMode   TrackingMode            @default(QUANTITY)
   minStock       Float                   @default(0)
   createdAt      DateTime                @default(now())
   movements      StockMovement[]
   stocktakeItems StocktakeItem[]
   documentLines  InventoryDocumentLine[]
   materialNorms  MaterialNorm[]
+
+  @@index([unitId])
+  @@index([kind])
+  @@index([trackingMode])
 }
 
 model Warehouse {
@@ -157,6 +197,8 @@ model InventoryDocument {
   fromWarehouse   Warehouse?              @relation("DocumentFromWarehouse", fields: [fromWarehouseId], references: [id])
   toWarehouseId   String?
   toWarehouse     Warehouse?              @relation("DocumentToWarehouse", fields: [toWarehouseId], references: [id])
+  supplierId      String?
+  supplier        Supplier?               @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   reason          MovementReason?
   note            String?
   revisionNo      Int                     @default(1)
@@ -182,6 +224,7 @@ model InventoryDocument {
   @@index([warehouseId])
   @@index([fromWarehouseId])
   @@index([toWarehouseId])
+  @@index([supplierId])
   @@index([createdById])
 }
 
