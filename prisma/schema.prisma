@@ -65,6 +65,12 @@ enum FundDocumentStatus {
   VOIDED
 }
 
+enum PeriodLockScope {
+  INVENTORY
+  FUND
+  ALL
+}
+
 enum DocumentAuditAction {
   CREATE
   POST
@@ -110,6 +116,8 @@ model User {
   fundDocumentsCreated FundDocument[]     @relation("FundDocumentCreatedBy")
   fundDocumentsPosted  FundDocument[]     @relation("FundDocumentPostedBy")
   fundDocumentsVoided  FundDocument[]     @relation("FundDocumentVoidedBy")
+  fundDocumentAuditLogs FundDocumentAuditLog[]
+  periodLocksCreated AccountingPeriodLock[] @relation("PeriodLockCreatedBy")
   positionAssignments UserPositionAssignment[]
   permissionOverrides UserPermissionOverride[]
 }
@@ -424,6 +432,7 @@ model FundDocument {
   voidedAt     DateTime?
   voidReason   String?
   lines        FundDocumentLine[]
+  auditLogs    FundDocumentAuditLog[]
 
   @@index([fundId, documentDate])
   @@index([kind, status])
@@ -442,6 +451,40 @@ model FundDocumentLine {
 
   @@unique([documentId, lineNo])
   @@index([category])
+}
+
+model FundDocumentAuditLog {
+  id             String              @id @default(cuid())
+  documentId     String
+  document       FundDocument        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  action         DocumentAuditAction
+  fromRevisionNo Int?
+  toRevisionNo   Int?
+  reason         String?
+  snapshotBefore Json?
+  snapshotAfter  Json?
+  changedById    String
+  changedBy      User                @relation(fields: [changedById], references: [id])
+  changedAt      DateTime            @default(now())
+
+  @@index([documentId])
+  @@index([changedById])
+  @@index([changedAt])
+}
+
+model AccountingPeriodLock {
+  id          String          @id @default(cuid())
+  scope       PeriodLockScope
+  fromDate    DateTime
+  toDate      DateTime
+  reason      String?
+  createdById String
+  createdBy   User            @relation("PeriodLockCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+
+  @@index([scope, fromDate, toDate])
+  @@index([createdById])
+  @@index([createdAt])
 }
 
 model DocumentAuditLog {

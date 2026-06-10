@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/auth-helpers";
 import { parseFundDocumentDate, parseFundDocumentLines } from "@/lib/funds/document-form";
+import { snapshotFundDocument } from "@/lib/funds/audit";
 import type { FundDocumentKindValue } from "@/lib/funds/report";
+import { assertAccountingPeriodUnlocked } from "@/lib/period-locks";
 
 export interface FundActionResult {
   ok: boolean;
@@ -65,35 +67,51 @@ export async function createFundDocument(formData: FormData): Promise<FundAction
   const fund = await prisma.fund.findUnique({ where: { id: fundId }, select: { id: true } });
   if (!fund) return { ok: false, error: "Quỹ không tồn tại" };
 
-  await prisma.fundDocument.create({
-    data: {
-      code: documentCode(kind),
-      fundId,
-      kind,
-      status: "POSTED",
-      documentDate,
-      note,
-      createdById: user.id,
-      postedById: user.id,
-      postedAt: new Date(),
-      lines: {
-        create: lines.map((line, index) => ({
-          lineNo: index + 1,
-          amount: line.amount,
-          category: line.category,
-          description: line.description,
-          note: line.note,
-        })),
-      },
-    },
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      await assertAccountingPeriodUnlocked(tx, { documentDate, scope: "FUND" });
+
+      await tx.fundDocument.create({
+        data: {
+          code: documentCode(kind),
+          fundId,
+          kind,
+          status: "POSTED",
+          documentDate,
+          note,
+          createdById: user.id,
+          postedById: user.id,
+          postedAt: new Date(),
+          lines: {
+            create: lines.map((line, index) => ({
+              lineNo: index + 1,
+              amount: line.amount,
+              category: line.category,
+              description: line.description,
+              note: line.note,
+            })),
+          },
+          auditLogs: {
+            create: {
+              action: "POST",
+              toRevisionNo: 1,
+              changedById: user.id,
+              reason: "Ghi sổ phiếu quỹ",
+            },
+          },
+        },
+      });
+    });
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Không thể tạo phiếu quỹ" };
+  }
 
   revalidateFundPaths();
   return { ok: true };
 }
 
 export async function updateFundDocument(formData: FormData): Promise<FundActionResult> {
-  await requirePermission("fund.edit_posted");
+  const user = await requirePermission("fund.edit_posted");
 
   let documentId: string;
   let kind: FundDocumentKindValue;
@@ -116,24 +134,30 @@ export async function updateFundDocument(formData: FormData): Promise<FundAction
     await prisma.$transaction(async (tx) => {
       const existing = await tx.fundDocument.findUnique({
         where: { id: documentId },
-        select: { id: true, status: true, revisionNo: true },
+        include: { lines: { orderBy: { lineNo: "asc" } } },
       });
       if (!existing) throw new Error("Không tìm thấy phiếu quỹ");
       if (existing.status === "VOIDED") throw new Error("Không thể sửa phiếu quỹ đã hủy");
       if (existing.status !== "POSTED") throw new Error("Hiện chỉ hỗ trợ sửa phiếu quỹ đã ghi sổ");
 
+      await assertAccountingPeriodUnlocked(tx, { documentDate: existing.documentDate, scope: "FUND" });
+      await assertAccountingPeriodUnlocked(tx, { documentDate, scope: "FUND" });
+
       const fund = await tx.fund.findUnique({ where: { id: fundId }, select: { id: true } });
       if (!fund) throw new Error("Quỹ không tồn tại");
 
+      const snapshotBefore = snapshotFundDocument(existing);
+      const nextRevisionNo = existing.revisionNo + 1;
+
       await tx.fundDocumentLine.deleteMany({ where: { documentId } });
-      await tx.fundDocument.update({
+      const updated = await tx.fundDocument.update({
         where: { id: documentId },
         data: {
           fundId,
           kind,
           documentDate,
           note,
-          revisionNo: existing.revisionNo + 1,
+          revisionNo: nextRevisionNo,
           lines: {
             create: lines.map((line, index) => ({
               lineNo: index + 1,
@@ -143,6 +167,20 @@ export async function updateFundDocument(formData: FormData): Promise<FundAction
               note: line.note,
             })),
           },
+        },
+        include: { lines: { orderBy: { lineNo: "asc" } } },
+      });
+
+      await tx.fundDocumentAuditLog.create({
+        data: {
+          documentId,
+          action: "EDIT_POSTED",
+          fromRevisionNo: existing.revisionNo,
+          toRevisionNo: nextRevisionNo,
+          changedById: user.id,
+          reason: "Sửa phiếu quỹ đã ghi sổ",
+          snapshotBefore,
+          snapshotAfter: snapshotFundDocument(updated),
         },
       });
     });
@@ -168,17 +206,40 @@ export async function voidFundDocument(formData: FormData): Promise<FundActionRe
   if (!reason) return { ok: false, error: "Vui lòng nhập lý do hủy" };
 
   try {
-    await prisma.fundDocument.update({
-      where: { id: documentId, status: "POSTED" },
-      data: {
-        status: "VOIDED",
-        voidedAt: new Date(),
-        voidedById: user.id,
-        voidReason: reason,
-      },
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.fundDocument.findUnique({
+        where: { id: documentId },
+        include: { lines: { orderBy: { lineNo: "asc" } } },
+      });
+      if (!existing) throw new Error("Không tìm thấy phiếu quỹ");
+      if (existing.status !== "POSTED") throw new Error("Phiếu có thể đã bị hủy hoặc chưa ghi sổ");
+
+      await assertAccountingPeriodUnlocked(tx, { documentDate: existing.documentDate, scope: "FUND" });
+
+      await tx.fundDocument.update({
+        where: { id: documentId },
+        data: {
+          status: "VOIDED",
+          voidedAt: new Date(),
+          voidedById: user.id,
+          voidReason: reason,
+        },
+      });
+
+      await tx.fundDocumentAuditLog.create({
+        data: {
+          documentId,
+          action: "VOID",
+          fromRevisionNo: existing.revisionNo,
+          toRevisionNo: existing.revisionNo,
+          changedById: user.id,
+          reason,
+          snapshotBefore: snapshotFundDocument(existing),
+        },
+      });
     });
-  } catch {
-    return { ok: false, error: "Không thể hủy phiếu quỹ. Phiếu có thể không tồn tại hoặc đã bị hủy." };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Không thể hủy phiếu quỹ" };
   }
 
   revalidateFundPaths(documentId);

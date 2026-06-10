@@ -7,6 +7,7 @@ import {
   type FundDocumentStatusValue,
   type FundSignedEntry,
 } from "@/lib/funds/report";
+import { fundAuditActionLabel } from "@/lib/funds/audit";
 
 export type { FundDocumentKindValue, FundDocumentStatusValue };
 export { FUND_KIND_LABELS, FUND_STATUS_LABELS, fundKindLabel, fundStatusLabel } from "@/lib/funds/report";
@@ -75,6 +76,16 @@ export interface FundDocumentDetail {
     category: string;
     description: string;
     note: string | null;
+  }>;
+  auditLogs: Array<{
+    id: string;
+    action: string;
+    actionLabel: string;
+    fromRevisionNo: number | null;
+    toRevisionNo: number | null;
+    reason: string | null;
+    changedAt: Date;
+    changedByName: string;
   }>;
 }
 
@@ -203,6 +214,10 @@ export async function getFundDocumentDetail(id: string): Promise<FundDocumentDet
       postedBy: { select: { name: true } },
       voidedBy: { select: { name: true } },
       lines: { orderBy: { lineNo: "asc" } },
+      auditLogs: {
+        orderBy: { changedAt: "desc" },
+        include: { changedBy: { select: { name: true } } },
+      },
     },
   });
   if (!doc) return null;
@@ -243,6 +258,16 @@ export async function getFundDocumentDetail(id: string): Promise<FundDocumentDet
     voidedByName: doc.voidedBy?.name ?? null,
     totalAmount: lines.reduce((sum, line) => sum + line.amount, 0),
     lines,
+    auditLogs: doc.auditLogs.map((log) => ({
+      id: log.id,
+      action: log.action,
+      actionLabel: fundAuditActionLabel(log.action),
+      fromRevisionNo: log.fromRevisionNo,
+      toRevisionNo: log.toRevisionNo,
+      reason: log.reason,
+      changedAt: log.changedAt,
+      changedByName: log.changedBy.name,
+    })),
   };
 }
 

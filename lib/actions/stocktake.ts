@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/auth-helpers";
 import { getCurrentStock } from "@/lib/queries/stock";
+import { assertAccountingPeriodUnlocked } from "@/lib/period-locks";
 import type { ActionResult } from "@/lib/actions/movements";
 
 /** Tạo phiếu kiểm kê mới: chốt systemQty hiện tại cho mọi vật liệu trong kho chỉ định. */
@@ -79,14 +80,21 @@ export async function approveStocktake(stocktakeId: string): Promise<ActionResul
   }
 
   // Chỉ cập nhật status/approver — trigger Postgres lo phần ghi nhận hao hụt.
-  await prisma.stocktake.update({
-    where: { id: stocktakeId },
-    data: {
-      status: "APPROVED",
-      approvedById: user.id,
-      approvedAt: new Date(),
-    },
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      await assertAccountingPeriodUnlocked(tx, { documentDate: st.createdAt, scope: "INVENTORY" });
+      await tx.stocktake.update({
+        where: { id: stocktakeId },
+        data: {
+          status: "APPROVED",
+          approvedById: user.id,
+          approvedAt: new Date(),
+        },
+      });
+    });
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Không thể duyệt kiểm kê" };
+  }
 
   revalidatePath(`/kiem-ke/${stocktakeId}`);
   revalidatePath("/kiem-ke");

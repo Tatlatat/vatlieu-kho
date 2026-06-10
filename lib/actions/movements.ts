@@ -12,6 +12,7 @@ import {
   shouldRequireOverNormConfirmation,
   type ProjectNormWarning,
 } from "@/lib/projects/norm-warnings";
+import { assertAccountingPeriodUnlocked } from "@/lib/period-locks";
 
 export interface ActionResult {
   ok: boolean;
@@ -63,54 +64,60 @@ export async function createImport(formData: FormData): Promise<ActionResult> {
     if (!supplier) return { ok: false, error: "Nhà cung cấp không tồn tại" };
   }
 
-  await prisma.$transaction(async (tx) => {
-    const postedAt = new Date();
-    const doc = await tx.inventoryDocument.create({
-      data: {
-        code: documentCode("PN"),
-        kind: "IMPORT",
-        status: "POSTED",
-        documentDate,
-        warehouseId,
-        supplierId,
-        reason: "PURCHASE",
-        note,
-        createdById: user.id,
-        postedById: user.id,
-        postedAt,
-        lines: {
-          create: lines.map((line, index) => ({
-            lineNo: index + 1,
-            materialId: line.materialId,
-            quantity: line.quantity,
-            note: line.note,
-          })),
-        },
-        auditLogs: {
-          create: {
-            action: "POST",
-            toRevisionNo: 1,
-            changedById: user.id,
-            reason: "Ghi sổ phiếu nhập",
+  try {
+    await prisma.$transaction(async (tx) => {
+      await assertAccountingPeriodUnlocked(tx, { documentDate, scope: "INVENTORY" });
+
+      const postedAt = new Date();
+      const doc = await tx.inventoryDocument.create({
+        data: {
+          code: documentCode("PN"),
+          kind: "IMPORT",
+          status: "POSTED",
+          documentDate,
+          warehouseId,
+          supplierId,
+          reason: "PURCHASE",
+          note,
+          createdById: user.id,
+          postedById: user.id,
+          postedAt,
+          lines: {
+            create: lines.map((line, index) => ({
+              lineNo: index + 1,
+              materialId: line.materialId,
+              quantity: line.quantity,
+              note: line.note,
+            })),
+          },
+          auditLogs: {
+            create: {
+              action: "POST",
+              toRevisionNo: 1,
+              changedById: user.id,
+              reason: "Ghi sổ phiếu nhập",
+            },
           },
         },
-      },
-      include: { lines: true },
-    });
+        include: { lines: true },
+      });
 
-    const movements = buildStockMovementInputs(
-      {
-        id: doc.id,
-        kind: "IMPORT",
-        revisionNo: doc.revisionNo,
-        warehouseId: doc.warehouseId,
-        note: doc.note,
-        lines: doc.lines,
-      },
-      user.id
-    );
-    await tx.stockMovement.createMany({ data: movements });
-  });
+      const movements = buildStockMovementInputs(
+        {
+          id: doc.id,
+          kind: "IMPORT",
+          revisionNo: doc.revisionNo,
+          warehouseId: doc.warehouseId,
+          note: doc.note,
+          lines: doc.lines,
+        },
+        user.id
+      );
+      await tx.stockMovement.createMany({ data: movements });
+    });
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Không thể tạo phiếu nhập" };
+  }
 
   revalidatePath("/");
   revalidatePath("/nhap");
@@ -150,6 +157,8 @@ export async function createExport(formData: FormData): Promise<ActionResult> {
   // Bug D fix: advisory lock + in-transaction re-check chống race condition tồn âm.
   try {
     await prisma.$transaction(async (tx) => {
+      await assertAccountingPeriodUnlocked(tx, { documentDate, scope: "INVENTORY" });
+
       for (const [materialId, quantity] of aggregateLineQuantities(lines)) {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${materialId + ":" + warehouseId}))`;
         const rows = await tx.$queryRaw<{ on_hand: number }[]>`

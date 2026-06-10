@@ -6,6 +6,7 @@ import { requirePermission } from "@/lib/auth-helpers";
 import { parseDocumentDate } from "@/lib/inventory/document-form";
 import { buildStockMovementInputs } from "@/lib/inventory/posting";
 import { groupOpeningRowsByWarehouse, parseOpeningBalanceRows } from "@/lib/opening/import";
+import { assertAccountingPeriodUnlocked } from "@/lib/period-locks";
 import { prisma } from "@/lib/prisma";
 
 export interface OpeningImportResult {
@@ -93,62 +94,68 @@ export async function createOpeningBalanceDocument(formData: FormData): Promise<
 
   const note = formString(formData, "note") || null;
   const groups = groupOpeningRowsByWarehouse(rows);
-  await prisma.$transaction(async (tx) => {
-    const postedAt = new Date();
-    for (const [index, group] of groups.entries()) {
-      const warehouse = warehouseByCode.get(group.warehouseCode);
-      if (!warehouse) throw new Error(`Không tìm thấy kho: ${group.warehouseCode}`);
+  try {
+    await prisma.$transaction(async (tx) => {
+      await assertAccountingPeriodUnlocked(tx, { documentDate, scope: "INVENTORY" });
 
-      const doc = await tx.inventoryDocument.create({
-        data: {
-          code: documentCode(index),
-          kind: "OPENING",
-          status: "POSTED",
-          documentDate,
-          warehouseId: warehouse.id,
-          reason: "PURCHASE",
-          note,
-          createdById: user.id,
-          postedById: user.id,
-          postedAt,
-          lines: {
-            create: group.rows.map((row, lineIndex) => {
-              const material = materialByCode.get(row.materialCode);
-              if (!material) throw new Error(`Không tìm thấy vật tư: ${row.materialCode}`);
-              return {
-                lineNo: lineIndex + 1,
-                materialId: material.id,
-                quantity: row.quantity,
-                note: row.note,
-              };
-            }),
-          },
-          auditLogs: {
-            create: {
-              action: "POST",
-              toRevisionNo: 1,
-              changedById: user.id,
-              reason: "Import tồn đầu kỳ từ Excel",
+      const postedAt = new Date();
+      for (const [index, group] of groups.entries()) {
+        const warehouse = warehouseByCode.get(group.warehouseCode);
+        if (!warehouse) throw new Error(`Không tìm thấy kho: ${group.warehouseCode}`);
+
+        const doc = await tx.inventoryDocument.create({
+          data: {
+            code: documentCode(index),
+            kind: "OPENING",
+            status: "POSTED",
+            documentDate,
+            warehouseId: warehouse.id,
+            reason: "PURCHASE",
+            note,
+            createdById: user.id,
+            postedById: user.id,
+            postedAt,
+            lines: {
+              create: group.rows.map((row, lineIndex) => {
+                const material = materialByCode.get(row.materialCode);
+                if (!material) throw new Error(`Không tìm thấy vật tư: ${row.materialCode}`);
+                return {
+                  lineNo: lineIndex + 1,
+                  materialId: material.id,
+                  quantity: row.quantity,
+                  note: row.note,
+                };
+              }),
+            },
+            auditLogs: {
+              create: {
+                action: "POST",
+                toRevisionNo: 1,
+                changedById: user.id,
+                reason: "Import tồn đầu kỳ từ Excel",
+              },
             },
           },
-        },
-        include: { lines: true },
-      });
+          include: { lines: true },
+        });
 
-      const movements = buildStockMovementInputs(
-        {
-          id: doc.id,
-          kind: "OPENING",
-          revisionNo: doc.revisionNo,
-          warehouseId: doc.warehouseId,
-          note: doc.note,
-          lines: doc.lines,
-        },
-        user.id
-      );
-      await tx.stockMovement.createMany({ data: movements });
-    }
-  });
+        const movements = buildStockMovementInputs(
+          {
+            id: doc.id,
+            kind: "OPENING",
+            revisionNo: doc.revisionNo,
+            warehouseId: doc.warehouseId,
+            note: doc.note,
+            lines: doc.lines,
+          },
+          user.id
+        );
+        await tx.stockMovement.createMany({ data: movements });
+      }
+    });
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Không thể import tồn đầu kỳ" };
+  }
 
   revalidatePath("/");
   revalidatePath("/bao-cao");

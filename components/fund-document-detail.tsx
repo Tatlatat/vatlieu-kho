@@ -168,6 +168,39 @@ export function FundDocumentDetail({ document, canEdit, canVoid }: Props) {
           </Table>
         </CardContent>
       </Card>
+
+      <Card className="border border-border shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold">Audit phiếu</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Thời điểm</TableHead>
+                <TableHead>Thao tác</TableHead>
+                <TableHead>Người dùng</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {document.auditLogs.map((log) => (
+                <TableRow key={log.id}>
+                  <TableCell className="tabular-nums">{formatDate(log.changedAt)}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{log.actionLabel}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {log.fromRevisionNo ? `Lần ${log.fromRevisionNo}` : ""}
+                      {log.toRevisionNo ? ` -> lần ${log.toRevisionNo}` : ""}
+                    </div>
+                    {log.reason && <div className="text-xs text-muted-foreground">{log.reason}</div>}
+                  </TableCell>
+                  <TableCell>{log.changedByName}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

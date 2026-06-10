@@ -9,9 +9,12 @@ import { permissionForInventoryDocument } from "../lib/permissions/inventory-per
 
 assert.ok(PERMISSION_DEFINITIONS.some((permission) => permission.code === "permission.manage"));
 assert.ok(PERMISSION_DEFINITIONS.some((permission) => permission.code === "inventory.opening.import"));
+assert.ok(PERMISSION_DEFINITIONS.some((permission) => permission.code === "period.lock.manage"));
 assert.ok(POSITION_PRESETS.THU_KHO.permissionCodes.includes("inventory.import.create"));
 assert.equal(POSITION_PRESETS.THU_KHO.permissionCodes.includes("inventory.opening.import"), false);
 assert.equal(POSITION_PRESETS.THU_KHO.permissionCodes.includes("permission.manage"), false);
+assert.equal(POSITION_PRESETS.QUAN_LY.permissionCodes.includes("period.lock.manage"), true);
+assert.equal(POSITION_PRESETS.THU_KHO.permissionCodes.includes("period.lock.manage"), false);
 
 assert.deepEqual(
   calculateEffectivePermissionCodes({

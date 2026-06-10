@@ -4,6 +4,7 @@ export type PermissionCategory =
   | "Chuyển kho"
   | "Kiểm kê"
   | "Báo cáo"
+  | "Khóa kỳ"
   | "Danh mục"
   | "Công trình"
   | "Quỹ"
@@ -145,6 +146,12 @@ export const PERMISSION_DEFINITIONS = [
     description: "Nhập tồn đầu kỳ từ file Excel và ghi sổ phiếu đầu kỳ.",
   },
   {
+    code: "period.lock.manage",
+    name: "Quản lý khóa kỳ",
+    category: "Khóa kỳ",
+    description: "Khóa hoặc mở kỳ để chặn sửa chứng từ kho và quỹ đã chốt.",
+  },
+  {
     code: "catalog.view",
     name: "Xem danh mục",
     category: "Danh mục",
@@ -250,6 +257,7 @@ export const POSITION_PRESETS = {
       "inventory.history.view",
       "inventory.report.view",
       "inventory.opening.import",
+      "period.lock.manage",
       "inventory.import.view",
       "inventory.import.create",
       "inventory.import.void",

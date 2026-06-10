@@ -1,97 +1,173 @@
 # Checklist đưa vatlieu-kho lên Production
 
-> Tài liệu này liệt kê những việc cần làm trước khi để **người dùng thật, dữ liệu thật** sử dụng app. Đánh giá dựa trên rà soát code thực tế (auth.ts, middleware.ts, server actions, seed.ts) — không phải checklist chung chung.
+> Tài liệu này là checklist vận hành cho kiến trúc hiện tại: phiếu kho nhiều dòng, quỹ công trình, công trình/hạng mục/định mức, phân quyền động, audit log và khóa kỳ.
 
-**Phân biệt quan trọng:** App hiện tại là một **demo deploy thật**, chưa phải production. Khác biệt nằm ở 3 chữ: *dữ liệu thật, người dùng thật, hậu quả thật*.
-
----
-
-## ✅ Phần lõi đã sẵn sàng (không cần làm gì thêm)
-
-Những thứ khó nhất đã làm đúng:
-
-- **Mật khẩu băm bcrypt** — `auth.ts` dùng `bcrypt.compare`, không lưu plaintext.
-- **Phân quyền chặt** — `middleware.ts` chặn route theo vai trò (OWNER/STAFF); mọi server action đều `requireUser()`/`requireRole()` + validate Zod (`safeParse`) trước khi chạm DB.
-- **Sổ cái bất biến (append-only)** — bảng `StockMovement` chỉ thêm, không sửa/xóa → audit trail tự nhiên cho nhập/xuất/kiểm kê.
-- **Logic nghiệp vụ trong Postgres** — view `current_stock`, trigger duyệt kiểm kê, CHECK constraint chặn tồn âm → dữ liệu không thể sai dù app có bug.
-- **Migration có version** — thư mục `prisma/migrations/` → deploy DB lặp lại được, an toàn.
-
-➡️ **Kết luận: kiến trúc đã production-grade. Việc còn lại chủ yếu là "dọn dẹp demo" + "vận hành".**
+**Phân biệt quan trọng:** App có thể demo tốt nhưng chưa nên dùng dữ liệu thật nếu chưa đi hết nhóm bắt buộc. Production nghĩa là có người dùng thật, dữ liệu thật, backup thật và hậu quả thật khi chứng từ sai.
 
 ---
 
-## 🔴 BẮT BUỘC — chưa làm thì KHÔNG được dùng thật
+## Trạng thái lõi hiện tại
 
-### 1. Bỏ tài khoản demo lộ trên trang đăng nhập
-**Vấn đề:** `app/login/page.tsx` đang in công khai:
+Đã có các nền tảng quan trọng:
+
+- **Phiếu là nguồn phát sinh chính thức**: nhập, xuất, chuyển kho và tồn đầu kỳ đi qua `InventoryDocument` nhiều dòng.
+- **Sổ kho có audit theo bút toán**: `StockMovement` giữ bút toán, có cơ chế revision/supersede/void thay vì sửa âm thầm lịch sử.
+- **Quỹ công trình có phiếu nhiều dòng**: `FundDocument` và `FundDocumentLine`.
+- **Audit log chứng từ**: phiếu kho có `DocumentAuditLog`, phiếu quỹ có `FundDocumentAuditLog`.
+- **Phân quyền động**: Admin/Quản lý có thể tick quyền chức năng qua catalog permission.
+- **Khóa kỳ**: `AccountingPeriodLock` chặn sửa/tạo/hủy chứng từ kho hoặc quỹ trong kỳ đã chốt.
+- **Báo cáo chính**: nhập-xuất-tồn, tồn theo kho, định mức công trình, quỹ công trình, export Excel và in phiếu.
+
+Những phần này giúp hệ thống có nền để kiểm toán, nhưng vẫn cần checklist vận hành bên dưới trước khi chạy dữ liệu thật.
+
+---
+
+## Bắt buộc trước khi dùng dữ liệu thật
+
+### 1. Gỡ tài khoản demo khỏi trang đăng nhập
+
+Không để trang login hiển thị email/mật khẩu mẫu. Nếu còn tài khoản demo trong production, người ngoài có thể đăng nhập và sửa chứng từ.
+
+Việc cần kiểm:
+
+- `app/login/page.tsx` không in tài khoản/mật khẩu demo.
+- DB production không còn user dùng mật khẩu `123456`.
+
+### 2. Tạo tài khoản thật và mật khẩu mạnh
+
+- Tạo tài khoản Admin thật cho chủ hệ thống.
+- Tạo tài khoản theo vị trí công việc: Quản lý, Thủ kho, Quỹ, hoặc vị trí tùy chỉnh.
+- Mật khẩu tối thiểu 12 ký tự, không dùng chung giữa người dùng.
+- Không dùng chung một tài khoản cho nhiều người vì audit log sẽ mất ý nghĩa.
+
+### 3. Rà phân quyền động
+
+Trước khi chạy thật, Admin phải rà từng nhóm quyền:
+
+- Thủ kho có được sửa phiếu đã ghi sổ không?
+- Ai được hủy phiếu?
+- Ai được quản lý quỹ?
+- Ai được import tồn đầu kỳ?
+- Ai được khóa/mở kỳ?
+- Ai được sửa danh mục vật tư/kho/NCC/công trình?
+
+Nguyên tắc khuyến nghị:
+
+- Quyền `period.lock.manage`, `permission.manage`, `inventory.opening.import` chỉ nên giao cho Admin hoặc Quản lý chịu trách nhiệm.
+- Quyền hủy phiếu nên ít người có hơn quyền tạo/sửa phiếu.
+- UI ẩn nút chỉ là hỗ trợ; server action đã phải kiểm quyền.
+
+### 4. Chạy UAT bằng dữ liệu thật đã ẩn thông tin nhạy cảm
+
+Lấy 10-20 kịch bản thật từ client, nhập vào app và đối chiếu với Excel hiện tại:
+
+- Tồn đầu kỳ.
+- Nhập mua mới.
+- Xuất cho công trình/hạng mục.
+- Chuyển kho.
+- Sửa phiếu đã ghi sổ.
+- Hủy phiếu.
+- Kiểm kê thừa/thiếu.
+- Thu/chi quỹ.
+- Báo cáo định mức công trình.
+
+Chưa đối chiếu được với Excel/client thì chưa nên coi báo cáo là production-ready.
+
+### 5. Kiểm tra khóa kỳ
+
+Trước khi chốt tháng/quý:
+
+- Vào `/khoa-ky`.
+- Khóa phạm vi `Kho`, `Quỹ`, hoặc `Kho và quỹ`.
+- Thử tạo/sửa/hủy một phiếu trong kỳ đã khóa.
+- Hệ thống phải chặn bằng lỗi tiếng Việt.
+- Thử phiếu ngoài kỳ khóa để chắc thao tác vẫn chạy bình thường.
+
+Quy tắc vận hành: sau khi kế toán/quản lý đã đối chiếu xong kỳ, khóa kỳ ngay. Nếu cần sửa số liệu kỳ cũ, phải mở khóa có kiểm soát, sửa xong rồi khóa lại.
+
+### 6. Kiểm tra audit trail
+
+Với ít nhất một phiếu kho và một phiếu quỹ:
+
+- Tạo phiếu.
+- Sửa phiếu đã ghi sổ.
+- Hủy phiếu.
+- Mở chi tiết phiếu và kiểm tra phần audit.
+
+Audit phải trả lời được:
+
+- ai thao tác
+- thao tác lúc nào
+- thao tác gì
+- từ revision nào sang revision nào
+- lý do hủy/sửa nếu có
+
+### 7. Backup và thử restore
+
+Backup chưa thử restore thì chưa được coi là backup.
+
+Việc cần làm:
+
+- Bật backup/PITR ở DB provider nếu có.
+- Có lịch export định kỳ bằng `pg_dump` hoặc cơ chế tương đương.
+- Thử restore sang một DB staging.
+- Kiểm tra app staging đọc được dữ liệu đã restore.
+
+### 8. Cấu hình bảo mật production
+
+- `AUTH_SECRET` phải là chuỗi ngẫu nhiên mạnh, sinh bằng `openssl rand -base64 32`.
+- Không commit `.env`.
+- Không dùng DB production cho local dev.
+- Bật HTTPS/domain riêng khi đưa cho client dùng thật.
+- Cân nhắc rate limit login nếu public URL được chia sẻ rộng.
+
+---
+
+## Rất nên có trong tuần đầu vận hành
+
+- **Error monitoring**: Sentry hoặc công cụ tương đương để biết lỗi thật ngoài production.
+- **Uptime alert**: theo dõi `/api/ping`.
+- **Nhật ký thao tác danh mục/người dùng**: hiện audit mạnh nhất nằm ở chứng từ; danh mục và phân quyền nên được audit thêm khi hệ thống lớn.
+- **Chức năng đổi mật khẩu/quên mật khẩu**: tránh phải sửa DB thủ công.
+- **Hướng dẫn vận hành cho client**: cách tạo phiếu, sửa phiếu, hủy phiếu, khóa kỳ, export báo cáo.
+
+---
+
+## Lệnh kiểm tra trước deploy
+
+Chạy các lệnh sau trên code mới nhất:
+
+```bash
+for f in tests/*.test.ts; do npx tsx "$f" || exit 1; done
+npm run lint
+npm run typecheck
+npx prisma validate
+npm run build
 ```
-Quản lý: owner@vatlieu.vn — mật khẩu 123456
-Thủ kho: staff@vatlieu.vn — mật khẩu 123456
+
+Nếu có migration mới:
+
+```bash
+npx prisma migrate deploy
 ```
-→ Bất kỳ ai mở trang login đều đăng nhập được quyền Quản lý. **Lỗ hổng nghiêm trọng nhất.**
 
-**Cách sửa:** Xóa khối `<div>` "Tài khoản dùng thử" (dòng ~63–67 trong `app/login/page.tsx`).
+Nếu có thay đổi logic Postgres riêng:
 
-### 2. Tạo tài khoản thật + mật khẩu mạnh, xóa tài khoản seed
-**Vấn đề:** Tài khoản hiện có dùng mật khẩu `123456`.
-
-**Cách làm:**
-- Tạo tài khoản thật cho chủ doanh nghiệp + (các) thủ kho, mật khẩu ≥ 12 ký tự.
-- Xóa hẳn `owner@vatlieu.vn` / `staff@vatlieu.vn` khỏi DB production.
-- Tạm thời có thể chèn qua script (băm bằng bcrypt) hoặc thêm trang quản lý người dùng (xem mục 🟠).
-
-### 3. Kiểm tra AUTH_SECRET
-**Vấn đề:** `AUTH_SECRET` ký JWT phiên đăng nhập. Lộ = giả mạo phiên của bất kỳ ai.
-
-**Cách làm:**
-- Sinh chuỗi ngẫu nhiên mạnh: `openssl rand -base64 32`
-- Đặt vào Vercel env (Production), KHÔNG commit vào git.
-- Kiểm tra: `vercel env ls production | grep AUTH_SECRET`
-
-### 4. Dọn dữ liệu mẫu khỏi DB production
-**Vấn đề:** DB đang chứa 8 vật tư mẫu + ~30 giao dịch giả (từ `seed.ts`).
-
-**Cách làm:**
-- Production phải bắt đầu **sạch** hoặc bằng dữ liệu thật.
-- Tách rõ: `seed.ts` chỉ để DEV. Production nhập liệu qua chính giao diện app.
-- Nếu muốn xóa sạch để bắt đầu lại: `TRUNCATE` các bảng theo đúng thứ tự khóa ngoại (Stocktake → StockMovement → Material), hoặc tạo lại DB.
-
-### 5. Bật + kiểm tra backup database
-**Vấn đề:** Chưa có chiến lược backup. Mất DB = mất sạch sổ kho, không lấy lại được.
-
-**Cách làm:**
-- Neon có **Point-in-Time Restore**, nhưng gói free giới hạn cửa sổ thời gian → **kiểm tra gói hiện tại có đủ không**.
-- Cân nhắc export định kỳ: `pg_dump` (qua GitHub Actions cron, tương tự keep-warm) đẩy file backup ra nơi an toàn.
-- **Quan trọng nhất: thử RESTORE một lần** để chắc backup dùng được — backup chưa test = chưa có backup.
+```bash
+npm run db:logic
+```
 
 ---
 
-## 🟠 RẤT NÊN — để an toàn & vận hành lâu dài
+## Điều không nên hứa với client
 
-| Việc | Vì sao cần | Trạng thái |
-|------|-----------|-----------|
-| **Rate limiting trang login** | Chống dò mật khẩu (brute force). Hiện thử mật khẩu vô hạn lần. Dùng Upstash Redis (free tier) hoặc giới hạn theo IP trong middleware. | ❌ Chưa có |
-| **Chức năng đổi mật khẩu trong app** | Để chủ/thủ kho tự đổi, không phải nhờ sửa DB tay. | ❌ Chưa có |
-| **Quên mật khẩu / khôi phục** | Mất mật khẩu hiện không có đường lấy lại (cần SMTP gửi email, hoặc owner reset cho staff). | ❌ Chưa có |
-| **Domain riêng + HTTPS** | `*.vercel.app` thiếu chuyên nghiệp với khách thật. Vercel hỗ trợ gắn domain + cấp SSL tự động. | Đang dùng tên Vercel |
-| **Nâng Vercel Pro (nếu đông người dùng)** | Free-tier: cold-start + function ở Mỹ (chậm ở VN). Đã giảm thiểu bằng keep-warm nhưng chưa triệt để. Pro cho đặt function ở Singapore. | Hobby (free) |
+Không nên nói phần mềm "không bao giờ sai kế toán/kiểm toán". Cách nói đúng hơn:
 
----
+- Hệ thống có phân quyền.
+- Chứng từ có audit trail.
+- Sổ kho không sửa/xóa âm thầm.
+- Có khóa kỳ sau đối chiếu.
+- Có test nghiệp vụ và quy trình UAT với dữ liệu thật.
+- Có backup/restore.
 
-## 🟡 NÊN CÓ — chuyên nghiệp hoá
-
-- **Theo dõi lỗi (error monitoring)** — Sentry (free tier) để biết khi app lỗi với người dùng thật mà họ không báo.
-- **Audit log mở rộng** — ledger StockMovement đã ghi nhập/xuất/kiểm kê; nên ghi thêm ai sửa danh mục vật tư, ai tạo/sửa tài khoản.
-- **Mở rộng vai trò** — hiện chỉ OWNER/STAFF. Nếu doanh nghiệp lớn hơn: thêm vai trò "kế toán" chỉ-xem-báo-cáo, v.v.
-- **Chính sách dữ liệu** — nếu lưu thông tin nhân viên/đối tác, cần biết đang lưu gì, lưu bao lâu.
-- **Health check / uptime alert** — endpoint `/api/ping` đã có; gắn cảnh báo (vd UptimeRobot/Better Uptime) để được báo khi app sập.
-
----
-
-## Thứ tự đề xuất khi bắt tay
-
-1. **Trước khi mời người dùng đầu tiên:** làm hết nhóm 🔴 (đặc biệt #1, #2 — chỉ vài phút mà chặn được lỗ hổng lớn nhất).
-2. **Tuần đầu vận hành:** rate limiting + đổi mật khẩu (🟠).
-3. **Khi app đã được dùng đều:** domain riêng, error monitoring, cân nhắc Pro.
-
-> **Lưu ý chi phí:** Tất cả nhóm 🔴 và phần lớn 🟠 đều **miễn phí** (free tier của Neon/Vercel/Upstash/Sentry). Chỉ Vercel Pro và domain riêng là tốn tiền, và chỉ cần khi app thật sự đông người dùng.
+Đó là cách giảm rủi ro thực tế và có bằng chứng khi cần kiểm tra lại.

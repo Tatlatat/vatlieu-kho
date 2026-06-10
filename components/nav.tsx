@@ -16,6 +16,7 @@ import {
   Building2,
   Users,
   Wallet,
+  LockKeyhole,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const links: { href: string; label: string; icon: typeof Home; permission?: stri
   { href: "/cong-trinh", label: "Công trình", icon: Building2, permission: "project.view" },
   { href: "/quy", label: "Quỹ", icon: Wallet, permission: "fund.view" },
   { href: "/bao-cao", label: "Báo cáo", icon: BarChart3, permission: "inventory.report.view" },
+  { href: "/khoa-ky", label: "Khóa kỳ", icon: LockKeyhole, permission: "period.lock.manage" },
   { href: "/vat-lieu", label: "Danh mục", icon: Boxes, permission: "catalog.view" },
   { href: "/nguoi-dung", label: "Người dùng", icon: Users, permission: "permission.manage" },
 ];

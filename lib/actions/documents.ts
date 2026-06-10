@@ -17,6 +17,7 @@ import { resolveProjectLineAssignments } from "@/lib/projects/resolve-line-proje
 import { stripLineProjectAssignment } from "@/lib/projects/line-projects";
 import { getProjectNormWarnings, shouldRequireOverNormConfirmation } from "@/lib/projects/norm-warnings";
 import { permissionForInventoryDocument } from "@/lib/permissions/inventory-permissions";
+import { assertAccountingPeriodUnlocked } from "@/lib/period-locks";
 import type { ActionResult } from "@/lib/actions/movements";
 
 function formString(formData: FormData, key: string): string {
@@ -213,6 +214,7 @@ export async function voidInventoryDocument(formData: FormData): Promise<ActionR
       if (!doc) throw new Error("Không tìm thấy phiếu");
       if (doc.status === "VOIDED") throw new Error("Phiếu đã bị hủy");
       if (doc.status !== "POSTED") throw new Error("Chỉ hủy được phiếu đã ghi sổ");
+      await assertAccountingPeriodUnlocked(tx, { documentDate: doc.documentDate, scope: "INVENTORY" });
 
       const activeMovements = await tx.stockMovement.findMany({
         where: activeMovementWhere(documentId),
@@ -322,6 +324,8 @@ export async function updateInventoryDocument(formData: FormData): Promise<Actio
       if (!existing) throw new Error("Không tìm thấy phiếu");
       if (existing.status === "VOIDED") throw new Error("Không thể sửa phiếu đã hủy");
       if (existing.status !== "POSTED") throw new Error("Hiện chỉ hỗ trợ sửa phiếu đã ghi sổ");
+      await assertAccountingPeriodUnlocked(tx, { documentDate: existing.documentDate, scope: "INVENTORY" });
+      await assertAccountingPeriodUnlocked(tx, { documentDate, scope: "INVENTORY" });
 
       let nextWarehouseId: string | null = existing.warehouseId;
       let nextFromWarehouseId: string | null = existing.fromWarehouseId;

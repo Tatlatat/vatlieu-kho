@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/auth-helpers";
 import { parseDocumentDate, parseDocumentLines } from "@/lib/inventory/document-form";
 import { buildStockMovementInputs } from "@/lib/inventory/posting";
+import { assertAccountingPeriodUnlocked } from "@/lib/period-locks";
 import type { ActionResult } from "@/lib/actions/movements";
 
 function formString(formData: FormData, key: string): string {
@@ -47,6 +48,8 @@ export async function createTransfer(formData: FormData): Promise<ActionResult> 
   const transferId = randomUUID();
   try {
     await prisma.$transaction(async (tx) => {
+      await assertAccountingPeriodUnlocked(tx, { documentDate, scope: "INVENTORY" });
+
       for (const [materialId, quantity] of aggregateLineQuantities(lines)) {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${materialId + ":" + fromWarehouseId}))`;
         const rows = await tx.$queryRaw<{ on_hand: number }[]>`
