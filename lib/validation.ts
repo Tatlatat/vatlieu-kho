@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MATERIAL_KIND_VALUES, TRACKING_MODE_VALUES } from "@/lib/catalogs/material-catalog";
 
 export const OUT_REASONS = [
   { value: "PROJECT", label: "Xuất cho công trình" },
@@ -37,8 +38,26 @@ export const exportSchema = z.object({
 export const materialSchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên vật liệu"),
   code: z.string().min(1, "Vui lòng nhập mã vật liệu"),
-  unit: z.string().min(1, "Vui lòng nhập đơn vị (bao, cây, m³...)"),
-  minStock: z.coerce.number().min(0, "Mức tối thiểu không được âm"),
+  unitId: z.string().min(1, "Vui lòng chọn đơn vị tính"),
+  minStock: z.preprocess(
+    (value) => (value === "" || value == null ? 0 : value),
+    z.coerce.number().min(0, "Mức tối thiểu không được âm")
+  ),
+  kind: z.enum(MATERIAL_KIND_VALUES).default("MATERIAL"),
+  trackingMode: z.enum(TRACKING_MODE_VALUES).default("QUANTITY"),
+});
+
+export const unitSchema = z.object({
+  name: z.string().trim().min(1, "Vui lòng nhập tên đơn vị tính"),
+  note: z.string().trim().max(500).optional(),
+});
+
+export const supplierSchema = z.object({
+  code: z.string().trim().min(1, "Vui lòng nhập mã nhà cung cấp"),
+  taxCode: z.string().trim().max(50).optional(),
+  name: z.string().trim().min(1, "Vui lòng nhập tên nhà cung cấp"),
+  address: z.string().trim().max(500).optional(),
+  note: z.string().trim().max(500).optional(),
 });
 
 export const warehouseSchema = z.object({
@@ -66,6 +85,8 @@ export const voidSchema = z.object({
 export type ImportInput = z.infer<typeof importSchema>;
 export type ExportInput = z.infer<typeof exportSchema>;
 export type MaterialInput = z.infer<typeof materialSchema>;
+export type UnitInput = z.infer<typeof unitSchema>;
+export type SupplierInput = z.infer<typeof supplierSchema>;
 export type WarehouseInput = z.infer<typeof warehouseSchema>;
 export type TransferInput = z.infer<typeof transferSchema>;
 export type VoidInput = z.infer<typeof voidSchema>;
