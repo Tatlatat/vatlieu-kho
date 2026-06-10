@@ -49,3 +49,19 @@ export function parseDocumentLines(formData: FormData): ParsedDocumentLine[] {
 
   return [{ ...parsed.data, note: parsed.data.note || undefined }];
 }
+
+export function parseDocumentDate(formData: FormData, fallback = new Date()): Date {
+  const rawDate = getString(formData, "documentDate").trim();
+  if (!rawDate) return fallback;
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+    throw new Error("Ngày chứng từ không hợp lệ");
+  }
+
+  const date = new Date(`${rawDate}T00:00:00+07:00`);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Ngày chứng từ không hợp lệ");
+  }
+
+  return date;
+}
