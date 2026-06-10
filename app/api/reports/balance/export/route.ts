@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     warehouseId ? getWarehouses() : Promise.resolve([]),
   ]);
   const warehouse = warehouseId ? warehouses.find((item) => item.id === warehouseId) : null;
-  const buffer = buildBalanceReportWorkbook({
+  const buffer = await buildBalanceReportWorkbook({
     from,
     to,
     warehouseLabel: warehouse ? `${warehouse.name} (${warehouse.code})` : "Tất cả kho",

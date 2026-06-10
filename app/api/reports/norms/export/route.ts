@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const projectId = searchParams.get("projectId") || undefined;
   const rows = await getProjectNormReport(projectId);
-  const buffer = buildNormReportWorkbook({ rows });
+  const buffer = await buildNormReportWorkbook({ rows });
 
   return new Response(new Uint8Array(buffer), {
     headers: {

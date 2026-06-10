@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import * as XLSX from "xlsx";
+import { readSheet } from "read-excel-file/node";
 import { requirePermission } from "@/lib/auth-helpers";
 import { parseDocumentDate } from "@/lib/inventory/document-form";
 import { buildStockMovementInputs } from "@/lib/inventory/posting";
@@ -37,10 +37,19 @@ function unique(values: string[]): string[] {
 
 async function readWorkbookRows(file: File): Promise<unknown[]> {
   const buffer = Buffer.from(await file.arrayBuffer());
-  const workbook = XLSX.read(buffer, { type: "buffer" });
-  const firstSheetName = workbook.SheetNames[0];
-  if (!firstSheetName) throw new Error("File Excel không có sheet dữ liệu");
-  return XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { defval: "" });
+  const sheetRows = await readSheet(buffer as unknown as Parameters<typeof readSheet>[0]);
+  const headerRow = sheetRows[0];
+  if (!headerRow) throw new Error("File Excel không có sheet dữ liệu");
+  const headers = headerRow.map((cell) => String(cell ?? "").trim());
+  return sheetRows.slice(1).map((row) => {
+    const record: Record<string, string | number> = {};
+    headers.forEach((header, index) => {
+      if (!header) return;
+      const value = row[index];
+      record[header] = value == null ? "" : typeof value === "number" ? value : value instanceof Date ? value.toISOString() : String(value);
+    });
+    return record;
+  });
 }
 
 /** Import tồn đầu kỳ: mỗi kho trong file trở thành một phiếu OPENING đã ghi sổ. */

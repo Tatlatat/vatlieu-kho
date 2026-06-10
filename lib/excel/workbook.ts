@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import writeXlsxFile, { type SheetData } from "write-excel-file/node";
 import type { BalanceRow } from "@/lib/queries/balance";
 import type { ProjectNormReportRow } from "@/lib/queries/projects";
 
@@ -13,19 +13,25 @@ export interface NormWorkbookInput {
   rows: ProjectNormReportRow[];
 }
 
-function workbookBuffer(workbook: XLSX.WorkBook): Buffer {
-  return XLSX.write(workbook, { bookType: "xlsx", type: "buffer" }) as Buffer;
+async function workbookBuffer(sheetName: string, rows: Record<string, string | number>[]): Promise<Buffer> {
+  const headers = Object.keys(rows[0] ?? {});
+  const sheetData: SheetData = [
+    headers.map((header) => ({ value: header, type: String, fontWeight: "bold" })),
+    ...rows.map((row) => headers.map((header) => row[header] ?? "")),
+  ];
+  const writer = writeXlsxFile(
+    sheetData,
+    {
+      sheet: sheetName,
+      columns: headers.map((header) => ({ width: Math.max(12, Math.min(32, header.length + 4)) })),
+    },
+    { fontFamily: "Arial", fontSize: 11 }
+  );
+  return writer.toBuffer();
 }
 
-function appendWorksheet(workbook: XLSX.WorkBook, sheetName: string, rows: Record<string, string | number>[]) {
-  const sheet = XLSX.utils.json_to_sheet(rows);
-  XLSX.utils.book_append_sheet(workbook, sheet, sheetName);
-}
-
-export function buildBalanceReportWorkbook(input: BalanceWorkbookInput): Buffer {
-  const workbook = XLSX.utils.book_new();
-  appendWorksheet(
-    workbook,
+export async function buildBalanceReportWorkbook(input: BalanceWorkbookInput): Promise<Buffer> {
+  return workbookBuffer(
     "NXT",
     input.rows.map((row) => ({
       "Từ ngày": input.from,
@@ -42,13 +48,10 @@ export function buildBalanceReportWorkbook(input: BalanceWorkbookInput): Buffer 
       "Tồn cuối": row.closing,
     }))
   );
-  return workbookBuffer(workbook);
 }
 
-export function buildNormReportWorkbook(input: NormWorkbookInput): Buffer {
-  const workbook = XLSX.utils.book_new();
-  appendWorksheet(
-    workbook,
+export async function buildNormReportWorkbook(input: NormWorkbookInput): Promise<Buffer> {
+  return workbookBuffer(
     "Dinh muc",
     input.rows.map((row) => ({
       "Mã công trình": row.projectCode,
@@ -63,5 +66,4 @@ export function buildNormReportWorkbook(input: NormWorkbookInput): Buffer {
       "Trạng thái": row.statusLabel,
     }))
   );
-  return workbookBuffer(workbook);
 }

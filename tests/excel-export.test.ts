@@ -5,9 +5,9 @@ import {
 } from "../lib/excel/workbook";
 
 async function main() {
-  const XLSX = await import("xlsx");
+  const { readSheet } = await import("read-excel-file/node");
   {
-    const buffer = buildBalanceReportWorkbook({
+    const buffer = await buildBalanceReportWorkbook({
       from: "2026-06-01",
       to: "2026-06-10",
       warehouseLabel: "Tất cả kho",
@@ -28,16 +28,14 @@ async function main() {
     });
 
     assert.ok(buffer.length > 0);
-    const workbook = XLSX.read(buffer, { type: "buffer" });
-    assert.deepEqual(workbook.SheetNames, ["NXT"]);
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets.NXT, { defval: "" });
-    assert.equal(rows[0]["Mã vật tư"], "XM-PC40");
-    assert.equal(rows[0]["Tên vật tư"], "Xi măng PC40");
-    assert.equal(rows[0]["Tồn cuối"], 13);
+    const rows = await readSheet(buffer as unknown as Parameters<typeof readSheet>[0]);
+    assert.equal(rows[1][3], "XM-PC40");
+    assert.equal(rows[1][4], "Xi măng PC40");
+    assert.equal(rows[1][11], 13);
   }
 
   {
-    const buffer = buildNormReportWorkbook({
+    const buffer = await buildNormReportWorkbook({
       rows: [
         {
           projectId: "project-1",
@@ -59,12 +57,10 @@ async function main() {
     });
 
     assert.ok(buffer.length > 0);
-    const workbook = XLSX.read(buffer, { type: "buffer" });
-    assert.deepEqual(workbook.SheetNames, ["Dinh muc"]);
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets["Dinh muc"], { defval: "" });
-    assert.equal(rows[0]["Công trình"], "Công trình A");
-    assert.equal(rows[0]["Mã vật tư"], "THEP-D18");
-    assert.equal(rows[0]["Chênh lệch"], 5);
+    const rows = await readSheet(buffer as unknown as Parameters<typeof readSheet>[0]);
+    assert.equal(rows[1][1], "Công trình A");
+    assert.equal(rows[1][3], "THEP-D18");
+    assert.equal(rows[1][8], 5);
   }
 
   console.log("excel-export tests passed");
