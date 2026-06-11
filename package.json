@@ -13,7 +13,8 @@
     "db:logic": "docker exec -i vatlieu_db psql -U vatlieu -d vatlieu < db/postgres-logic.sql",
     "db:seed": "prisma db seed",
     "db:setup": "prisma migrate deploy && npm run db:logic && npm run db:seed",
-    "db:reset-transactions": "tsx scripts/reset-transaction-data.ts"
+    "db:reset-transactions": "tsx scripts/reset-transaction-data.ts",
+    "db:reset-empty-app": "tsx scripts/reset-empty-app-data.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

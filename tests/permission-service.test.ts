@@ -9,6 +9,33 @@ import {
 
 const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+async function countDynamicPermissionRows() {
+  const [positions, positionPermissions, positionAssignments, permissionOverrides] = await Promise.all([
+    prisma.userPosition.count(),
+    prisma.positionPermission.count(),
+    prisma.userPositionAssignment.count(),
+    prisma.userPermissionOverride.count(),
+  ]);
+
+  return {
+    positions,
+    positionPermissions,
+    positionAssignments,
+    permissionOverrides,
+  };
+}
+
+async function restoreCleanDynamicPermissionRows(
+  initialCounts: Awaited<ReturnType<typeof countDynamicPermissionRows>>
+) {
+  if (Object.values(initialCounts).some((count) => count !== 0)) return;
+
+  await prisma.userPermissionOverride.deleteMany({});
+  await prisma.userPositionAssignment.deleteMany({});
+  await prisma.positionPermission.deleteMany({});
+  await prisma.userPosition.deleteMany({});
+}
+
 async function assertSnapshotReadDoesNotSeedPermissions() {
   let seedAttemptCount = 0;
   const readOnlyDb = {
@@ -43,6 +70,7 @@ async function assertSnapshotReadDoesNotSeedPermissions() {
 
 async function main() {
   await assertSnapshotReadDoesNotSeedPermissions();
+  const dynamicPermissionRowCountsBefore = await countDynamicPermissionRows();
 
   const owner = await prisma.user.create({
     data: {
@@ -99,6 +127,12 @@ async function main() {
     await prisma.userPermissionOverride.deleteMany({ where: { userId: { in: [owner.id, staff.id] } } });
     await prisma.userPositionAssignment.deleteMany({ where: { userId: { in: [owner.id, staff.id] } } });
     await prisma.user.deleteMany({ where: { id: { in: [owner.id, staff.id] } } });
+    await restoreCleanDynamicPermissionRows(dynamicPermissionRowCountsBefore);
+    assert.deepEqual(
+      await countDynamicPermissionRows(),
+      dynamicPermissionRowCountsBefore,
+      "permission-service test must not leave dynamic permission rows behind"
+    );
   }
 }
 
