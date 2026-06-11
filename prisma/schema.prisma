@@ -255,7 +255,7 @@ model StockMovement {
   stocktakeId           String?
   stocktake             Stocktake?             @relation("stocktakeAdjustments", fields: [stocktakeId], references: [id])
   documentId            String?
-  document              InventoryDocument?     @relation(fields: [documentId], references: [id])
+  document              InventoryDocument?     @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentLineId        String?
   documentLine          InventoryDocumentLine? @relation(fields: [documentLineId], references: [id])
   documentRevisionNo    Int?

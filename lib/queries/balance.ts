@@ -1,5 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  effectiveStockMovementJoinsSql,
+  effectiveStockMovementWhereSql,
+} from "@/lib/inventory/ledger-scope";
 
 export interface BalanceRow {
   material_id: string;
@@ -23,7 +27,8 @@ function buildQuery(from: string, to: string, whFilter: Prisma.Sql) {
         ((sm."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh') >= ${from}::timestamp AND (sm."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh') < ${to}::timestamp + INTERVAL '1 day') AS in_period
       FROM "StockMovement" sm
       JOIN "Material" m ON m.id = sm."materialId"
-      WHERE sm."voidedAt" IS NULL AND sm."supersededAt" IS NULL AND sm.reason <> 'VOID' ${whFilter}
+      ${effectiveStockMovementJoinsSql}
+      WHERE ${effectiveStockMovementWhereSql} ${whFilter}
     )
     SELECT material_id, name, code, unit,
       COALESCE(SUM(CASE WHEN created_local < ${from}::timestamp THEN signed ELSE 0 END),0) AS opening,
@@ -81,11 +86,11 @@ export async function getMaterialLedger(
   >(Prisma.sql`
     SELECT sm."createdAt" AS created_at, sm.type, sm.reason, sm.quantity,
            w.name AS warehouse_name, sm.note, (sm."voidedAt" IS NOT NULL) AS voided
-    FROM "StockMovement" sm JOIN "Warehouse" w ON w.id = sm."warehouseId"
+    FROM "StockMovement" sm
+    JOIN "Warehouse" w ON w.id = sm."warehouseId"
+    ${effectiveStockMovementJoinsSql}
     WHERE sm."materialId" = ${materialId}
-      AND sm."voidedAt" IS NULL
-      AND sm."supersededAt" IS NULL
-      AND sm.reason <> 'VOID'
+      AND ${effectiveStockMovementWhereSql}
       AND (sm."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh') >= ${from}::timestamp AND (sm."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh') < ${to}::timestamp + INTERVAL '1 day'
       ${whFilter}
     ORDER BY sm."createdAt"`);

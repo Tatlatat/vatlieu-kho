@@ -36,12 +36,26 @@ SELECT
   END                          AS status
 FROM "Material" m
 CROSS JOIN "Warehouse" w
-LEFT JOIN "StockMovement" sm
+LEFT JOIN (
+    SELECT sm2.id
+      , sm2."materialId"
+      , sm2."warehouseId"
+      , sm2.type
+      , sm2.quantity
+      , sm2.reason
+    FROM "StockMovement" sm2
+    LEFT JOIN "InventoryDocument" d ON d.id = sm2."documentId"
+    LEFT JOIN "Stocktake" st ON st.id = sm2."stocktakeId"
+    WHERE sm2."voidedAt" IS NULL
+      AND sm2."supersededAt" IS NULL
+      AND sm2.reason <> 'VOID'
+      AND (
+        (sm2."documentId" IS NOT NULL AND d.status = 'POSTED')
+        OR (sm2."stocktakeId" IS NOT NULL AND st.status = 'APPROVED')
+      )
+  ) sm
   ON sm."materialId" = m.id
   AND sm."warehouseId" = w.id
-  AND sm."voidedAt" IS NULL
-  AND sm."supersededAt" IS NULL
-  AND sm.reason <> 'VOID'
 GROUP BY m.id, m.name, m.code, m.unit, m."minStock", w.id, w.name;
 
 -- ---------------------------------------------------------------------------
@@ -103,9 +117,15 @@ SELECT
   SUM(sm.quantity)                                        AS total_qty,
   COUNT(*)                                                AS movement_count
 FROM "StockMovement" sm
+LEFT JOIN "InventoryDocument" d ON d.id = sm."documentId"
+LEFT JOIN "Stocktake" st ON st.id = sm."stocktakeId"
 WHERE sm.type = 'OUT'
   AND sm."voidedAt" IS NULL
   AND sm."supersededAt" IS NULL
   AND sm.reason IN ('DAMAGED', 'EXPIRED', 'NATURAL_LOSS', 'STOCKTAKE_ADJUST')
+  AND (
+    (sm."documentId" IS NOT NULL AND d.status = 'POSTED')
+    OR (sm."stocktakeId" IS NOT NULL AND st.status = 'APPROVED')
+  )
 GROUP BY date_trunc('month', sm."createdAt"), sm."warehouseId", sm.reason
 ORDER BY month, reason;

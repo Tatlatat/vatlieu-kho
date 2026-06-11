@@ -22,6 +22,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { createSupplier, updateSupplier } from "@/lib/actions/catalogs";
+import { lookupTaxCode } from "@/lib/actions/tax-lookup";
 import { toast } from "sonner";
 
 interface Supplier {
@@ -33,15 +34,35 @@ interface Supplier {
   note: string | null;
 }
 
-function SupplierFields({ supplier }: { supplier?: Supplier }) {
+function SupplierFields({
+  supplier,
+  nameRef,
+  addressRef,
+  isLookingUp,
+  handleTaxCodeBlur,
+}: {
+  supplier?: Supplier;
+  nameRef: React.RefObject<HTMLInputElement | null>;
+  addressRef: React.RefObject<HTMLInputElement | null>;
+  isLookingUp: boolean;
+  handleTaxCodeBlur: (
+    taxCode: string,
+    nameRef: React.RefObject<HTMLInputElement | null>,
+    addressRef: React.RefObject<HTMLInputElement | null>
+  ) => void;
+}) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div className="space-y-1">
-        <Label htmlFor={supplier ? "edit-supplier-taxCode" : "supplier-taxCode"}>Mã số thuế</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor={supplier ? "edit-supplier-taxCode" : "supplier-taxCode"}>Mã số thuế</Label>
+          {isLookingUp && <span className="text-xs text-muted-foreground">Đang tra cứu...</span>}
+        </div>
         <Input
           id={supplier ? "edit-supplier-taxCode" : "supplier-taxCode"}
           name="taxCode"
           defaultValue={supplier?.taxCode ?? ""}
+          onBlur={(event) => handleTaxCodeBlur(event.target.value, nameRef, addressRef)}
           placeholder="Ví dụ: 0312345678"
         />
       </div>
@@ -61,6 +82,7 @@ function SupplierFields({ supplier }: { supplier?: Supplier }) {
           id={supplier ? "edit-supplier-name" : "supplier-name"}
           name="name"
           defaultValue={supplier?.name ?? ""}
+          ref={nameRef}
           required
           placeholder="Ví dụ: Công ty TNHH Vật liệu A"
         />
@@ -71,6 +93,7 @@ function SupplierFields({ supplier }: { supplier?: Supplier }) {
           id={supplier ? "edit-supplier-address" : "supplier-address"}
           name="address"
           defaultValue={supplier?.address ?? ""}
+          ref={addressRef}
           placeholder="Tùy chọn"
         />
       </div>
@@ -96,8 +119,37 @@ export function SupplierManager({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
+  const [isLookingUp, startLookupTransition] = React.useTransition();
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [editingSupplier, setEditingSupplier] = React.useState<Supplier | null>(null);
+  const createNameRef = React.useRef<HTMLInputElement>(null);
+  const createAddressRef = React.useRef<HTMLInputElement>(null);
+  const editNameRef = React.useRef<HTMLInputElement>(null);
+  const editAddressRef = React.useRef<HTMLInputElement>(null);
+
+  const handleTaxCodeBlur = (
+    taxCode: string,
+    nameRef: React.RefObject<HTMLInputElement | null>,
+    addressRef: React.RefObject<HTMLInputElement | null>
+  ) => {
+    const digits = taxCode.trim().replace(/-/g, "");
+    if (!/^\d{10}(\d{3})?$/.test(digits)) return;
+
+    startLookupTransition(async () => {
+      const result = await lookupTaxCode(digits);
+      if (result.ok) {
+        if (nameRef.current && !nameRef.current.value.trim()) {
+          nameRef.current.value = result.name;
+        }
+        if (addressRef.current && !addressRef.current.value.trim()) {
+          addressRef.current.value = result.address;
+        }
+        toast.success("Đã lấy thông tin từ mã số thuế");
+      } else {
+        toast.error(result.error);
+      }
+    });
+  };
 
   const handleCreateSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -191,7 +243,12 @@ export function SupplierManager({
             <DialogDescription>Nhập thông tin NCC để chọn trên phiếu nhập.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit} className="space-y-4 py-2">
-            <SupplierFields />
+            <SupplierFields
+              nameRef={createNameRef}
+              addressRef={createAddressRef}
+              isLookingUp={isLookingUp}
+              handleTaxCodeBlur={handleTaxCodeBlur}
+            />
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isPending}>
                 Hủy
@@ -212,7 +269,13 @@ export function SupplierManager({
           </DialogHeader>
           {editingSupplier && (
             <form onSubmit={handleEditSubmit} className="space-y-4 py-2">
-              <SupplierFields supplier={editingSupplier} />
+              <SupplierFields
+                supplier={editingSupplier}
+                nameRef={editNameRef}
+                addressRef={editAddressRef}
+                isLookingUp={isLookingUp}
+                handleTaxCodeBlur={handleTaxCodeBlur}
+              />
               <div className="flex justify-end gap-3">
                 <Button type="button" variant="outline" onClick={() => setEditingSupplier(null)} disabled={isPending}>
                   Hủy

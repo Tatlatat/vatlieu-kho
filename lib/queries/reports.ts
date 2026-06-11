@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { REASON_LABELS } from "@/lib/validation";
+import {
+  effectiveStockMovementJoinsSql,
+  effectiveStockMovementWhereSql,
+} from "@/lib/inventory/ledger-scope";
 import { getCurrentStock, type StockStatus } from "@/lib/queries/stock";
 
 export interface LossByMonthRow {
@@ -102,9 +106,10 @@ export async function getTopLossMaterials(limit = 5) {
   const rows = await prisma.$queryRaw<{ name: string; unit: string; total: number }[]>`
     SELECT m.name, m.unit, SUM(sm.quantity) AS total
     FROM "StockMovement" sm
+    ${effectiveStockMovementJoinsSql}
     JOIN "Material" m ON m.id = sm."materialId"
     WHERE sm.type = 'OUT'
-      AND sm."voidedAt" IS NULL
+      AND ${effectiveStockMovementWhereSql}
       AND sm.reason IN ('DAMAGED','EXPIRED','NATURAL_LOSS','STOCKTAKE_ADJUST')
     GROUP BY m.name, m.unit
     ORDER BY total DESC

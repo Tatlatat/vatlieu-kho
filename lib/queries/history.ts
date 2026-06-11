@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { effectiveStockMovementWhere } from "@/lib/inventory/ledger-scope";
 
 export interface HistoryRow {
   id: string;
@@ -17,6 +18,7 @@ export interface HistoryRow {
 /** Toàn bộ lịch sử giao dịch (sổ cái), mới nhất trước. */
 export async function getHistory(): Promise<HistoryRow[]> {
   const rows = await prisma.stockMovement.findMany({
+    where: effectiveStockMovementWhere,
     orderBy: { createdAt: "desc" },
     include: {
       material: { select: { name: true, unit: true } },

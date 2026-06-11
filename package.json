@@ -4,15 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "vercel-build": "prisma generate && next build",
+    "build": "prisma migrate deploy && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "db:logic": "docker exec -i vatlieu_db psql -U vatlieu -d vatlieu < db/postgres-logic.sql",
     "db:seed": "prisma db seed",
-    "db:setup": "prisma migrate deploy && npm run db:logic && npm run db:seed"
+    "db:setup": "prisma migrate deploy && npm run db:logic && npm run db:seed",
+    "db:reset-transactions": "tsx scripts/reset-transaction-data.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
